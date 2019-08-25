@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+
+<!--[if lt IE 7 ]> <html lang="pl" class="no-js ie6"> <![endif]-->
+<!--[if IE 7 ]>    <html lang="pl" class="no-js ie7"> <![endif]-->
+<!--[if IE 8 ]>    <html lang="pl" class="no-js ie8"> <![endif]-->
+<!--[if IE 9 ]>    <html lang="pl" class="no-js ie9"> <![endif]-->
+<!--[if (gt IE 9)|!(IE)]><!--> <html lang="pl" class="no-js"> <!--<![endif]-->
+<head>
+	<title>Galaktyka - Universum 2 - SGame</title>
+	<meta name="generator" content="2Moons 1.9.4e">
+	<!-- 
+		This website is powered by 2Moons 1.9.4e
+		2Moons is a free Space Browsergame initially created by Jan Kröpke and licensed under GNU/GPL.
+		2Moons is copyright 2009-2013 of Jan Kröpke. Extensions are copyright of their respective owners.
+		Information and contribution at http://2moons.cc/
+	-->
+		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=1.0" />
+	<link rel="stylesheet" type="text/css" href="./styles/resource/css/base/boilerplate.css?v=1.9.4e">
+	<link rel="stylesheet" type="text/css" href="./styles/resource/css/ingame/main.css?v=1.9.4e">
+	<link rel="stylesheet" type="text/css" href="./styles/resource/css/base/jquery.css?v=1.9.4e">
+	<link rel="stylesheet" type="text/css" href="./styles/resource/css/base/jquery.fancybox.css?v=1.9.4e">
+	<link rel="stylesheet" type="text/css" href="./styles/resource/css/base/validationEngine.jquery.css?v=1.9.4e">
+	<link rel="stylesheet" type="text/css" href="./styles/theme/sgame/formate.css?v=1.9.4e">
+	<link rel="shortcut icon" href="./favicon.ico" type="image/x-icon">
+	<script type="text/javascript">
+	var ServerTimezoneOffset = 0;
+	var serverTime 	= new Date(2019, 5, 21, 23, 13, 09);
+	var startTime	= serverTime.getTime();
+	var localTime 	= serverTime;
+	var localTS 	= startTime;
+	var Gamename	= document.title;
+	var Ready		= "Gotowe";
+	var Skin		= "./styles/theme/sgame/";
+	var Lang		= "pl";
+	var head_info	= "Informacje";
+	var auth		= 0;
+	var days 		= ["Niedziela","Poniedzia\u0142ek","Wtorek","\u015aroda","Czwartek","Pi\u0105tek","Sobota"] 
+	var months 		= ["Stycze\u0144","Luty","Marzec","Kwiecie\u0144","Maj","Czerwiec","Lipiec","Sierpie\u0144","Wrzesie\u0144","Pa\u017adziernik","Listopad","Grudzie\u0144"] ;
+	var tdformat	= "[D] - [d] [M], [H]:[i]:[s]";
+	var queryString	= "page=galaxy";
+	var isPlayerCardActive	= "true";
+
+	setInterval(function() {
+		serverTime.setSeconds(serverTime.getSeconds()+1);
+	}, 1000);
+	</script>
+	<script type="text/javascript" src="./scripts/base/jquery.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/base/jquery.ui.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/base/jquery.cookie.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/base/jquery.fancybox.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/base/jquery.validationEngine.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/l18n/validationEngine/jquery.validationEngine-pl.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/base/tooltip.js?v=1.9.4e"></script>
+	<script type="text/javascript" src="./scripts/game/base.js?v=1.9.4e"></script>
+		<script type="text/javascript" src="./scripts/game/galaxy.js?v=1.9.4e"></script>
+	
+	
+	<script type="text/javascript">
+	$(function() {
+		
+	});
+	</script>
+</head>
+<body id="galaxy" class="full">
+	<div id="tooltip" class="tip"></div>
+<div id="leftmenu">
+	<label for="show-menu-account" class="show-menu">
+		<div id="image_account" class="menu_image"></div>
+	</label>
+	<label for="show-menu-community" class="show-menu">
+		<div id="image_community" class="menu_image"></div>
+	</label>
+	<label for="show-menu-economy" class="show-menu">
+		<div id="image_economy" class="menu_image"></div>
+	</label>
+
+	<input type="checkbox" id="show-menu-account" class="show-menu">
+	<input type="checkbox" id="show-menu-community" class="show-menu">
+	<input type="checkbox" id="show-menu-economy" class="show-menu">
+
+	<nav id="menu">
+		<div class="menu-head"><a href="https://forum.sgame.pl/viewtopic.php?f=4&t=10">Lista zmian</a></div>
+		<div id="economy" class="menu_inner">
+			<ul>
+				<li class="menucat1-head"></li>
+				<li><a href="game.php?page=overview">Podgląd</a></li>
+				<li><a href="game.php?page=imperium">Imperium</a></li>				<li><a href="game.php?page=buildings">Budynki</a></li>				<li><a href="game.php?page=research">Badania</a></li>				<li><a href="game.php?page=resources">Surowce</a></li>				<li><a href="game.php?page=shipyard&amp;mode=fleet">Stocznia</a></li>				<li><a href="game.php?page=fleetTable">Flota</a></li>				<li><a href="game.php?page=shipyard&amp;mode=defense">Obrona</a></li>				<li><a href="game.php?page=trader">Handlarz</a></li>				<li><a href="game.php?page=bank">Bank</a></li>
+				<li><a href="game.php?page=officier">Oficerowie</a></li>				<li><a href="game.php?page=shop">Sklep</a></li>
+				<li><a href="game.php?page=fleetDealer">Demontownia</a></li>				<li><a href="game.php?page=techtree">Technologie</a></li>				<li><a href="game.php?page=tasks"><span class="text_green">Zadania</span></a></li>
+			</ul>
+		</div>
+		<div id="community" class="menu_inner">
+			<ul>
+				<li class="menucat2-head"></li>
+				<li><a href="game.php?page=galaxy">Galaktyka</a></li>				<li><a href="game.php?page=alliance">Sojusz</a></li>				<li><a href="game.php?page=board" target="forum"><span style="color: #45c8ff">Forum</span></a></li>				<li><a href="game.php?page=statistics">Statystyki</a></li>				<li><a href="game.php?page=records">Rekordy</a></li>				<li><a href="game.php?page=search">Szukaj</a></li>				<li><a href="game.php?page=ticket">Pomoc techniczna</a></li>				<li><a href="game.php?page=banList">Zbanowani</a></li>				<li><a href="game.php?page=simulators">Symulatory</a></li>			</ul>
+		</div>
+		<div id="account" class="menu_inner">
+			<ul>
+				<li class="menucat3-head"></li>
+				<li><a href="game.php?page=messages">Wiadomości</a></li>				<li><a href="javascript:OpenPopup('?page=notes', 'notes', 720, 300);">Notes</a></li>				<li><a href="game.php?page=buddyList">Lista znajomych</a></li>				<li><a href="game.php?page=settings">Opcje</a></li>
+				<li><a href="game.php?page=logout">Wyloguj</a></li>
+							</ul>
+		</div>
+		<div class="menu-footer"></div>
+	</nav>
+	<div id="disclamer"><a href="index.php?page=disclamer" target="_blank">Kontakt</a></div>
+
+	<script type="text/javascript" src="./scripts/game/mobile_menu.js?v=1.9.4e"></script>
+</div>
+<div id="page">
+	<div id="header">
+		<table id="headerTable">
+			<tbody>
+				<tr>
+					<td id="planetImage">
+                       <img src="./styles/theme/sgame/planeten/small/s_planet_2.png" alt="">
+					</td>
+					<td id="planetSelectorWrapper">
+						<table>
+							<tr>
+								<td colspan="2">
+									<label for="planetSelector"></label>
+									<select id="planetSelector">
+										<option value="2267">Hunters [1:208:8]</option>
+<option value="4013"> (Księżyc) [1:208:8]</option>
+<option value="4421">Kolonia [1:320:10]</option>
+<option value="4461"> (Księżyc) [1:320:10]</option>
+<option value="1670" selected="selected">Aden [2:8:10]</option>
+<option value="3223"> (Księżyc) [2:8:10]</option>
+<option value="2533">Giran [2:201:9]</option>
+<option value="4014"> (Księżyc) [2:201:9]</option>
+<option value="2426">Rune [3:23:9]</option>
+<option value="4118"> (Księżyc) [3:23:9]</option>
+<option value="2254">Goddart [3:150:6]</option>
+<option value="2735"> (Księżyc) [3:150:6]</option>
+<option value="2273">Shuttgard [4:246:6]</option>
+<option value="4120"> (Księżyc) [4:246:6]</option>
+<option value="3445">Oren [4:327:9]</option>
+<option value="4123"> (Księżyc) [4:327:9]</option>
+<option value="3164">Dion [5:111:9]</option>
+<option value="4122"> (Księżyc) [5:111:9]</option>
+<option value="2276">Heine [5:320:6]</option>
+<option value="4125"> (Księżyc) [5:320:6]</option>
+<option value="2547">Gludio [6:239:9]</option>
+<option value="3237"> (Księżyc) [6:239:9]</option>
+<option value="4723">Kolonia [6:438:10]</option>
+<option value="2775">Gludin [7:263:10]</option>
+<option value="4124"> (Księżyc) [7:263:10]</option>
+<option value="4193">Kolonia [7:458:10]</option>
+<option value="4462"> (Księżyc) [7:458:10]</option>
+
+									</select>
+								</td>
+							</tr>
+							<tr>
+								<td>
+									<input type="button" class="arrow_button" value="<<" onclick="javascript:moveBackward();">
+								</td>
+								<td>
+									<input type="button" class="arrow_button" value=">>" onclick="javascript:moveForward();">
+								</td>
+							</tr>
+						</table>
+					</td>
+					<td id="resourceWrapper">
+						<table id="resourceTable">
+							<tbody>
+								<tr>
+																		<td>
+																					<img src="./styles/theme/sgame/images/metal.png" alt="" class="resource_img">
+																			</td>
+																		<td>
+																					<img src="./styles/theme/sgame/images/crystal.png" alt="" class="resource_img">
+																			</td>
+																		<td>
+																					<img src="./styles/theme/sgame/images/deuterium.png" alt="" class="resource_img">
+																			</td>
+																		<td>
+																					<img src="./styles/theme/sgame/images/energy.png" alt="" class="resource_img">
+																			</td>
+																		<td>
+										<a href="game.php?page=shop">											<img src="./styles/theme/sgame/images/darkmatter.png" alt="" class="resource_img">
+										</a>									</td>
+																		<td>
+										<a href="game.php?page=tritium">											<img src="./styles/theme/sgame/images/tritium.png" alt="" class="resource_img">
+										</a>									</td>
+									
+								</tr>
+								<tr>
+																		<td class="res_name">Metal</td>
+																		<td class="res_name">Kryształ</td>
+																		<td class="res_name">Deuter</td>
+																		<td class="res_name">Energia</td>
+																		<td class="res_name">Helium 3</td>
+																		<td class="res_name">Tryt</td>
+									
+								</tr>
+																<tr>
+																											<td class="res_current" id="current_metal" data-real="163840754.02088">
+																						163.840.754
+																					</td>
+																																				<td class="res_current" id="current_crystal" data-real="109242757.31008">
+																						109.242.757
+																					</td>
+																																				<td class="res_current" id="current_deuterium" data-real="44730235.448053">
+																						44.730.235
+																					</td>
+																																													<td class="res_current"><span>262.571&nbsp;/&nbsp;550.000</span></td>
+																																				<td class="res_current" id="current_darkmatter" data-real="3930">
+										<a href="game.php?page=shop">												3.930
+												</a>									</td>
+																																				<td class="res_current" id="current_tritium" data-real="39155">
+										<a href="game.php?page=tritium">												39.155
+												</a>									</td>
+																		
+								</tr>
+								<tr>
+																											<td class="res_max" id="max_metal" data-real="163840754.02088">3.727.850.000</td>
+																																				<td class="res_max" id="max_crystal" data-real="109242757.31008">2.033.500.000</td>
+																																				<td class="res_max" id="max_deuterium" data-real="44730235.448053">1.109.250.000</td>
+																																				<td>&nbsp;</td>
+																																				<td>&nbsp;</td>
+																																				<td>&nbsp;</td>
+																		
+								</tr>
+															</tbody>
+						</table>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+				<script type="text/javascript">
+		var viewShortlyNumber	= 0;
+		var vacation			= 0;
+        $(function() {
+				            resourceTicker({
+                available: 163840754.02087712,
+                limit: [0, "3727850000"],
+                production: 306562741.41082,
+                valueElem: "current_metal"
+            }, true);
+						            resourceTicker({
+                available: 109242757.3100818,
+                limit: [0, "2033500000"],
+                production: 204404327.60722,
+                valueElem: "current_crystal"
+            }, true);
+						            resourceTicker({
+                available: 44730235.4480533,
+                limit: [0, "1109250000"],
+                production: 83694827.241534,
+                valueElem: "current_deuterium"
+            }, true);
+																
+        });
+		</script>
+        <script src="scripts/game/topnav.js"></script>
+        			</div>
+		<div id="planet_selector_mobile">
+		<label for="planetSelectorMobile"></label>
+		<select id="planetSelectorMobile">
+			<option value="2267">Hunters [1:208:8]</option>
+<option value="4013"> (Księżyc) [1:208:8]</option>
+<option value="4421">Kolonia [1:320:10]</option>
+<option value="4461"> (Księżyc) [1:320:10]</option>
+<option value="1670" selected="selected">Aden [2:8:10]</option>
+<option value="3223"> (Księżyc) [2:8:10]</option>
+<option value="2533">Giran [2:201:9]</option>
+<option value="4014"> (Księżyc) [2:201:9]</option>
+<option value="2426">Rune [3:23:9]</option>
+<option value="4118"> (Księżyc) [3:23:9]</option>
+<option value="2254">Goddart [3:150:6]</option>
+<option value="2735"> (Księżyc) [3:150:6]</option>
+<option value="2273">Shuttgard [4:246:6]</option>
+<option value="4120"> (Księżyc) [4:246:6]</option>
+<option value="3445">Oren [4:327:9]</option>
+<option value="4123"> (Księżyc) [4:327:9]</option>
+<option value="3164">Dion [5:111:9]</option>
+<option value="4122"> (Księżyc) [5:111:9]</option>
+<option value="2276">Heine [5:320:6]</option>
+<option value="4125"> (Księżyc) [5:320:6]</option>
+<option value="2547">Gludio [6:239:9]</option>
+<option value="3237"> (Księżyc) [6:239:9]</option>
+<option value="4723">Kolonia [6:438:10]</option>
+<option value="2775">Gludin [7:263:10]</option>
+<option value="4124"> (Księżyc) [7:263:10]</option>
+<option value="4193">Kolonia [7:458:10]</option>
+<option value="4462"> (Księżyc) [7:458:10]</option>
+
+		</select>
+	</div>
+	<div id="mobile_res_div_container">
+									<div class="res_current tooltip mobile_res_div" id="current_metal" data-real="163840754.02088" data-tooltip-content="163.840.754">
+										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/metal.png" alt="" class="resource_img"></div>
+					<div class="mobile_res_bg_div" 						style="
+								background-image: linear-gradient(to right,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 4.3950468506211%,
+									rgb(0,255,2) 4.3950468506211%,
+									transparent 5.3950468506211%,
+									transparent 100%);
+								background-image: -webkit-linear-gradient(left,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 4.3950468506211%,
+									rgb(0,255,2) 4.3950468506211%,
+									transparent 5.3950468506211%,
+									transparent 100%)"
+							>
+						<span>164&nbsp;M</span>
+					</div>
+									</div>
+												<div class="res_current tooltip mobile_res_div" id="current_crystal" data-real="109242757.31008" data-tooltip-content="109.242.757">
+										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/crystal.png" alt="" class="resource_img"></div>
+					<div class="mobile_res_bg_div" 						style="
+								background-image: linear-gradient(to right,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 5.3721542812924%,
+									rgb(0,255,2) 5.3721542812924%,
+									transparent 6.3721542812924%,
+									transparent 100%);
+								background-image: -webkit-linear-gradient(left,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 5.3721542812924%,
+									rgb(0,255,2) 5.3721542812924%,
+									transparent 6.3721542812924%,
+									transparent 100%)"
+							>
+						<span>109&nbsp;M</span>
+					</div>
+									</div>
+												<div class="res_current tooltip mobile_res_div" id="current_deuterium" data-real="44730235.448053" data-tooltip-content="44.730.235">
+										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/deuterium.png" alt="" class="resource_img"></div>
+					<div class="mobile_res_bg_div" 						style="
+								background-image: linear-gradient(to right,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 4.0324755869329%,
+									rgb(0,255,2) 4.0324755869329%,
+									transparent 5.0324755869329%,
+									transparent 100%);
+								background-image: -webkit-linear-gradient(left,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 4.0324755869329%,
+									rgb(0,255,2) 4.0324755869329%,
+									transparent 5.0324755869329%,
+									transparent 100%)"
+							>
+						<span>44,7&nbsp;M</span>
+					</div>
+									</div>
+																<div class="res_current tooltip mobile_res_div" data-tooltip-content="262.571&nbsp;/&nbsp;550.000">
+					<img src="./styles/theme/sgame/images/energy.png" alt="" class="resource_img">
+					<span>
+						263&nbsp;K&nbsp;/&nbsp;550&nbsp;K
+					</span>
+				</div>
+												<div class="res_current tooltip mobile_res_div" id="current_darkmatter" data-real="3930" data-tooltip-content="3.930">
+					<a class="mobile_res_href" href="game.php?page=shop">					<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/darkmatter.png" alt="" class="resource_img"></div>
+					<div class="mobile_res_bg_div" >
+						<span>3,9&nbsp;K</span>
+					</div>
+					</a>				</div>
+												<div class="res_current tooltip mobile_res_div" id="current_tritium" data-real="39155" data-tooltip-content="39.155">
+					<a class="mobile_res_href" href="game.php?page=tritium">					<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/tritium.png" alt="" class="resource_img"></div>
+					<div class="mobile_res_bg_div" >
+						<span>39,2&nbsp;K</span>
+					</div>
+					</a>				</div>
+					
+	</div>
+<div id="content">
+	<form action="?page=galaxy" method="post" id="galaxy_form">
+	<input type="hidden" id="auto" value="dr">
+	<table style="width: 324px;">
+		<tr>
+			<td class="transparent galaxy_control">
+				<table>
+					<tr>
+						<th colspan="3">Galaktyka</th>
+					</tr>
+					<tr>
+						<td><input type="button" name="galaxyLeft" value="&lt;-" onclick="galaxy_submit('galaxyLeft')"></td>
+						<td><input type="text" name="galaxy" value="2" size="5" maxlength="3" tabindex="1"></td>
+						<td><input type="button" name="galaxyRight" value="-&gt;" onclick="galaxy_submit('galaxyRight')"></td>
+					</tr>
+				</table>
+			</td>
+			<td class="transparent galaxy_control">
+				<table>
+					<tr>
+						<th colspan="3">System</th>
+					</tr>
+					<tr>
+						<td><input type="button" name="systemLeft" value="&lt;-" onclick="galaxy_submit('systemLeft')"></td>
+						<td><input type="text" name="system" value="444" size="5" maxlength="3" tabindex="2"></td>
+						<td><input type="button" name="systemRight" value="-&gt;" onclick="galaxy_submit('systemRight')"></td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+		<tr>
+			<td style="background-color:transparent;border:0px;" colspan="2"> 
+				<input type="submit" value="Pokaż">
+			</td>
+		</tr>
+	</table>
+	</form>
+		<table class="table569">
+    <tr>
+		<th colspan="8">System 2:444</th>
+	</tr>
+	<tr>
+		<th style="white-space: nowrap"><span>Lp.</span></th>
+		<th style="white-space: nowrap"><span class="d_none_360">Planeta</span></th>
+		<th style="white-space: nowrap" class="hidden_720">Nazwa (Aktywność)</th>
+		<th style="white-space: nowrap"><span class="d_none_360">Księżyc</span></th>
+		<th style="white-space: nowrap"><span>PZ</span></th>
+		<th style="white-space: nowrap"><span>Gracz (Status)</span></th>
+		<th style="white-space: nowrap"><span>Sojusz</span></th>
+		<th style="white-space: nowrap" class="hidden_720"><span>Akcja</span></th>
+	</tr>
+    	<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 1);'>1</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 2);'>2</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 3);'>3</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 4);'>4</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			5
+		</td>
+        		<td>
+			<a class="tooltip_sticky" data-tooltip-content="<table style='width:220px'><tr><th colspan='2'>Planeta Kolonia [2:444:5]</th></tr><tr><td style='width:80px'><img src='./styles/theme/sgame/planeten/small/s_planet_22.png' height='75' width='75'></td><td><a href='javascript:doit(6,2686);'>Szpieguj</a><br><br><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=1&amp;target_mission=1'>Atak</a><br><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=1&amp;target_mission=5'>Zatrzymaj</a><br><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=1&amp;target_mission=3'>Transport</a><br></td></tr></table>">
+				<img src="./styles/theme/sgame/planeten/small/s_planet_22.png" height="30" width="30" alt="">
+			</a>
+		</td>
+		<td style="white-space: nowrap;" class="hidden_720">Kolonia </td>
+		<td style="white-space: nowrap;">
+						<a class="tooltip_sticky" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Księżyc  [2:444:5]</th></tr><tr><td style='width:80px'><img src='./styles/theme/sgame/planeten/small/s_moon.png' height='75' width='75'></td><td><table style='width:100%'><tr><th colspan='2'>Funkcje</th></tr><tr><td>Średnica</td><td>2.500</td></tr><tr><td>Temperatura</td><td>-1</td></tr><tr><th colspan=2>Akcja</th></tr><tr><td colspan='2'><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=3&amp;target_mission=1'>Atak</a><br><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=3&amp;target_mission=3'>Transport</a><br><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=3&amp;target_mission=4'>Stacjonuj</a><br><a href='?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=5&amp;planettype=3&amp;target_mission=5'>Zatrzymaj</a><br><a href='javascript:doit(6,3182);'>Szpieguj</a></td></tr></table></td></tr></table>">
+				<img src="./styles/theme/sgame/planeten/small/s_moon.png" height="22" width="22" alt="">
+			</a>
+					</td>
+		<td style="white-space: nowrap;">
+        		</td>
+		<td>
+			<a class="tooltip_sticky" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Gracz despota pozycja w rankingu 131</th></tr><tr><tr><td><a href='#' onclick='return Dialog.Buddy(441)'>Zaproś do znajomych</a></td></tr><tr><td><a href='#' onclick='return Dialog.Playercard(441);'>Karta gracza</a></td></tr><tr><td><a href='?page=statistics&amp;who=1&amp;start=131'>Statystyka</a></td></tr></table>">
+				<span class="galaxy-username-inactive galaxy-username">despota</span>
+
+								<span>(</span><span class="galaxy-short-inactive galaxy-short">i</span><span>)</span>
+							</a>
+		</td>
+		<td style="white-space: nowrap;">
+			-		</td>
+		<td style="white-space: nowrap;" class="hidden_720">
+											<a href="javascript:doit(6,2686,{&quot;210&quot;:&quot;50&quot;})">
+					<img src="./styles/theme/sgame/img/e.gif" title="Szpiegowanie" alt="">
+				</a>								<a href="#" onclick="return Dialog.PM(441)">
+					<img src="./styles/theme/sgame/img/m.gif" title="Napisz wiadomość" alt="">
+				</a>				                <a href="#" onclick="return Dialog.Buddy(441)">
+					<img src="./styles/theme/sgame/img/b.gif" title="Zaproś do znajomych" alt="">
+				</a>												</td>
+		</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 6);'>6</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 7);'>7</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 8);'>8</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 9);'>9</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 10);'>10</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 11);'>11</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 12);'>12</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 13);'>13</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 14);'>14</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 2, 444, 15);'>15</a>
+		</td>
+        <td></td>
+        <td class="hidden_720"></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td class="hidden_720"></td>
+    	</tr>
+	
+	<tr>
+		<td>16</td>
+		<td colspan="7"><a href="?page=fleetTable&amp;galaxy=2&amp;system=444&amp;planet=16&amp;planettype=1&amp;target_mission=15">Ekspedycja na skraj systemu</a></td>
+	</tr>
+	<tr class="hidden_720">
+		<td colspan="6">(1 planeta zamieszkana)</td>
+		<td colspan="2">
+			<a class="tooltip" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Legenda</td></tr><tr><td style='width:220px'>Mocny gracz</td><td><span class='galaxy-short-strong'>s</span></td></tr><tr><td style='width:220px'>Słaby gracz</td><td><span class='galaxy-short-noob'>n</span></td></tr><tr><td style='width:220px'>Urlop</td><td><span class='galaxy-short-vacation'>u</span></td></tr><tr><td style='width:220px'>Zbanowany</td><td><span class='galaxy-short-banned'>g</span></td></tr><tr><td style='width:220px'>7 dni nieaktywny</td><td><span class='galaxy-short-inactive'>i</span></td></tr><tr><td style='width:220px'>28 dni nieaktywny</td><td><span class='galaxy-short-longinactive'>I</span></td></tr></table>">Legenda</a> 
+		</td>
+	</tr>
+	<tr class="hidden_720">
+		<td colspan="3"><span id="missiles">0</span> Rakiety międzyplanetarne</td>
+		<td colspan="5"><span id="slots">7</span>/17 Ilość slotów floty</td>
+	</tr>
+	<tr class="hidden_720">
+		<td colspan="3">
+			<span id="elementID210">2.150</span> Sondy szpiegowskie
+		</td>
+		<td colspan="5">
+			<span id="elementID209">0</span> Recyklery
+		</td>
+	</tr>
+	<tr style="display: none;" id="fleetstatusrow" class="hidden_720">
+		<th colspan="8">Floty</th>
+	</tr>
+	</table>
+	<script type="text/javascript">
+		status_ok		= 'Zrobione';
+		status_fail		= 'Błąd';
+		MaxFleetSetting = 3;
+	</script>
+</div>
+
+<div class="clear"></div>
+<div id="footer">
+		</div>
+</body>
+</html>
