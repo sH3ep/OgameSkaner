@@ -6,12 +6,14 @@
         xmlns:local="clr-namespace:OgameSkaner"
         xmlns:view="clr-namespace:OgameSkaner.View"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="941.691">
 
 
     <Grid>
-        <view:UserPlanetView x:Name = "StudentViewControl"/>
+        <ContentControl Content="{Binding CurrentView, Mode=OneWay}" Margin="148,0,10,0"/>
         <TextBlock HorizontalAlignment="Left" Margin="252,393,0,0" TextWrapping="Wrap" Text="sH3ep  @2019" VerticalAlignment="Top" Width="319"/>
+        <Button Content="UserPlanetView" Command="{Binding ShowUserPlanetViewCommand}" HorizontalAlignment="Left" Margin="10,55,0,0" VerticalAlignment="Top" Width="133" Height="40"/>
+        <Button Content="Get data" Command="{Binding ShowGetDataCommand}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="133" Height="40"/>
     </Grid>
 
 

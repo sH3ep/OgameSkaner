@@ -1,34 +1,71 @@
+using System.Security.Cryptography.X509Certificates;
+using System.Web.UI;
+using System.Windows;
 using GalaSoft.MvvmLight;
+using OgameSkaner.Model;
+using OgameSkaner.View;
+using Prism.Commands;
 
 namespace OgameSkaner.ViewModel
 {
-    /// <summary>
-    /// This class contains properties that the main View can data bind to.
-    /// <para>
-    /// Use the <strong>mvvminpc</strong> snippet to add bindable properties to this ViewModel.
-    /// </para>
-    /// <para>
-    /// You can also use Blend to data bind with the tool's support.
-    /// </para>
-    /// <para>
-    /// See http://www.galasoft.ch/mvvm
-    /// </para>
-    /// </summary>
     public class MainViewModel : ViewModelBase
     {
-        /// <summary>
-        /// Initializes a new instance of the MainViewModel class.
-        /// </summary>
+
+        #region fields
+        private System.Windows.Controls.UserControl _currentView;
+        #endregion
+
+        #region Properties
+        public System.Windows.Controls.UserControl CurrentView
+        {
+            get { return _currentView; }
+            set
+            {
+                _currentView = value;
+                RaisePropertyChanged("CurrentView");
+            }
+        }
+
+        #endregion
+
+        #region Commands
+
+        public DelegateCommand ShowUserPlanetViewCommand { set; get; }
+        public DelegateCommand ShowGetDataCommand { set; get; }
+
+        #endregion
+
+        #region private_Methods
+
+        private void ShowUserPlanetView()
+        {
+            CurrentView = new UserPlanetView();
+        }
+
+        private void ShowGetData()
+        {
+            CurrentView = new GetDataView();
+            
+        }
+
+        #endregion
+
+        #region Can_execute
+
+        private bool CanExecuteButtons()
+        {
+            return true;
+        }
+
+        #endregion
+
         public MainViewModel()
         {
-            ////if (IsInDesignMode)
-            ////{
-            ////    // Code runs in Blend --> create design time data.
-            ////}
-            ////else
-            ////{
-            ////    // Code runs "for real"
-            ////}
+            CurrentView = new UserPlanetView();
+            ShowGetDataCommand = new DelegateCommand(ShowGetData,CanExecuteButtons);
+            ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView,CanExecuteButtons);
+
+
         }
     }
 }
