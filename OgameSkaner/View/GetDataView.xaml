@@ -7,6 +7,8 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid>
-            
+        <Button Content="TestRun" Command="{Binding GetSolarSystemsDataCommand}" HorizontalAlignment="Left" Margin="367,189,0,0" VerticalAlignment="Top" Width="137" Height="50"/>
+        <Label Content="{Binding ApiRequestCounter}" HorizontalAlignment="Left" Margin="396,122,0,0" VerticalAlignment="Top" Height="40" Width="76"/>
+
     </Grid>
 </UserControl>

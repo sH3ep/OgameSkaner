@@ -42,8 +42,6 @@ namespace OgameSkaner.Model
                     {
                         break;
                     }
-
-
                 }
 
 
@@ -145,7 +143,7 @@ namespace OgameSkaner.Model
             try
             {
                 var solarSystemCreationDate = playersPlanets.First(x =>
-                    x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).CreatioDate;
+                    x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).CreationDate;
                 return solarSystemCreationDate;
             }
             catch (ArgumentNullException e)

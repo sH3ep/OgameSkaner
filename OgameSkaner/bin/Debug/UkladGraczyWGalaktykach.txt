@@ -1,7 +1,12 @@
  
+1:1  spieriz
+1:1  spieriz
+1:1  Blodar
+ 
 1:2  Viva
  
 1:3  m4ti
+1:3  MorbidAngel
 1:3  m4ti
  
 1:4  Winiu
@@ -99,8 +104,7 @@
 1:22  gwiezdny1
 1:22  gwiezdny1
  
-1:23  univerek
-1:23  univerek
+1:23  Ralkivius
  
 1:24  K4cyk
  
@@ -114,10 +118,12 @@
  
 1:27  Eonwe
  
+1:28  bomba657
 1:28  Ecc
 1:28  Ecc
 1:28  Ecc
  
+1:29  Rotweiller
 1:29  Rotweiller
 1:29  Rotweiller
 1:29  Rotweiller
@@ -132,6 +138,7 @@
 1:29  Rotweiller
  
 1:30  amon
+1:30  foks99
 1:30  Ecc
  
 1:31  Kel
@@ -158,7 +165,7 @@
 1:34  Grubciosc
 1:34  Grubciosc
 1:34  Grubciosc
-1:34  Kondii
+1:34  TedMis
  
 1:35  Sokół
 1:35  Sokół
@@ -169,13 +176,13 @@
 1:36  Qba
 1:36  Qba
  
-1:37  Kondii
-1:37  Kondii
-1:37  Kondii
-1:37  Kondii
-1:37  Kondii
-1:37  Kondii
-1:37  Kondii
+1:37  TedMis
+1:37  TedMis
+1:37  TedMis
+1:37  TedMis
+1:37  TedMis
+1:37  TedMis
+1:37  TedMis
  
 1:38  lindjo
 1:38  lindjo
@@ -215,6 +222,7 @@
 1:49  bravejanni-Arcor
  
 1:50  Baltyk
+1:50  Lucyfer
 1:50  Lucyfer
 1:50  Winiu
  
@@ -2808,8 +2816,6 @@
 2:209  Hideko
  
 2:215  Wolin
-2:215  siwasolek
-2:215  JedenRaz
  
 2:222  Imper
 2:222  marcel
@@ -3083,218 +3089,3 @@
 3:421  arko1989
  
 3:423  Emeryt
- 
-4:3  Emeryt
- 
-4:6  Lucyfer
- 
-4:71  Viva
- 
-4:75  Kwadryga
- 
-4:90  m4ti
- 
-4:99  Pvo
-4:99  Lord Arcadian
- 
-4:100  karaboska
-4:100  karaboska
- 
-4:101  Starzec
- 
-4:102  Strieju
- 
-4:111  Imper
- 
-4:113  Brak nazwy użytkownika
- 
-4:119  bravejanni-Arcor
- 
-4:120  corleone
- 
-4:121  jakmat
-4:121  Naxtos
-4:121  Naxtos
-4:121  Naxtos
-4:121  Fluorek
- 
-4:125  mdcx
-4:125  mdcx
- 
-4:127  Lubiedacwpaszczu
- 
-4:129  foks99
- 
-4:130  krzak
- 
-4:142  Lucyfer
- 
-4:146  Destiny
- 
-4:147  marcel
- 
-4:150  Qba
- 
-4:159  Baltyk
- 
-4:172  Heimdal
- 
-4:176  MorbidAngel
- 
-4:200  Rumceq
-4:200  Dusha
-4:200  Winiu
- 
-4:222  EbbeSand
-4:222  EbbeSand
- 
-4:242  wisniapl
- 
-4:250  Imper
-4:250  Fifax
- 
-4:251  Marcin2q
-4:251  Marcin2q
- 
-4:254  Lioth
- 
-4:276  adamsik
-4:276  Pvo
- 
-4:281  McGasior
- 
-4:300  Qba
- 
-4:303  Rumceq
-4:303  ownagemaker
- 
-4:316  lindjo
- 
-4:320  Pardi
- 
-4:323  marcel
-4:323  Destiny
- 
-4:333  Starzec
- 
-4:340  corleone
- 
-4:345  m4ti
- 
-4:364  Lubiedacwpaszczu
- 
-4:370  Heimdal
- 
-4:376  MorbidAngel
- 
-4:379  Brak nazwy użytkownika
- 
-4:400  Dusha
- 
-4:423  Emeryt
- 
-4:447  synekrav1
- 
-4:470  kodoj
- 
-7:33  Klaser
- 
-7:52  foks99
- 
-7:77  Berto
-7:77  Qba
-7:77  SparklyMert
-7:77  Ecc
-7:77  m4ti
- 
-7:78  Toudi
-7:78  Toudi
- 
-7:89  Viva
- 
-7:90  Fluorek
- 
-7:91  Pvo
- 
-7:96  bravejanni-Arcor
- 
-7:99  Toudi
- 
-7:100  maworu
-7:100  Lubiedacwpaszczu
- 
-7:101  Starzec
- 
-7:102  marcel
- 
-7:122  Brak nazwy użytkownika
- 
-7:124  MorbidAngel
- 
-7:144  Moonmaker
- 
-7:154  EbbeSand
- 
-7:158  Destiny
- 
-7:160  corleone
- 
-7:161  Mensenso
-7:161  Mensenso
-7:161  Mensenso
-7:161  Mensenso
-7:161  Mensenso
- 
-7:163  Mensenso
- 
-7:201  Lucyfer
- 
-7:212  Klaser
- 
-7:222  Heimdal
- 
-7:233  lindjo
-7:233  lindjo
- 
-7:249  Marcin2q
-7:249  Marcin2q
- 
-7:250  Imper
-7:250  Imper
-7:250  Winiu
- 
-7:258  EMIKU
- 
-7:275  Baltyk
-7:275  pawel1991
- 
-7:276  KARBON
-7:276  Heimdal
- 
-7:317  marcel
- 
-7:323  MorbidAngel
- 
-7:333  Qba
- 
-7:353  Destiny
- 
-7:389  corleone
- 
-7:390  Andrrews
-7:390  Andrrews
-7:390  Andrrews
-7:390  I4X7
-7:390  I4X7
-7:390  I4X7
- 
-7:397  Brak nazwy użytkownika
- 
-7:409  Fifax
- 
-7:480  Lubiedacwpaszczu
- 
-7:497  kodoj
- 
-7:499  Baltyk
-7:499  Dooddania

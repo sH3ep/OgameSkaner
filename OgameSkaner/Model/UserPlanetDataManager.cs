@@ -33,11 +33,16 @@ namespace OgameSkaner.Model
         public ObservableCollection<UserPlanet> LoadFromXml()
         {
             XmlSerializer serialiser = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
-            TextReader filestream = new StreamReader("GalaxyDatabase.xml");
-            _userPlanets.Clear();
-            _userPlanets = (ObservableCollection<UserPlanet>)serialiser.Deserialize(filestream);
-            filestream.Close();
-            return _userPlanets;
+    
+            {
+                TextReader filestream = new StreamReader("GalaxyDatabase.xml");
+                _userPlanets.Clear();
+                _userPlanets = (ObservableCollection<UserPlanet>)serialiser.Deserialize(filestream);
+                filestream.Close();
+                return _userPlanets;
+            }
+
+           
         }
 
         public ObservableCollection<UserPlanet> FilterDataByUserName(string userName)

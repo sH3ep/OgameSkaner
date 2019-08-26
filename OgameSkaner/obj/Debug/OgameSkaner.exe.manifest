@@ -90,14 +90,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="OgameSkaner.exe" size="39392">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="OgameSkaner.exe" size="42976">
       <assemblyIdentity name="OgameSkaner" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>U5wzzWpf7K95owcp2dMN5p1XpiPH9AwRskI/4h84nb4=</dsig:DigestValue>
+        <dsig:DigestValue>GosUua6tgwWNajexQjPrnIEMCwfGjxT/EEzCWogb750=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -149,13 +149,13 @@
       </hash>
     </dependentAssembly>
   </dependency>
-  <file name="OgameSkaner.exe.config" size="547">
+  <file name="OgameSkaner.exe.config" size="620">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>4l4nujaXLDtyPKMxHWXvllNydwBhOpr0Y6vmIpzGAVM=</dsig:DigestValue>
+      <dsig:DigestValue>EofY4JMtp4cxwKaGsNgXwlEKLRrM9JK4MYOb53ubgLw=</dsig:DigestValue>
     </hash>
   </file>
 </asmv1:assembly>

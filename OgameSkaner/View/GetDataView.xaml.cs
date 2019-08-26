@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using OgameSkaner.ViewModel;
 
 namespace OgameSkaner.View
 {
@@ -23,6 +24,7 @@ namespace OgameSkaner.View
         public GetDataView()
         {
             InitializeComponent();
+            this.DataContext = new GetDataViewModel();
         }
     }
 }

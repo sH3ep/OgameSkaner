@@ -79,7 +79,7 @@ namespace OgameSkaner.ViewModel
         private void GetOverviewPage()
         {
             var sgameClient = new SgameRestClient();
-            sgameClient.GetSolarSystemPhpFile(1,1);
+            sgameClient.GetSolarSystem(1,1);
         }
 
         private void GetFolderLocalization()

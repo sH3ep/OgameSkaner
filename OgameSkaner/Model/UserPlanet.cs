@@ -46,7 +46,7 @@ namespace OgameSkaner.Model
 
         #region Public properties
 
-        public DateTime CreatioDate
+        public DateTime CreationDate
         {
             get { return _creationDate; }
             set { _creationDate = value; }
