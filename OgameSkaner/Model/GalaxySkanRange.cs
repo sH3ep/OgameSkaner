@@ -49,22 +49,22 @@ namespace OgameSkaner.Model
                 return false;
             }
 
-            if (_startGalaxy < 1 && _startGalaxy > 7)
+            if (_startGalaxy < 1 || _startGalaxy > 7)
             {
                 return false;
             }
 
-            if (_startSystem < 1 && _startSystem > 499)
+            if (_startSystem < 1 || _startSystem > 499)
             {
                 return false;
             }
 
-            if (_endGalaxy < 1 && _endGalaxy > 7)
+            if (_endGalaxy < 1 || _endGalaxy > 7)
             {
                 return false;
             }
 
-            if (_endSystem < 1 && _endSystem > 499)
+            if (_endSystem < 1 || _endSystem > 499)
             {
                 return false;
             }

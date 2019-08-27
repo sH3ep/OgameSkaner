@@ -6,7 +6,7 @@
 <!--[if IE 9 ]>    <html lang="pl" class="no-js ie9"> <![endif]-->
 <!--[if (gt IE 9)|!(IE)]><!--> <html lang="pl" class="no-js"> <!--<![endif]-->
 <head>
-	<title>Galaktyka - Universum 2 - SGame</title>
+	<title>Podgląd - Universum 2 - SGame</title>
 	<meta name="generator" content="2Moons 1.9.4e">
 	<!-- 
 		This website is powered by 2Moons 1.9.4e
@@ -25,7 +25,7 @@
 	<link rel="shortcut icon" href="./favicon.ico" type="image/x-icon">
 	<script type="text/javascript">
 	var ServerTimezoneOffset = 0;
-	var serverTime 	= new Date(2019, 7, 27, 13, 58, 52);
+	var serverTime 	= new Date(2019, 7, 27, 22, 30, 11);
 	var startTime	= serverTime.getTime();
 	var localTime 	= serverTime;
 	var localTS 	= startTime;
@@ -38,7 +38,7 @@
 	var days 		= ["Niedziela","Poniedzia\u0142ek","Wtorek","\u015aroda","Czwartek","Pi\u0105tek","Sobota"] 
 	var months 		= ["Stycze\u0144","Luty","Marzec","Kwiecie\u0144","Maj","Czerwiec","Lipiec","Sierpie\u0144","Wrzesie\u0144","Pa\u017adziernik","Listopad","Grudzie\u0144"] ;
 	var tdformat	= "[D] - [d] [M], [H]:[i]:[s]";
-	var queryString	= "page=galaxy";
+	var queryString	= "page=overview";
 	var isPlayerCardActive	= "true";
 
 	setInterval(function() {
@@ -53,16 +53,26 @@
 	<script type="text/javascript" src="./scripts/l18n/validationEngine/jquery.validationEngine-pl.js?v=1.9.4e"></script>
 	<script type="text/javascript" src="./scripts/base/tooltip.js?v=1.9.4e"></script>
 	<script type="text/javascript" src="./scripts/game/base.js?v=1.9.4e"></script>
-		<script type="text/javascript" src="./scripts/game/galaxy.js?v=1.9.4e"></script>
 	
 	
+    <script src="scripts/game/overview.js"></script>
+	<script>
+        $(function() {
+            $("#planetListContainer").niceScroll({
+                cursorcolor:	"#1E2237",
+                cursorwidth:	"2px",
+				cursorborder: 	"1px solid #0d1014"
+            });
+        });
+	</script>
+
 	<script type="text/javascript">
 	$(function() {
 		
 	});
 	</script>
 </head>
-<body id="galaxy" class="full">
+<body id="overview" class="full">
 	<div id="tooltip" class="tip"></div>
 <div id="leftmenu">
 	<label for="show-menu-account" class="show-menu">
@@ -98,7 +108,7 @@
 		<div id="account" class="menu_inner">
 			<ul>
 				<li class="menucat3-head"></li>
-				<li><a href="game.php?page=messages">Wiadomości<span id="newmes"> (<span id="newmesnum">7</span>)</span></a></li>				<li><a href="javascript:OpenPopup('?page=notes', 'notes', 720, 300);">Notes</a></li>				<li><a href="game.php?page=buddyList">Lista znajomych</a></li>				<li><a href="game.php?page=settings">Opcje</a></li>
+				<li><a href="game.php?page=messages">Wiadomości</a></li>				<li><a href="javascript:OpenPopup('?page=notes', 'notes', 720, 300);">Notes</a></li>				<li><a href="game.php?page=buddyList">Lista znajomych</a></li>				<li><a href="game.php?page=settings">Opcje</a></li>
 				<li><a href="game.php?page=logout">Wyloguj</a></li>
 							</ul>
 		</div>
@@ -199,14 +209,14 @@
 									
 								</tr>
 																<tr>
-																											<td class="res_current" id="current_metal" data-real="33843022871.891">
-																						33.843.022.872
+																											<td class="res_current" id="current_metal" data-real="406524982.61652">
+																						406.524.983
 																					</td>
-																																				<td class="res_current" id="current_crystal" data-real="22563523359.597">
-																						22.563.523.360
+																																				<td class="res_current" id="current_crystal" data-real="26485434770.817">
+																						26.485.434.771
 																					</td>
-																																				<td class="res_current" id="current_deuterium" data-real="33769201180.459">
-																						33.769.201.180
+																																				<td class="res_current" id="current_deuterium" data-real="52554601050.354">
+																						52.554.601.050
 																					</td>
 																																													<td class="res_current"><span>287.691&nbsp;/&nbsp;1.134.155</span></td>
 																																				<td class="res_current" id="current_darkmatter" data-real="19373">
@@ -218,9 +228,9 @@
 																		
 								</tr>
 								<tr>
-																											<td class="res_max" id="max_metal" data-real="33843022871.891">1.597.890.400.000</td>
-																																				<td class="res_max" id="max_crystal" data-real="22563523359.597">1.597.890.400.000</td>
-																																				<td class="res_max" id="max_deuterium" data-real="33769201180.459">2.929.245.450.000</td>
+																											<td class="res_max" id="max_metal" data-real="406524982.61652">1.597.890.400.000</td>
+																																				<td class="res_max" id="max_crystal" data-real="26485434770.817">1.597.890.400.000</td>
+																																				<td class="res_max" id="max_deuterium" data-real="52554601050.354">2.929.245.450.000</td>
 																																				<td>&nbsp;</td>
 																																				<td>&nbsp;</td>
 																																				<td>&nbsp;</td>
@@ -237,19 +247,19 @@
 		var vacation			= 0;
         $(function() {
 				            resourceTicker({
-                available: 33843022871.89143,
+                available: 406524982.61652434,
                 limit: [0, "1597890400000"],
                 production: 1309024988.7473,
                 valueElem: "current_metal"
             }, true);
 						            resourceTicker({
-                available: 22563523359.596657,
+                available: 26485434770.81705,
                 limit: [0, "1597890400000"],
                 production: 872741659.16489,
                 valueElem: "current_crystal"
             }, true);
 						            resourceTicker({
-                available: 33769201180.458855,
+                available: 52554601050.353745,
                 limit: [0, "2929245450000"],
                 production: 405083883.07222,
                 valueElem: "current_deuterium"
@@ -295,55 +305,55 @@
 		</select>
 	</div>
 	<div id="mobile_res_div_container">
-									<div class="res_current tooltip mobile_res_div" id="current_metal" data-real="33843022871.891" data-tooltip-content="33.843.022.872">
+									<div class="res_current tooltip mobile_res_div" id="current_metal" data-real="406524982.61652" data-tooltip-content="406.524.983">
 										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/metal.png" alt="" class="resource_img"></div>
 					<div class="mobile_res_bg_div" 						style="
 								background-image: linear-gradient(to right,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 2.1179814880853%,
-									rgb(0,255,2) 2.1179814880853%,
-									transparent 3.1179814880853%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 0.025441355841209%,
+									rgb(0,255,2) 0.025441355841209%,
+									transparent 1.0254413558412%,
 									transparent 100%);
 								background-image: -webkit-linear-gradient(left,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 2.1179814880853%,
-									rgb(0,255,2) 2.1179814880853%,
-									transparent 3.1179814880853%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 0.025441355841209%,
+									rgb(0,255,2) 0.025441355841209%,
+									transparent 1.0254413558412%,
 									transparent 100%)"
 							>
-						<span>33.843&nbsp;M</span>
+						<span>407&nbsp;M</span>
 					</div>
 									</div>
-												<div class="res_current tooltip mobile_res_div" id="current_crystal" data-real="22563523359.597" data-tooltip-content="22.563.523.360">
+												<div class="res_current tooltip mobile_res_div" id="current_crystal" data-real="26485434770.817" data-tooltip-content="26.485.434.771">
 										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/crystal.png" alt="" class="resource_img"></div>
 					<div class="mobile_res_bg_div" 						style="
 								background-image: linear-gradient(to right,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.4120820401447%,
-									rgb(0,255,2) 1.4120820401447%,
-									transparent 2.4120820401447%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.6575251200468%,
+									rgb(0,255,2) 1.6575251200468%,
+									transparent 2.6575251200468%,
 									transparent 100%);
 								background-image: -webkit-linear-gradient(left,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.4120820401447%,
-									rgb(0,255,2) 1.4120820401447%,
-									transparent 2.4120820401447%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.6575251200468%,
+									rgb(0,255,2) 1.6575251200468%,
+									transparent 2.6575251200468%,
 									transparent 100%)"
 							>
-						<span>22.564&nbsp;M</span>
+						<span>26.485&nbsp;M</span>
 					</div>
 									</div>
-												<div class="res_current tooltip mobile_res_div" id="current_deuterium" data-real="33769201180.459" data-tooltip-content="33.769.201.180">
+												<div class="res_current tooltip mobile_res_div" id="current_deuterium" data-real="52554601050.354" data-tooltip-content="52.554.601.050">
 										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/deuterium.png" alt="" class="resource_img"></div>
 					<div class="mobile_res_bg_div" 						style="
 								background-image: linear-gradient(to right,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.1528293465629%,
-									rgb(0,255,2) 1.1528293465629%,
-									transparent 2.1528293465629%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.7941344263368%,
+									rgb(0,255,2) 1.7941344263368%,
+									transparent 2.7941344263368%,
 									transparent 100%);
 								background-image: -webkit-linear-gradient(left,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.1528293465629%,
-									rgb(0,255,2) 1.1528293465629%,
-									transparent 2.1528293465629%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.7941344263368%,
+									rgb(0,255,2) 1.7941344263368%,
+									transparent 2.7941344263368%,
 									transparent 100%)"
 							>
-						<span>33.769&nbsp;M</span>
+						<span>52.555&nbsp;M</span>
 					</div>
 									</div>
 																<div class="res_current tooltip mobile_res_div" data-tooltip-content="287.691&nbsp;/&nbsp;1.134.155">
@@ -367,290 +377,108 @@
 					
 	</div>
 <div id="content">
-	<form action="?page=galaxy" method="post" id="galaxy_form">
-	<input type="hidden" id="auto" value="dr">
-	<table style="width: 324px;">
-		<tr>
-			<td class="transparent galaxy_control">
-				<table>
-					<tr>
-						<th colspan="3">Galaktyka</th>
-					</tr>
-					<tr>
-						<td><input type="button" name="galaxyLeft" value="&lt;-" onclick="galaxy_submit('galaxyLeft')"></td>
-						<td><input type="text" name="galaxy" value="1" size="5" maxlength="3" tabindex="1"></td>
-						<td><input type="button" name="galaxyRight" value="-&gt;" onclick="galaxy_submit('galaxyRight')"></td>
-					</tr>
-				</table>
-			</td>
-			<td class="transparent galaxy_control">
-				<table>
-					<tr>
-						<th colspan="3">System</th>
-					</tr>
-					<tr>
-						<td><input type="button" name="systemLeft" value="&lt;-" onclick="galaxy_submit('systemLeft')"></td>
-						<td><input type="text" name="system" value="111" size="5" maxlength="3" tabindex="2"></td>
-						<td><input type="button" name="systemRight" value="-&gt;" onclick="galaxy_submit('systemRight')"></td>
-					</tr>
-				</table>
-			</td>
-		</tr>
-		<tr>
-			<td style="background-color:transparent;border:0px;" colspan="2"> 
-				<input type="submit" value="Pokaż">
-			</td>
-		</tr>
-	</table>
-	</form>
-		<table class="table569">
-    <tr>
-		<th colspan="8">System 1:111</th>
-	</tr>
-	<tr>
-		<th style="white-space: nowrap"><span>Lp.</span></th>
-		<th style="white-space: nowrap"><span class="d_none_360">Planeta</span></th>
-		<th style="white-space: nowrap" class="hidden_720">Nazwa (Aktywność)</th>
-		<th style="white-space: nowrap"><span class="d_none_360">Księżyc</span></th>
-		<th style="white-space: nowrap"><span>PZ</span></th>
-		<th style="white-space: nowrap"><span>Gracz (Status)</span></th>
-		<th style="white-space: nowrap"><span>Sojusz</span></th>
-		<th style="white-space: nowrap" class="hidden_720"><span>Akcja</span></th>
-	</tr>
-    	<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 1);'>1</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 2);'>2</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 3);'>3</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 4);'>4</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 5);'>5</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			6
-		</td>
-        		<td>
-			<a class="tooltip_sticky" data-tooltip-content="<table style='width:220px'><tr><th colspan='2'>Planeta Planeta matka [1:111:6]</th></tr><tr><td style='width:80px'><img src='./styles/theme/sgame/planeten/small/s_planet_11.png' height='75' width='75'></td><td><a href='javascript:doit(6,211);'>Szpieguj</a><br><br><a href='?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=6&amp;planettype=1&amp;target_mission=1'>Atak</a><br><a href='?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=6&amp;planettype=1&amp;target_mission=5'>Zatrzymaj</a><br><a href='?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=6&amp;planettype=1&amp;target_mission=3'>Transport</a><br></td></tr></table>">
-				<img src="./styles/theme/sgame/planeten/small/s_planet_11.png" height="30" width="30" alt="">
-			</a>
-		</td>
-		<td style="white-space: nowrap;" class="hidden_720">Planeta matka (30 min)</td>
-		<td style="white-space: nowrap;">
-					</td>
-		<td style="white-space: nowrap;">
-        		</td>
-		<td>
-			<a class="tooltip_sticky" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Gracz kalosz15 pozycja w rankingu 470</th></tr><tr><tr><td><a href='#' onclick='return Dialog.Buddy(110)'>Zaproś do znajomych</a></td></tr><tr><td><a href='#' onclick='return Dialog.Playercard(110);'>Karta gracza</a></td></tr><tr><td><a href='?page=statistics&amp;who=1&amp;start=470'>Statystyka</a></td></tr></table>">
-				<span class="galaxy-username-inactive galaxy-username-longinactive galaxy-username">kalosz15</span>
+	<script type="text/javascript" src="./scripts/game/change_planet.js"></script>
+	<script type="text/javascript" src="./scripts/base/jquery.nicescroll.js"></script>
 
-								<span>(</span><span class="galaxy-short-inactive galaxy-short">i</span>&nbsp;<span class="galaxy-short-longinactive galaxy-short">I</span><span>)</span>
-							</a>
-		</td>
-		<td style="white-space: nowrap;">
-			-		</td>
-		<td style="white-space: nowrap;" class="hidden_720">
-											<a href="javascript:doit(6,211,{&quot;210&quot;:&quot;50&quot;})">
-					<img src="./styles/theme/sgame/img/e.gif" title="Szpiegowanie" alt="">
-				</a>								<a href="#" onclick="return Dialog.PM(110)">
-					<img src="./styles/theme/sgame/img/m.gif" title="Napisz wiadomość" alt="">
-				</a>				                <a href="#" onclick="return Dialog.Buddy(110)">
-					<img src="./styles/theme/sgame/img/b.gif" title="Zaproś do znajomych" alt="">
-				</a>												</td>
-		</tr>
+	
+
+<table class="table720">
 		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 7);'>7</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
+		<th colspan="3"><a href="#" onclick="return Dialog.PlanetAction();" title="Zmień nazwę / Porzuć planetę">Planeta "<span class="planetname">Aden</span>"</a> (sH3ep)</th>
+	</tr>
 		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 8);'>8</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
+		<td>Czas na serwerze </td>
+		<td colspan="2" class="servertime">[Wtorek] - [27] [Sierpień], [22]:[30]:[11]</td>
+	</tr>
 		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 9);'>9</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
+		<td>Nowości</td><td colspan="2"><span style="color: #f33; font-weight: bold;">--> Aktualizacja 02.08.2019 <--</span><br>
+<span>Wgrano nowe pakiety trytu:</span><br>
+- zmniejszanie spalania<br>
+- ochładzanie planety<br>
+<span>Każdy gracz w sojuszu może teraz ustawić swój własny bonus modułu ekspedycyjnego.</span><br>
+<span>Zmniejszono ilość Helium 3 możliwą do przywiezienia z ekspedycji o 50%.</span></td>
+	</tr>
 		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 10);'>10</a>
+		<td colspan="3" class="hidden_720">
+			Admini online:
+			Obecnie brak aktywnego admina!
 		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
+		
+	</tr>
+	
 		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 11);'>11</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 12);'>12</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 13);'>13</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 14);'>14</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 1, 111, 15);'>15</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
+		<th colspan="3">Nowości</th>
+	</tr>
 	
 	<tr>
-		<td>16</td>
-		<td colspan="7"><a href="?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=16&amp;planettype=1&amp;target_mission=15">Ekspedycja na skraj systemu</a></td>
+		<td width="90px"><a href="game.php?page=overview&amp;cp=3223&amp;re=0" title=""><img src="./styles/theme/sgame/planeten/small/s_moon.png" height="50" width="50" alt=" (Księżyc)"></a><br> (Księżyc)
+			</td>
+		<td>
+			<img src="./styles/theme/sgame/planeten/planet_2.jpg" alt="Aden" class="planet_image">
+			<br>Oczekuje		</td>
+		<td class="d_none_520">
+				<div id="planetListContainer">
+			<table id="planetList">
+								<tr>				<td class="transparent" style="padding: 3px">Hunters<br><a href="game.php?page=overview&amp;cp=2267" title="Hunters"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_28.png" alt="Hunters"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Kolonia<br><a href="game.php?page=overview&amp;cp=4421" title="Kolonia"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_5.png" alt="Kolonia"></a><br>Oczekuje</td>
+								</tr>								<tr>				<td class="transparent" style="padding: 3px">Kolonia<br><a href="game.php?page=overview&amp;cp=5134" title="Kolonia"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_35.png" alt="Kolonia"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Giran<br><a href="game.php?page=overview&amp;cp=2533" title="Giran"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_21.png" alt="Giran"></a><br>Oczekuje</td>
+								</tr>								<tr>				<td class="transparent" style="padding: 3px">Rune<br><a href="game.php?page=overview&amp;cp=2426" title="Rune"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_19.png" alt="Rune"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Goddart<br><a href="game.php?page=overview&amp;cp=2254" title="Goddart"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_32.png" alt="Goddart"></a><br>Oczekuje</td>
+								</tr>								<tr>				<td class="transparent" style="padding: 3px">Shuttgard<br><a href="game.php?page=overview&amp;cp=2273" title="Shuttgard"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_28.png" alt="Shuttgard"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Oren<br><a href="game.php?page=overview&amp;cp=3445" title="Oren"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_13.png" alt="Oren"></a><br>Oczekuje</td>
+								</tr>								<tr>				<td class="transparent" style="padding: 3px">Dion<br><a href="game.php?page=overview&amp;cp=3164" title="Dion"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_27.png" alt="Dion"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Heine<br><a href="game.php?page=overview&amp;cp=2276" title="Heine"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_6.png" alt="Heine"></a><br>Oczekuje</td>
+								</tr>								<tr>				<td class="transparent" style="padding: 3px">Gludio<br><a href="game.php?page=overview&amp;cp=2547" title="Gludio"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_11.png" alt="Gludio"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Kolonia<br><a href="game.php?page=overview&amp;cp=4723" title="Kolonia"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_17.png" alt="Kolonia"></a><br>Oczekuje</td>
+								</tr>								<tr>				<td class="transparent" style="padding: 3px">Gludin<br><a href="game.php?page=overview&amp;cp=2775" title="Gludin"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_35.png" alt="Gludin"></a><br>Oczekuje</td>
+																				<td class="transparent" style="padding: 3px">Kolonia<br><a href="game.php?page=overview&amp;cp=4193" title="Kolonia"><img width="80px" src="./styles/theme/sgame/planeten/small/s_planet_18.png" alt="Kolonia"></a><br>Oczekuje</td>
+								</tr>				
+			</table>
+		</div>
+				</td>
 	</tr>
-	<tr class="hidden_720">
-		<td colspan="6">(1 planeta zamieszkana)</td>
-		<td colspan="2">
-			<a class="tooltip" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Legenda</td></tr><tr><td style='width:220px'>Mocny gracz</td><td><span class='galaxy-short-strong'>s</span></td></tr><tr><td style='width:220px'>Słaby gracz</td><td><span class='galaxy-short-noob'>n</span></td></tr><tr><td style='width:220px'>Urlop</td><td><span class='galaxy-short-vacation'>u</span></td></tr><tr><td style='width:220px'>Zbanowany</td><td><span class='galaxy-short-banned'>g</span></td></tr><tr><td style='width:220px'>7 dni nieaktywny</td><td><span class='galaxy-short-inactive'>i</span></td></tr><tr><td style='width:220px'>28 dni nieaktywny</td><td><span class='galaxy-short-longinactive'>I</span></td></tr></table>">Legenda</a> 
-		</td>
+	<tr>
+		<td class="d_none_360">Średnica</td>
+		<td colspan="2">17.320 km (<a title="zabudowane pola">369</a> / <a title="max. pól do zabudowy">390</a> Pola)</td>
 	</tr>
-	<tr class="hidden_720">
-		<td colspan="3"><span id="missiles">0</span> Rakiety międzyplanetarne</td>
-		<td colspan="5"><span id="slots">0</span>/17 Ilość slotów floty</td>
+	<tr>
+		<td class="d_none_360">Temperatura</td>
+		<td colspan="2">od -50°C do -10°C</td>
 	</tr>
-	<tr class="hidden_720">
+	<tr>
+		<td class="d_none_360">Pozycja</td>
+		<td colspan="2"><a href="game.php?page=galaxy&amp;galaxy=2&amp;system=8">[2:8:10]</a></td>
+	</tr>
+	<tr>
+		<td class="d_none_360">Punkty</td>
+		<td colspan="2">757.198.301.360 (Miejsce <a href="game.php?page=statistics&amp;range=20">20</a> z 743)</td>
+	</tr>
+		<tr>
+		<th colspan="3"><label for="referral">Reflink</label></th>
+	</tr>
+	<tr>
 		<td colspan="3">
-			<span id="elementID210">1.850</span> Sondy szpiegowskie
-		</td>
-		<td colspan="5">
-			<span id="elementID209">100.000</span> Recyklery
+			<input id="referral" type="text" value="https://uni2.sgame.pl/index.php?ref=504" readonly="readonly"/>
+			<img src="./styles/theme/sgame/img/info.png" height="16px" style="margin-top: -2px;" class="tooltip" data-tooltip-content="Jeżeli gracz, którego poleciłeś reflinkiem przekroczy próg 5.000 punktów, otrzymasz 10.000 jednostek Helium 3!">
 		</td>
 	</tr>
-	<tr style="display: none;" id="fleetstatusrow" class="hidden_720">
-		<th colspan="8">Floty</th>
+		<tr>
+		<td colspan="3">
+			<a href="#" onclick="return Dialog.Playercard(703, 'Ralkivius');">Ralkivius</a>
+			<span style="margin-left: 24px;">5.000 / 5.000</span>
+		</td>
 	</tr>
+		<tr>
+		<td colspan="3">
+			<a href="#" onclick="return Dialog.Playercard(704, 'siwasolek');">siwasolek</a>
+			<span style="margin-left: 24px;">5.000 / 5.000</span>
+		</td>
+	</tr>
+	
 	</table>
-	<script type="text/javascript">
-		status_ok		= 'Zrobione';
-		status_fail		= 'Błąd';
-		MaxFleetSetting = 3;
-	</script>
 </div>
-
+<img src="cronjob.php?cronjobID=9" alt="">
 <div class="clear"></div>
 <div id="footer">
 		</div>

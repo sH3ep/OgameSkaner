@@ -1,3 +1,4 @@
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Web.UI;
 using System.Windows;
@@ -25,6 +26,8 @@ namespace OgameSkaner.ViewModel
                 RaisePropertyChanged("CurrentView");
             }
         }
+
+        public string BackgroundPath { set; get; }
 
         #endregion
 
@@ -64,7 +67,7 @@ namespace OgameSkaner.ViewModel
             CurrentView = new UserPlanetView();
             ShowGetDataCommand = new DelegateCommand(ShowGetData,CanExecuteButtons);
             ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView,CanExecuteButtons);
-
+            BackgroundPath = Directory.GetCurrentDirectory() + "/Images/bg_sgame.jpg";
 
         }
     }

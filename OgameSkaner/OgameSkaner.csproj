@@ -111,8 +111,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\GalaxySkanRange.cs" />
-    <Compile Include="Model\RequestConfigurator.cs" />
-    <Compile Include="Model\RequestType.cs" />
+    <Compile Include="RestClient\RequestConfigurator.cs" />
+    <Compile Include="RestClient\RequestType.cs" />
     <Compile Include="Model\UserPlanetDataManager.cs" />
     <Compile Include="Model\NotifyPropertyChanged.cs" />
     <Compile Include="Model\OgameFileReader.cs" />

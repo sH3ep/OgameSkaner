@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using OgameSkaner.Model;
 
 namespace OgameSkaner.RestClient
@@ -15,13 +16,34 @@ namespace OgameSkaner.RestClient
             _requestConfigurator = new RequestConfigurator();
         }
 
-        public void GetMainPage()
+        public string GetMainPage()
         {
             var request = _requestConfigurator.Configure(RequestType.StartPage);
 
             var response = _client.Execute(request);
             var content = response.Content;
             saveContent(content);
+
+            return content;
+        }
+
+        public string LoginToSgame()
+        {
+            var request = _requestConfigurator.Configure(RequestType.Login);
+
+            request.AddParameter("uni", "2");
+            request.AddParameter("username", "sH3ep");
+            request.AddParameter("password", "1da254d4a");
+
+            var response = _client.Execute(request);
+            var solarSystemPage = response.Content;
+            var erorMessage = response.ErrorMessage;
+            if (erorMessage != null)
+                saveContent(solarSystemPage + Environment.NewLine +
+                            "------------------------------Error Message Below----------------------------" +
+                            Environment.NewLine + erorMessage);
+
+            return solarSystemPage;
         }
 
 
@@ -39,12 +61,8 @@ namespace OgameSkaner.RestClient
             var response = _client.Execute(request);
             var solarSystemPage = response.Content;
             var erorMessage = response.ErrorMessage;
-            if (erorMessage != null)
-            {
-                saveContent(solarSystemPage + erorMessage);
+            if (erorMessage != null) saveContent(solarSystemPage + erorMessage);
 
-            }
-            
             return solarSystemPage;
         }
 

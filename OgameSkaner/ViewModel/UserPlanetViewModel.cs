@@ -79,7 +79,13 @@ namespace OgameSkaner.ViewModel
         private void GetOverviewPage()
         {
             var sgameClient = new SgameRestClient();
-            sgameClient.GetSolarSystem(1,1);
+            sgameClient.LoginToSgame();
+
+
+
+            var temp = sgameClient.GetMainPage();
+
+            var temp2 = temp;
         }
 
         private void GetFolderLocalization()

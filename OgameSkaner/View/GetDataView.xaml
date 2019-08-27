@@ -8,7 +8,10 @@
              mc:Ignorable="d" 
              d:DesignHeight="451" d:DesignWidth="805">
     <Grid HorizontalAlignment="Right" Width="805" Margin="0,0,10,0" Height="451" VerticalAlignment="Bottom">
-        <Grid Background="AliceBlue" Margin="497,0,10,182" Height="225" VerticalAlignment="Bottom">
+        <Grid Margin="497,0,10,182" Height="225" VerticalAlignment="Bottom">
+            <Grid.Background>
+                <SolidColorBrush Color="AliceBlue" Opacity="0.7" />
+            </Grid.Background>
             <TextBox Height="23" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="150" HorizontalAlignment="Center" Margin="70,30,68,0"/>
             <PasswordBox Margin="70,88,68,113" VerticalAlignment="Center" HorizontalAlignment="Center" Width="150" Height="24"/>
             <Button Content="Log In" HorizontalAlignment="Left" Margin="70,166,0,0" VerticalAlignment="Top" Width="150"/>
@@ -16,21 +19,27 @@
             <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284"/>
             <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284" Height="24"/>
         </Grid>
-        <Grid Background="Bisque" Margin="497,0,10,55" Height="122" VerticalAlignment="Bottom">
+        <Grid Margin="497,0,10,55" Height="122" VerticalAlignment="Bottom">
+            <Grid.Background>
+                <SolidColorBrush Color="Bisque" Opacity="0.7" />
+            </Grid.Background>
             <TextBox HorizontalAlignment="Left" Height="26" Margin="91,10,0,0" TextWrapping="Wrap" Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187"/>
             <Button Content="Save Token" HorizontalAlignment="Left" Margin="164,69,0,0" VerticalAlignment="Top" Width="114" Height="43"/>
             <Label Content="Token:" HorizontalAlignment="Left" Margin="33,10,0,0" VerticalAlignment="Top" Width="58"/>
         </Grid>
-        <Grid Background="ForestGreen" Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
-            <Border BorderBrush="Black" BorderThickness="2" HorizontalAlignment="Left" Height="64" Margin="3,2,0,0" VerticalAlignment="Top" Width="293"/>
-            <Button Content="GetSelectedData" Command="{Binding GetSolarSystemsDataCommand}" HorizontalAlignment="Left" Margin="10,211,0,0" VerticalAlignment="Top" Width="137" Height="50"/>
+        <Grid Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
+            <Grid.Background>
+                <SolidColorBrush Color="LightGreen" Opacity="0.7" />
+            </Grid.Background>
+            <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="66" VerticalAlignment="Top" Width="301"/>
+            <Button Content="GetSelectedData" Command="{Binding GetSolarSystemsDataCommand}" HorizontalAlignment="Left" Margin="18,217,0,0" VerticalAlignment="Top" Width="122" Height="44"/>
             <Label Content="{Binding ApiRequestCounter,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="10,266,0,0" VerticalAlignment="Top" Height="48" Width="137" FontSize="23"/>
             <TextBox HorizontalAlignment="Left" Height="23" Margin="53,33,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.StartGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
             <TextBox HorizontalAlignment="Left" Height="23" Margin="161,33,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.StartSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
             <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="6,29,0,0" VerticalAlignment="Top" Height="27"  />
             <Label Content="Start At" HorizontalAlignment="Left" Margin="103,2,0,0" VerticalAlignment="Top" Width="95"/>
             <Label Content="System:" HorizontalAlignment="Left" Margin="111,29,0,0" VerticalAlignment="Top" Height="27"  />
-            <Border BorderBrush="Black" BorderThickness="2" HorizontalAlignment="Left" Height="64" Margin="3,71,0,0" VerticalAlignment="Top" Width="293"/>
+            <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="67" Margin="0,71,0,0" VerticalAlignment="Top" Width="301"/>
             <Label Content="Finish At" HorizontalAlignment="Left" Margin="103,71,0,0" VerticalAlignment="Top" Width="95"/>
             <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="10,102,0,0" VerticalAlignment="Top" Height="27"  />
             <TextBox HorizontalAlignment="Left" Height="23" Margin="53,106,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.EndGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
