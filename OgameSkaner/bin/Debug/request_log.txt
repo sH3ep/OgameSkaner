@@ -25,7 +25,7 @@
 	<link rel="shortcut icon" href="./favicon.ico" type="image/x-icon">
 	<script type="text/javascript">
 	var ServerTimezoneOffset = 0;
-	var serverTime 	= new Date(2019, 7, 27, 0, 23, 31);
+	var serverTime 	= new Date(2019, 7, 27, 13, 58, 52);
 	var startTime	= serverTime.getTime();
 	var localTime 	= serverTime;
 	var localTS 	= startTime;
@@ -199,14 +199,14 @@
 									
 								</tr>
 																<tr>
-																											<td class="res_current" id="current_metal" data-real="16054464250.742">
-																						16.054.464.251
+																											<td class="res_current" id="current_metal" data-real="33843022871.891">
+																						33.843.022.872
 																					</td>
-																																				<td class="res_current" id="current_crystal" data-real="10703691593.29">
-																						10.703.691.593
+																																				<td class="res_current" id="current_crystal" data-real="22563523359.597">
+																						22.563.523.360
 																					</td>
-																																				<td class="res_current" id="current_deuterium" data-real="28264448779.328">
-																						28.264.448.779
+																																				<td class="res_current" id="current_deuterium" data-real="33769201180.459">
+																						33.769.201.180
 																					</td>
 																																													<td class="res_current"><span>287.691&nbsp;/&nbsp;1.134.155</span></td>
 																																				<td class="res_current" id="current_darkmatter" data-real="19373">
@@ -218,9 +218,9 @@
 																		
 								</tr>
 								<tr>
-																											<td class="res_max" id="max_metal" data-real="16054464250.742">1.597.890.400.000</td>
-																																				<td class="res_max" id="max_crystal" data-real="10703691593.29">1.597.890.400.000</td>
-																																				<td class="res_max" id="max_deuterium" data-real="28264448779.328">2.929.245.450.000</td>
+																											<td class="res_max" id="max_metal" data-real="33843022871.891">1.597.890.400.000</td>
+																																				<td class="res_max" id="max_crystal" data-real="22563523359.597">1.597.890.400.000</td>
+																																				<td class="res_max" id="max_deuterium" data-real="33769201180.459">2.929.245.450.000</td>
 																																				<td>&nbsp;</td>
 																																				<td>&nbsp;</td>
 																																				<td>&nbsp;</td>
@@ -237,19 +237,19 @@
 		var vacation			= 0;
         $(function() {
 				            resourceTicker({
-                available: 16054464250.74243,
+                available: 33843022871.89143,
                 limit: [0, "1597890400000"],
                 production: 1309024988.7473,
                 valueElem: "current_metal"
             }, true);
 						            resourceTicker({
-                available: 10703691593.289658,
+                available: 22563523359.596657,
                 limit: [0, "1597890400000"],
                 production: 872741659.16489,
                 valueElem: "current_crystal"
             }, true);
 						            resourceTicker({
-                available: 28264448779.327854,
+                available: 33769201180.458855,
                 limit: [0, "2929245450000"],
                 production: 405083883.07222,
                 valueElem: "current_deuterium"
@@ -295,55 +295,55 @@
 		</select>
 	</div>
 	<div id="mobile_res_div_container">
-									<div class="res_current tooltip mobile_res_div" id="current_metal" data-real="16054464250.742" data-tooltip-content="16.054.464.251">
+									<div class="res_current tooltip mobile_res_div" id="current_metal" data-real="33843022871.891" data-tooltip-content="33.843.022.872">
 										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/metal.png" alt="" class="resource_img"></div>
 					<div class="mobile_res_bg_div" 						style="
 								background-image: linear-gradient(to right,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.004728750529%,
-									rgb(0,255,2) 1.004728750529%,
-									transparent 2.004728750529%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 2.1179814880853%,
+									rgb(0,255,2) 2.1179814880853%,
+									transparent 3.1179814880853%,
 									transparent 100%);
 								background-image: -webkit-linear-gradient(left,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.004728750529%,
-									rgb(0,255,2) 1.004728750529%,
-									transparent 2.004728750529%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 2.1179814880853%,
+									rgb(0,255,2) 2.1179814880853%,
+									transparent 3.1179814880853%,
 									transparent 100%)"
 							>
-						<span>16.054&nbsp;M</span>
+						<span>33.843&nbsp;M</span>
 					</div>
 									</div>
-												<div class="res_current tooltip mobile_res_div" id="current_crystal" data-real="10703691593.29" data-tooltip-content="10.703.691.593">
+												<div class="res_current tooltip mobile_res_div" id="current_crystal" data-real="22563523359.597" data-tooltip-content="22.563.523.360">
 										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/crystal.png" alt="" class="resource_img"></div>
 					<div class="mobile_res_bg_div" 						style="
 								background-image: linear-gradient(to right,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 0.66986394018574%,
-									rgb(0,255,2) 0.66986394018574%,
-									transparent 1.6698639401857%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.4120820401447%,
+									rgb(0,255,2) 1.4120820401447%,
+									transparent 2.4120820401447%,
 									transparent 100%);
 								background-image: -webkit-linear-gradient(left,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 0.66986394018574%,
-									rgb(0,255,2) 0.66986394018574%,
-									transparent 1.6698639401857%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.4120820401447%,
+									rgb(0,255,2) 1.4120820401447%,
+									transparent 2.4120820401447%,
 									transparent 100%)"
 							>
-						<span>10.704&nbsp;M</span>
+						<span>22.564&nbsp;M</span>
 					</div>
 									</div>
-												<div class="res_current tooltip mobile_res_div" id="current_deuterium" data-real="28264448779.328" data-tooltip-content="28.264.448.779">
+												<div class="res_current tooltip mobile_res_div" id="current_deuterium" data-real="33769201180.459" data-tooltip-content="33.769.201.180">
 										<div class="mobile_res_img_div"><img src="./styles/theme/sgame/images/deuterium.png" alt="" class="resource_img"></div>
 					<div class="mobile_res_bg_div" 						style="
 								background-image: linear-gradient(to right,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 0.96490544277633%,
-									rgb(0,255,2) 0.96490544277633%,
-									transparent 1.9649054427763%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.1528293465629%,
+									rgb(0,255,2) 1.1528293465629%,
+									transparent 2.1528293465629%,
 									transparent 100%);
 								background-image: -webkit-linear-gradient(left,
-									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 0.96490544277633%,
-									rgb(0,255,2) 0.96490544277633%,
-									transparent 1.9649054427763%,
+									rgba(0,0,0,0.6), rgba(55,55,55,0.6) 1.1528293465629%,
+									rgb(0,255,2) 1.1528293465629%,
+									transparent 2.1528293465629%,
 									transparent 100%)"
 							>
-						<span>28.264&nbsp;M</span>
+						<span>33.769&nbsp;M</span>
 					</div>
 									</div>
 																<div class="res_current tooltip mobile_res_div" data-tooltip-content="287.691&nbsp;/&nbsp;1.134.155">
@@ -378,7 +378,7 @@
 					</tr>
 					<tr>
 						<td><input type="button" name="galaxyLeft" value="&lt;-" onclick="galaxy_submit('galaxyLeft')"></td>
-						<td><input type="text" name="galaxy" value="4" size="5" maxlength="3" tabindex="1"></td>
+						<td><input type="text" name="galaxy" value="1" size="5" maxlength="3" tabindex="1"></td>
 						<td><input type="button" name="galaxyRight" value="-&gt;" onclick="galaxy_submit('galaxyRight')"></td>
 					</tr>
 				</table>
@@ -390,7 +390,7 @@
 					</tr>
 					<tr>
 						<td><input type="button" name="systemLeft" value="&lt;-" onclick="galaxy_submit('systemLeft')"></td>
-						<td><input type="text" name="system" value="123" size="5" maxlength="3" tabindex="2"></td>
+						<td><input type="text" name="system" value="111" size="5" maxlength="3" tabindex="2"></td>
 						<td><input type="button" name="systemRight" value="-&gt;" onclick="galaxy_submit('systemRight')"></td>
 					</tr>
 				</table>
@@ -405,7 +405,7 @@
 	</form>
 		<table class="table569">
     <tr>
-		<th colspan="8">System 4:123</th>
+		<th colspan="8">System 1:111</th>
 	</tr>
 	<tr>
 		<th style="white-space: nowrap"><span>Lp.</span></th>
@@ -419,7 +419,7 @@
 	</tr>
     	<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 1);'>1</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 1);'>1</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -431,7 +431,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 2);'>2</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 2);'>2</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -443,7 +443,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 3);'>3</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 3);'>3</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -455,7 +455,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 4);'>4</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 4);'>4</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -467,7 +467,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 5);'>5</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 5);'>5</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -479,7 +479,39 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 6);'>6</a>
+			6
+		</td>
+        		<td>
+			<a class="tooltip_sticky" data-tooltip-content="<table style='width:220px'><tr><th colspan='2'>Planeta Planeta matka [1:111:6]</th></tr><tr><td style='width:80px'><img src='./styles/theme/sgame/planeten/small/s_planet_11.png' height='75' width='75'></td><td><a href='javascript:doit(6,211);'>Szpieguj</a><br><br><a href='?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=6&amp;planettype=1&amp;target_mission=1'>Atak</a><br><a href='?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=6&amp;planettype=1&amp;target_mission=5'>Zatrzymaj</a><br><a href='?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=6&amp;planettype=1&amp;target_mission=3'>Transport</a><br></td></tr></table>">
+				<img src="./styles/theme/sgame/planeten/small/s_planet_11.png" height="30" width="30" alt="">
+			</a>
+		</td>
+		<td style="white-space: nowrap;" class="hidden_720">Planeta matka (30 min)</td>
+		<td style="white-space: nowrap;">
+					</td>
+		<td style="white-space: nowrap;">
+        		</td>
+		<td>
+			<a class="tooltip_sticky" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Gracz kalosz15 pozycja w rankingu 470</th></tr><tr><tr><td><a href='#' onclick='return Dialog.Buddy(110)'>Zaproś do znajomych</a></td></tr><tr><td><a href='#' onclick='return Dialog.Playercard(110);'>Karta gracza</a></td></tr><tr><td><a href='?page=statistics&amp;who=1&amp;start=470'>Statystyka</a></td></tr></table>">
+				<span class="galaxy-username-inactive galaxy-username-longinactive galaxy-username">kalosz15</span>
+
+								<span>(</span><span class="galaxy-short-inactive galaxy-short">i</span>&nbsp;<span class="galaxy-short-longinactive galaxy-short">I</span><span>)</span>
+							</a>
+		</td>
+		<td style="white-space: nowrap;">
+			-		</td>
+		<td style="white-space: nowrap;" class="hidden_720">
+											<a href="javascript:doit(6,211,{&quot;210&quot;:&quot;50&quot;})">
+					<img src="./styles/theme/sgame/img/e.gif" title="Szpiegowanie" alt="">
+				</a>								<a href="#" onclick="return Dialog.PM(110)">
+					<img src="./styles/theme/sgame/img/m.gif" title="Napisz wiadomość" alt="">
+				</a>				                <a href="#" onclick="return Dialog.Buddy(110)">
+					<img src="./styles/theme/sgame/img/b.gif" title="Zaproś do znajomych" alt="">
+				</a>												</td>
+		</tr>
+		<tr>
+    		<td>
+			<a href='javascript:colonizePlanet(7, 1, 111, 7);'>7</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -491,7 +523,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 7);'>7</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 8);'>8</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -503,7 +535,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 8);'>8</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 9);'>9</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -515,7 +547,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 9);'>9</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 10);'>10</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -527,7 +559,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 10);'>10</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 11);'>11</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -539,7 +571,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 11);'>11</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 12);'>12</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -551,7 +583,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 12);'>12</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 13);'>13</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -563,7 +595,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 13);'>13</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 14);'>14</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -575,19 +607,7 @@
     	</tr>
 		<tr>
     		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 14);'>14</a>
-		</td>
-        <td></td>
-        <td class="hidden_720"></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td class="hidden_720"></td>
-    	</tr>
-		<tr>
-    		<td>
-			<a href='javascript:colonizePlanet(7, 4, 123, 15);'>15</a>
+			<a href='javascript:colonizePlanet(7, 1, 111, 15);'>15</a>
 		</td>
         <td></td>
         <td class="hidden_720"></td>
@@ -600,10 +620,10 @@
 	
 	<tr>
 		<td>16</td>
-		<td colspan="7"><a href="?page=fleetTable&amp;galaxy=4&amp;system=123&amp;planet=16&amp;planettype=1&amp;target_mission=15">Ekspedycja na skraj systemu</a></td>
+		<td colspan="7"><a href="?page=fleetTable&amp;galaxy=1&amp;system=111&amp;planet=16&amp;planettype=1&amp;target_mission=15">Ekspedycja na skraj systemu</a></td>
 	</tr>
 	<tr class="hidden_720">
-		<td colspan="6">(0 planeta zamieszkana)</td>
+		<td colspan="6">(1 planeta zamieszkana)</td>
 		<td colspan="2">
 			<a class="tooltip" data-tooltip-content="<table style='width:240px'><tr><th colspan='2'>Legenda</td></tr><tr><td style='width:220px'>Mocny gracz</td><td><span class='galaxy-short-strong'>s</span></td></tr><tr><td style='width:220px'>Słaby gracz</td><td><span class='galaxy-short-noob'>n</span></td></tr><tr><td style='width:220px'>Urlop</td><td><span class='galaxy-short-vacation'>u</span></td></tr><tr><td style='width:220px'>Zbanowany</td><td><span class='galaxy-short-banned'>g</span></td></tr><tr><td style='width:220px'>7 dni nieaktywny</td><td><span class='galaxy-short-inactive'>i</span></td></tr><tr><td style='width:220px'>28 dni nieaktywny</td><td><span class='galaxy-short-longinactive'>I</span></td></tr></table>">Legenda</a> 
 		</td>

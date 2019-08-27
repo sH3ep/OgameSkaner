@@ -110,6 +110,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\GalaxySkanRange.cs" />
     <Compile Include="Model\RequestConfigurator.cs" />
     <Compile Include="Model\RequestType.cs" />
     <Compile Include="Model\UserPlanetDataManager.cs" />

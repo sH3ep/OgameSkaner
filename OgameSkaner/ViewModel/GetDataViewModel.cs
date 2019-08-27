@@ -2,6 +2,8 @@
 using System.Collections.ObjectModel;
 using System.Configuration;
 using System.IO;
+using System.Threading.Tasks;
+using System.Windows;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
 using Prism.Commands;
@@ -10,15 +12,29 @@ namespace OgameSkaner.ViewModel
 {
     public class GetDataViewModel : NotifyPropertyChanged
     {
-        private int _apiRequestCounter;
+        private string _apiRequestCounter;
+        private string _token;
 
         public GetDataViewModel()
-        {usersPlanets = new ObservableCollection<UserPlanet>();
+        {
+            usersPlanets = new ObservableCollection<UserPlanet>();
             DeclareDelgateCommand();
+            SkanRange = new GalaxySkanRange();
             
+
         }
 
-        public int ApiRequestCounter
+        public string Token
+        {
+            set
+            {
+                _token = value;
+                RaisePropertyChanged("ApiRequestCounter");
+            }
+            get => _token;
+        }
+
+        public string ApiRequestCounter
         {
             set
             {
@@ -28,39 +44,53 @@ namespace OgameSkaner.ViewModel
             get => _apiRequestCounter;
         }
 
+
+        public GalaxySkanRange SkanRange { set; get; }
+
         public ObservableCollection<UserPlanet> usersPlanets { set; get; }
 
         public DelegateCommand GetSolarSystemsDataCommand { set; get; }
 
         private void DeclareDelgateCommand()
         {
-            GetSolarSystemsDataCommand = new DelegateCommand(GetSolarSystems, CanExecute);
+            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); });
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
             Directory.CreateDirectory(string.Concat((object)Directory.GetCurrentDirectory(), "\\Data"));
             if (File.Exists("GalaxyDatabase.xml"))
             {
                 dataManager.LoadFromXml();
-              
+
             }
         }
 
-        private async void GetSolarSystems()
+        private async Task GetSolarSystems()
         {
-            ApiRequestCounter = 0;
-            var sGameFileReader = new OgameFileReader();
-            var sGameClient = new SgameRestClient();
-            var dataManager = new UserPlanetDataManager(usersPlanets);
-            string solarSystemPageString;
-            for (var i = 1; i <= 7; i++)
-            for (var j = 1; j <= 499; j++)
+            if (SkanRange.IsValid())
             {
-                solarSystemPageString = sGameClient.GetSolarSystem(i, j);
-                await sGameFileReader.AddPlayersFromFile(solarSystemPageString, usersPlanets, DateTime.Now);
-                ApiRequestCounter++;
+                await Task.Run(async () =>
+                {
+                    var sGameFileReader = new OgameFileReader();
+                    var sGameClient = new SgameRestClient();
+                    var dataManager = new UserPlanetDataManager(usersPlanets);
+                    string solarSystemPageString;
+                    for (var i = SkanRange.StartGalaxy; i <= SkanRange.EndGalaxy; i++)
+                        for (var j = SkanRange.StartSystem; j <= SkanRange.EndSystem; j++)
+                        {
+                            solarSystemPageString = sGameClient.GetSolarSystem(i, j);
+                            await sGameFileReader.AddPlayersFromFile(solarSystemPageString, usersPlanets, DateTime.Now);
+                            ApiRequestCounter = i.ToString() + ":" + j.ToString();
+                        }
+
+                    dataManager.SaveIntoXmlFile("DatabaseFromApi");
+                });
+
+            }
+            else
+            {
+                MessageBox.Show("Wrong data");
             }
 
-            dataManager.SaveIntoXmlFile("DatabaseFromApi.xml");
         }
 
         private bool CanExecute()

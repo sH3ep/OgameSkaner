@@ -33,6 +33,17 @@ namespace OgameSkaner.Model
 
         }
 
+        public UserPlanet(string userName, string planetLocalization,int position, DateTime creationDate)
+        {
+            _userName = userName;
+            _galaxy = GetGalaxy(planetLocalization);
+            _solarSystem = GetSolarSystem(planetLocalization);
+            _position = position;
+            _localization = _galaxy + ":" + _solarSystem +":"+_position;
+            _creationDate = creationDate;
+
+        }
+
         #region private fields
 
         private string _userName;
@@ -41,6 +52,7 @@ namespace OgameSkaner.Model
         private string _localization;
         private bool _toDelete;
         private DateTime _creationDate;
+        private int _position;
 
         #endregion
 
@@ -63,6 +75,12 @@ namespace OgameSkaner.Model
         {
             get => _solarSystem;
             set => _solarSystem = value;
+        }
+
+        public int Position
+        {
+            get => _position;
+            set => _position = value;
         }
 
         public string UserName

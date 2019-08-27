@@ -23,15 +23,15 @@ namespace OgameSkaner.Model
             StringReader stringReader = new StringReader(fileText);
             string line = "";
             string planetLocalization = "0:0";
-            bool isLocalizationReaded = false;
+            bool isGalaxyAndSystemReaded = false;
             int errorCount = 0;
             while (true)
             {
                 line = stringReader.ReadLine();
-                if (line != null && line.Contains("System ") && !isLocalizationReaded)
+                if (line != null && line.Contains("System ") && !isGalaxyAndSystemReaded)
                 {
                     planetLocalization = await readPlanetLocalization(line);
-                    isLocalizationReaded = true;
+                    isGalaxyAndSystemReaded = true;
                     var tempUserPlanet = new UserPlanet("temp", planetLocalization, creationDate);
                     var solarSystemCreationDate = GetSolarSystemCreationDate(tempUserPlanet, playersPlanets);
                     if (_fileCreationDate > solarSystemCreationDate)
@@ -45,7 +45,7 @@ namespace OgameSkaner.Model
                 }
 
 
-                if (line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")) && isLocalizationReaded)
+                if (line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")) && isGalaxyAndSystemReaded)
                 {
                     var userName = readUserName(line);
                     var userPlanet = new UserPlanet(await userName, planetLocalization, _fileCreationDate);
@@ -64,6 +64,55 @@ namespace OgameSkaner.Model
             }
         }
 
+
+    public async Task AddPlayersFromFileWithPozition(string fileText, ObservableCollection<UserPlanet> playersPlanets, DateTime creationDate)
+        {
+            _fileCreationDate = creationDate;
+            StringReader stringReader = new StringReader(fileText);
+            string line = "";
+            string planetLocalization = "0:0";
+            bool isGalaxyAndSystemReaded = false;
+            int errorCount = 0;
+
+            while (true)
+            {
+                line = stringReader.ReadLine();
+                if (line != null && line.Contains("System ") && !isGalaxyAndSystemReaded)
+                {
+                    planetLocalization = await readPlanetLocalization(line);
+                    isGalaxyAndSystemReaded = true;
+                    var tempUserPlanet = new UserPlanet("temp", planetLocalization, creationDate);
+                    var solarSystemCreationDate = GetSolarSystemCreationDate(tempUserPlanet, playersPlanets);
+                    if (_fileCreationDate > solarSystemCreationDate)
+                    {
+                        await markToDelete(tempUserPlanet, playersPlanets);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+
+
+                if (line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")) && isGalaxyAndSystemReaded)
+                {
+                    var userName = readUserName(line);
+                    var userPlanet = new UserPlanet(await userName, planetLocalization, _fileCreationDate);
+                    playersPlanets.Add(userPlanet);
+                }
+
+                if (line == null)
+                {
+                    errorCount++;
+                    if (errorCount > 100)
+                    {
+                        break;
+                    }
+                }
+
+            }
+
+        }
         private Task<string> readPlanetLocalization(string line)
         {
             return Task.Run(() =>

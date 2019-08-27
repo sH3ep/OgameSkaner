@@ -30,12 +30,12 @@ namespace OgameSkaner.Model
             }
         }
 
-        public ObservableCollection<UserPlanet> LoadFromXml()
+        public ObservableCollection<UserPlanet> LoadFromXml(string fileName = "GalaxyDatabase.xml")
         {
             XmlSerializer serialiser = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
     
             {
-                TextReader filestream = new StreamReader("GalaxyDatabase.xml");
+                TextReader filestream = new StreamReader(fileName);
                 _userPlanets.Clear();
                 _userPlanets = (ObservableCollection<UserPlanet>)serialiser.Deserialize(filestream);
                 filestream.Close();
@@ -88,7 +88,7 @@ namespace OgameSkaner.Model
 
             var sortedPlanet = _userPlanets.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ToList();
             XmlSerializer serialiser = new XmlSerializer(typeof(List<UserPlanet>));
-            TextWriter filestream = new StreamWriter("GalaxyDatabase.xml");
+            TextWriter filestream = new StreamWriter(fileName + ".xml");
             serialiser.Serialize(filestream, sortedPlanet);
             filestream.Close();
         }

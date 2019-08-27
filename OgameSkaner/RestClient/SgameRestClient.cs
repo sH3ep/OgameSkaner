@@ -39,7 +39,12 @@ namespace OgameSkaner.RestClient
             var response = _client.Execute(request);
             var solarSystemPage = response.Content;
             var erorMessage = response.ErrorMessage;
-            saveContent(solarSystemPage + erorMessage);
+            if (erorMessage != null)
+            {
+                saveContent(solarSystemPage + erorMessage);
+
+            }
+            
             return solarSystemPage;
         }
 
