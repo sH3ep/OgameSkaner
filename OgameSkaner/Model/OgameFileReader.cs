@@ -7,174 +7,97 @@ using System.Threading.Tasks;
 
 namespace OgameSkaner.Model
 {
-    internal class OgameFileReader
+    public class OgameFileReader
     {
-        private DateTime _fileCreationDate;
 
-        public DateTime FileCreationDate
-        {
-            set { _fileCreationDate = value; }
-            get { return _fileCreationDate; }
-        }
+        #region PublicMethods
 
-        private bool _readUser = false;
-        private string line = "";
-        public async Task AddPlayersFromFile(string fileText, ObservableCollection<UserPlanet> playersPlanets, DateTime creationDate)
+        public async Task AddPlayersFromFile(string fileText, ObservableCollection<UserPlanet> playersPlanets, DateTime fileCreationDate)
         {
-            _fileCreationDate = creationDate;
-            StringReader stringReader = new StringReader(fileText);
-            
             string planetLocalization = "0:0";
             bool isGalaxyAndSystemReaded = false;
-            string positionLine="";
+            string positionLine = "";
             int errorCount = 0;
-            try
-            {
+            var tempUserPlanet = new UserPlanet("temp", planetLocalization, fileCreationDate);
+            StringReader stringReader = new StringReader(fileText);
 
-                while (true)
+            while (true)
+            {
+                _actualLine = stringReader.ReadLine();
+                if (_actualLine != null && _actualLine.Contains("System ") && !isGalaxyAndSystemReaded)
                 {
-                    line = stringReader.ReadLine();
-                    if (line != null && line.Contains("System ") && !isGalaxyAndSystemReaded)
-                    {
-                        planetLocalization = await readPlanetLocalization(line);
-                        isGalaxyAndSystemReaded = true;
-                        var tempUserPlanet = new UserPlanet("temp", planetLocalization, creationDate);
-                        var solarSystemCreationDate = GetSolarSystemCreationDate(tempUserPlanet, playersPlanets);
-                        if (_fileCreationDate > solarSystemCreationDate)
-                        {
-                            await markToDelete(tempUserPlanet, playersPlanets);
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    if (isGalaxyAndSystemReaded)
-                    {
-                        positionLine = GetLineWithPosition(stringReader, positionLine);
-                    }
-
-                    if (_readUser)
-                    {
-                        var userName = readUserName(line);
-                        var position = GetPositionFromLine(positionLine);
-                        var userPlanet = new UserPlanet(await userName, planetLocalization, position, _fileCreationDate);
-
-                        playersPlanets.Add(userPlanet);
-                        _readUser = false;
-                    }
-
-                    if (line == null)
-                    {
-                        errorCount++;
-                        if (errorCount > 100)
-                        {
-                            break;
-                        }
-                    }
-
+                    planetLocalization = await readPlanetLocalization(_actualLine);
+                    isGalaxyAndSystemReaded = true;
+                    await DeleteOldSolarSystems(tempUserPlanet, playersPlanets);
                 }
-            }
-            catch(Exception e)
-            {
-                var info = e.Message;
+
+                if (isGalaxyAndSystemReaded)
+                {
+                    positionLine = GetLineWithPosition(stringReader, positionLine);
+                }
+
+                if (_startToReadUserData)
+                {
+                    var userName = readUserName(_actualLine);
+                    var position = GetPositionFromLine(positionLine);
+                    var userPlanet = new UserPlanet(await userName, planetLocalization, position, fileCreationDate);
+
+                    playersPlanets.Add(userPlanet);
+                    _startToReadUserData = false;
+                }
+
+                if (_actualLine == null)
+                {
+                    errorCount++;
+                    if (errorCount > 10)
+                    {
+                        break;
+                    }
+                }
 
             }
         }
 
-        private string GetLineWithPosition(StringReader stringReader,string previousLine)
+        #endregion
+
+        #region PrivateMethods
+
+        private string GetLineWithPosition(StringReader stringReader, string previousLine)
         {
-            try
+            if (_actualLine != null && _actualLine.Contains("<tr>"))
             {
-                if (line != null && line.Contains("<tr>"))
+                _actualLine = stringReader.ReadLine();
+                if (_actualLine.Contains("<td>"))
                 {
-                    line = stringReader.ReadLine();
-                    if (line.Contains("<td>"))
-                    {
-                        var position = stringReader.ReadLine();
-                        return position;
-                        
-                    }
-                    else if(line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")))
-                    {
-                        _readUser = true;
-                        return previousLine;
-                    }
-                   
+                    var position = stringReader.ReadLine();
+                    return position;
+
                 }
-                return previousLine;
-            }catch(Exception e)
-            {
-                var tempo = e.StackTrace;
-                return 5.ToString();
+                else if (_actualLine != null && (_actualLine.Contains("<span class=\"galaxy-username") || _actualLine.Contains("<span class=\" galaxy-username")))
+                {
+                    _startToReadUserData = true;
+                    return previousLine;
+                }
             }
+            return previousLine;
         }
 
         private int GetPositionFromLine(string linePosition)
         {
             try
             {
-            string positionString = new string(linePosition.Where(char.IsDigit).ToArray());
-            int position = int.Parse(positionString);
-            return position;
+                string positionString = new string(linePosition.Where(char.IsDigit).ToArray());
+                int position = int.Parse(positionString);
+                return position;
 
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 return 0;
             }
-            
-        }
-
-
-    public async Task AddPlayersFromFileWithPozition(string fileText, ObservableCollection<UserPlanet> playersPlanets, DateTime creationDate)
-        {
-            _fileCreationDate = creationDate;
-            StringReader stringReader = new StringReader(fileText);
-            string line = "";
-            string planetLocalization = "0:0";
-            bool isGalaxyAndSystemReaded = false;
-            int errorCount = 0;
-
-            while (true)
-            {
-                line = stringReader.ReadLine();
-                if (line != null && line.Contains("System ") && !isGalaxyAndSystemReaded)
-                {
-                    planetLocalization = await readPlanetLocalization(line);
-                    isGalaxyAndSystemReaded = true;
-                    var tempUserPlanet = new UserPlanet("temp", planetLocalization, creationDate);
-                    var solarSystemCreationDate = GetSolarSystemCreationDate(tempUserPlanet, playersPlanets);
-                    if (_fileCreationDate > solarSystemCreationDate)
-                    {
-                        await markToDelete(tempUserPlanet, playersPlanets);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-
-
-                if (line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")) && isGalaxyAndSystemReaded)
-                {
-                    var userName = readUserName(line);
-                    var userPlanet = new UserPlanet(await userName, planetLocalization, _fileCreationDate);
-                    playersPlanets.Add(userPlanet);
-                }
-
-                if (line == null)
-                {
-                    errorCount++;
-                    if (errorCount > 100)
-                    {
-                        break;
-                    }
-                }
-
-            }
 
         }
+
         private Task<string> readPlanetLocalization(string line)
         {
             return Task.Run(() =>
@@ -237,17 +160,16 @@ namespace OgameSkaner.Model
             });
         }
 
-        private async Task markToDelete(UserPlanet tempUserPlanet, ObservableCollection<UserPlanet> playersPlanets)
+        private async Task DeleteOldSolarSystems(UserPlanet tempUserPlanet, ObservableCollection<UserPlanet> playersPlanets)
         {
             var solarSystemsToRemove = playersPlanets.Where(x =>
                 x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem);
 
             foreach (var item in solarSystemsToRemove)
             {
-                item.ToDelete = true;
+                playersPlanets.Remove(item);
             }
         }
-
 
         private DateTime GetSolarSystemCreationDate(UserPlanet tempUserPlanet, ObservableCollection<UserPlanet> playersPlanets)
         {
@@ -266,5 +188,26 @@ namespace OgameSkaner.Model
                 return new DateTime(5, 1, 1, 1, 1, 1);
             }
         }
+
+        #endregion
+
+        #region Fields
+
+        private DateTime _fileCreationDate;
+        private bool _startToReadUserData = false;
+        private string _actualLine = "";
+
+        #endregion
+
+        #region Properties
+
+        public DateTime FileCreationDate
+        {
+            set { _fileCreationDate = value; }
+            get { return _fileCreationDate; }
+        }
+
+        #endregion
+
     }
 }

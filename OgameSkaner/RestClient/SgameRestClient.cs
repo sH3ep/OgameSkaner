@@ -6,15 +6,23 @@ namespace OgameSkaner.RestClient
 {
     public class SgameRestClient
     {
-        private readonly RestSharp.RestClient _client;
-        private readonly RequestConfigurator _requestConfigurator;
-
 
         public SgameRestClient()
         {
             _client = new RestSharp.RestClient("https://uni2.sgame.pl");
             _requestConfigurator = new RequestConfigurator();
         }
+
+        #region fields
+
+        private readonly RestSharp.RestClient _client;
+        private readonly RequestConfigurator _requestConfigurator;
+
+        #endregion
+
+        #region PublicMethods
+
+
 
         public string GetMainPage()
         {
@@ -66,6 +74,9 @@ namespace OgameSkaner.RestClient
             return solarSystemPage;
         }
 
+        #endregion
+
+        #region PrivateMethods
 
         private void saveContent(string text)
         {
@@ -79,5 +90,8 @@ namespace OgameSkaner.RestClient
                 sw.Close();
             }
         }
+
+        #endregion
+
     }
 }

@@ -12,27 +12,16 @@ namespace OgameSkaner.ViewModel
 {
     public class GetDataViewModel : NotifyPropertyChanged
     {
+
+
+        #region fields
+
         private string _apiRequestCounter;
         private string _token;
 
-        public GetDataViewModel()
-        {
-            usersPlanets = new ObservableCollection<UserPlanet>();
-            DeclareDelgateCommand();
-            SkanRange = new GalaxySkanRange();
-            
+        #endregion
 
-        }
-
-        public string Token
-        {
-            set
-            {
-                _token = value;
-                RaisePropertyChanged("ApiRequestCounter");
-            }
-            get => _token;
-        }
+        #region Properties
 
         public string ApiRequestCounter
         {
@@ -43,25 +32,24 @@ namespace OgameSkaner.ViewModel
             }
             get => _apiRequestCounter;
         }
-
+        public string Token
+        {
+            set
+            {
+                _token = value;
+                RaisePropertyChanged("ApiRequestCounter");
+            }
+            get => _token;
+        }
 
         public GalaxySkanRange SkanRange { set; get; }
 
         public ObservableCollection<UserPlanet> usersPlanets { set; get; }
 
         public DelegateCommand GetSolarSystemsDataCommand { set; get; }
+        #endregion
 
-        private void DeclareDelgateCommand()
-        {
-            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); });
-            var dataManager = new UserPlanetDataManager(usersPlanets);
-
-            if (File.Exists("GalaxyDatabase.xml"))
-            {
-                usersPlanets = dataManager.LoadFromXml();
-
-            }
-        }
+        #region PrivateMethods
 
         private async Task GetSolarSystems()
         {
@@ -92,12 +80,6 @@ namespace OgameSkaner.ViewModel
 
         }
 
-        private bool CanExecute()
-        {
-            return true;
-        }
-
-
         private void SaveToken()
         {
             var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -106,5 +88,35 @@ namespace OgameSkaner.ViewModel
             config.Save();
             ConfigurationManager.RefreshSection("appSettings");
         }
+
+        #endregion
+
+        #region CanExecute
+        private bool CanExecute()
+        {
+            return true;
+        }
+        #endregion
+
+
+        public GetDataViewModel()
+        {
+            usersPlanets = new ObservableCollection<UserPlanet>();
+            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); });
+            var dataManager = new UserPlanetDataManager(usersPlanets);
+
+            if (File.Exists("GalaxyDatabase.xml"))
+            {
+                usersPlanets = dataManager.LoadFromXml();
+            }
+
+            SkanRange = new GalaxySkanRange();
+        }
+
+
+
+
+
+
     }
 }

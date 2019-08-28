@@ -9,40 +9,33 @@ using System.Xml.Serialization;
 
 namespace OgameSkaner.Model
 {
+
+
     public class UserPlanetDataManager
     {
         private ObservableCollection<UserPlanet> _userPlanets;
 
+
+        #region Constructors
         public UserPlanetDataManager(ObservableCollection<UserPlanet> userPlanets)
         {
             _userPlanets = userPlanets;
 
         }
+        #endregion
 
-        private void DeleteMarkedSolarSystems()
-        {
-            var tempList = _userPlanets.Where(x => x.ToDelete == false).ToList();
-            _userPlanets.Clear();
+        #region fields
+        #endregion
 
-            foreach (var item in tempList)
-            {
-                _userPlanets.Add(item);
-            }
-        }
-
+        #region PublicMethods
         public ObservableCollection<UserPlanet> LoadFromXml(string fileName = "GalaxyDatabase.xml")
         {
             XmlSerializer serialiser = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
-    
-            {
-                TextReader filestream = new StreamReader(fileName);
-                _userPlanets.Clear();
-                _userPlanets = (ObservableCollection<UserPlanet>)serialiser.Deserialize(filestream);
-                filestream.Close();
-                return _userPlanets;
-            }
-
-           
+            TextReader filestream = new StreamReader(fileName);
+            _userPlanets.Clear();
+            _userPlanets = (ObservableCollection<UserPlanet>)serialiser.Deserialize(filestream);
+            filestream.Close();
+            return _userPlanets;
         }
 
         public ObservableCollection<UserPlanet> FilterDataByUserName(string userName)
@@ -58,7 +51,7 @@ namespace OgameSkaner.Model
             }
             else
             {
-                foreach (var item in _userPlanets.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ThenBy(x=>x.Position).ToList())
+                foreach (var item in _userPlanets.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ThenBy(x => x.Position).ToList())
                 {
                     filteredList.Add(item);
                 }
@@ -120,19 +113,6 @@ namespace OgameSkaner.Model
             }
         }
 
-        //public async Task LoadFromPhpFileOld(string folderLocalization)
-        //{
-        //    var reader = new OgameFileReader();
-        //    var fileList = Directory.EnumerateFiles(folderLocalization, "*.txt");
-        //    foreach (string file in fileList)
-        //    {
-        //        string fileText = File.ReadAllText(file);
-        //        await reader.AddPlayersFromFile(fileText, _userPlanets);
-        //    }
-        //    DeleteMarkedSolarSystems();
-
-        //}
-
         public async Task LoadFromPhpFile(string folderLocalization)
         {
             var reader = new OgameFileReader();
@@ -150,6 +130,23 @@ namespace OgameSkaner.Model
             }
             DeleteMarkedSolarSystems();
         }
+
+        #endregion
+
+        #region PrivateMethods
+
+        private void DeleteMarkedSolarSystems()
+        {
+            var tempList = _userPlanets.Where(x => x.ToDelete == false).ToList();
+            _userPlanets.Clear();
+
+            foreach (var item in tempList)
+            {
+                _userPlanets.Add(item);
+            }
+        }
+
+        #endregion
 
     }
 }
