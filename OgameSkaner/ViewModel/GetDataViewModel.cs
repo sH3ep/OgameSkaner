@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Configuration;
+using System.Diagnostics;
 using System.IO;
+using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
@@ -18,10 +20,19 @@ namespace OgameSkaner.ViewModel
 
         private string _apiRequestCounter;
         private string _token;
+        private string _login;
 
         #endregion
 
         #region Properties
+
+        public SecureString SecurePassword { private get; set; }
+
+        public string Login
+        {
+            set { _login = value; }
+            get { return _login; }
+        }
 
         public string ApiRequestCounter
         {
@@ -32,6 +43,7 @@ namespace OgameSkaner.ViewModel
             }
             get => _apiRequestCounter;
         }
+
         public string Token
         {
             set
@@ -46,10 +58,28 @@ namespace OgameSkaner.ViewModel
 
         public ObservableCollection<UserPlanet> usersPlanets { set; get; }
 
-        public DelegateCommand GetSolarSystemsDataCommand { set; get; }
+
         #endregion
 
         #region PrivateMethods
+
+
+        private async Task LogIn()
+        {
+            await Task.Run(async () =>
+            {
+                try
+                {
+                    var sGameClient = new SgameRestClient();
+                    sGameClient.LoginToSgame(_login, SecurePassword);
+                }
+                catch (RestException e)
+                {
+                    MessageBox.Show(e.Message);
+                }
+
+            });
+        }
 
         private async Task GetSolarSystems()
         {
@@ -60,14 +90,27 @@ namespace OgameSkaner.ViewModel
                     var sGameFileReader = new OgameFileReader();
                     var sGameClient = new SgameRestClient();
                     var dataManager = new UserPlanetDataManager(usersPlanets);
-                    string solarSystemPageString;
-                    for (var i = SkanRange.StartGalaxy; i <= SkanRange.EndGalaxy; i++)
-                        for (var j = SkanRange.StartSystem; j <= SkanRange.EndSystem; j++)
-                        {
-                            solarSystemPageString = sGameClient.GetSolarSystem(i, j);
-                            await sGameFileReader.AddPlayersFromFile(solarSystemPageString, usersPlanets, DateTime.Now);
-                            ApiRequestCounter = i.ToString() + ":" + j.ToString();
-                        }
+                    string solarSysteFile;
+                    try
+                    {
+                        for (var i = SkanRange.StartGalaxy; i <= SkanRange.EndGalaxy; i++)
+                            for (var j = SkanRange.StartSystem; j <= SkanRange.EndSystem; j++)
+                            {
+                                solarSysteFile = sGameClient.GetSolarSystem(i, j);
+                                await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
+                                ApiRequestCounter = i.ToString() + ":" + j.ToString();
+                            }
+
+                    }
+                    catch (RestException e)
+                    {
+                        MessageBox.Show(e.Message);
+
+                    }
+                    catch (Exception e)
+                    {
+                        MessageBox.Show("Unknow exception, contact with developer");
+                    }
 
                     dataManager.SaveIntoXmlFile("DatabaseFromApi");
                 });
@@ -80,15 +123,6 @@ namespace OgameSkaner.ViewModel
 
         }
 
-        private void SaveToken()
-        {
-            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["token"].Value = "6qa24isbmkd4fgj40utvvctbsr";
-            config.Save(ConfigurationSaveMode.Modified);
-            config.Save();
-            ConfigurationManager.RefreshSection("appSettings");
-        }
-
         #endregion
 
         #region CanExecute
@@ -98,11 +132,17 @@ namespace OgameSkaner.ViewModel
         }
         #endregion
 
+        #region Commands
 
+        public DelegateCommand GetSolarSystemsDataCommand { set; get; }
+
+        public DelegateCommand LogInCommand { set; get; }
+        #endregion
         public GetDataViewModel()
         {
             usersPlanets = new ObservableCollection<UserPlanet>();
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); });
+            LogInCommand = new DelegateCommand(async () => { await LogIn(); });
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
             if (File.Exists("GalaxyDatabase.xml"))

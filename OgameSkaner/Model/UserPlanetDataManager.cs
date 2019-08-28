@@ -28,7 +28,7 @@ namespace OgameSkaner.Model
         #endregion
 
         #region PublicMethods
-        public ObservableCollection<UserPlanet> LoadFromXml(string fileName = "GalaxyDatabase.xml")
+        public ObservableCollection<UserPlanet> LoadFromXml(string fileName = "DatabaseFromApi.xml")
         {
             XmlSerializer serialiser = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
             TextReader filestream = new StreamReader(fileName);

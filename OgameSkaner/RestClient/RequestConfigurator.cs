@@ -6,12 +6,6 @@ namespace OgameSkaner.Model
 {
     public class RequestConfigurator
     {
-       
-        public RequestConfigurator()
-        {
-           
-        }
-
         public RestRequest Configure(RequestType requestType)
         {
             switch (requestType)
@@ -27,7 +21,7 @@ namespace OgameSkaner.Model
                     break;
                 default:
                     return GetStartPageRequestConfiguration();
-                    break; 
+                    break;
             }
         }
 
@@ -60,7 +54,7 @@ namespace OgameSkaner.Model
 
         private RestRequest GetSpyReqestConfiguration()
         {
-           throw new NotImplementedException();
+            throw new NotImplementedException();
         }
 
         private RestRequest GetLoginRequestConfiguration()
@@ -88,12 +82,20 @@ namespace OgameSkaner.Model
 
             request.AddCookie("lang", "pl");
             request.AddCookie("scroll", "0");
-            request.AddCookie("2Moons", "6qa24isbmkd4fgj40utuuctbsr");
+
+
+            var token = new Token();
+            token.SaveToken(token.GenerateToken());
+
+            request.AddCookie("2Moons", token.GetToken());
 
             request.AddQueryParameter("page", "login");
 
             return request;
         }
+
+
+       
 
         private RestRequest GetSolarSystemRequestConfiguration()
         {
@@ -120,7 +122,7 @@ namespace OgameSkaner.Model
 
             request.AddCookie("lang", "pl");
             request.AddCookie("scroll", "0");
-            var token = ConfigurationManager.AppSettings.Get("token");
+            var token = new Token().GetToken();
             request.AddCookie("2Moons", token);
 
             return request;

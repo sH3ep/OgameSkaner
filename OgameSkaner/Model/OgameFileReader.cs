@@ -18,7 +18,7 @@ namespace OgameSkaner.Model
             bool isGalaxyAndSystemReaded = false;
             string positionLine = "";
             int errorCount = 0;
-            var tempUserPlanet = new UserPlanet("temp", planetLocalization, fileCreationDate);
+            
             StringReader stringReader = new StringReader(fileText);
 
             while (true)
@@ -28,6 +28,7 @@ namespace OgameSkaner.Model
                 {
                     planetLocalization = await readPlanetLocalization(_actualLine);
                     isGalaxyAndSystemReaded = true;
+                    var tempUserPlanet = new UserPlanet("temp", planetLocalization, fileCreationDate);
                     await DeleteOldSolarSystems(tempUserPlanet, playersPlanets);
                 }
 
@@ -163,7 +164,7 @@ namespace OgameSkaner.Model
         private async Task DeleteOldSolarSystems(UserPlanet tempUserPlanet, ObservableCollection<UserPlanet> playersPlanets)
         {
             var solarSystemsToRemove = playersPlanets.Where(x =>
-                x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem);
+                x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).ToList();
 
             foreach (var item in solarSystemsToRemove)
             {

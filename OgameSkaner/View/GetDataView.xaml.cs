@@ -26,5 +26,11 @@ namespace OgameSkaner.View
             InitializeComponent();
             this.DataContext = new GetDataViewModel();
         }
+
+        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
+        {
+            if (this.DataContext != null)
+            { ((dynamic)this.DataContext).SecurePassword = ((PasswordBox)sender).SecurePassword; }
+        }
     }
 }

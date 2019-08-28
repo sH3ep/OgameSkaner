@@ -12,9 +12,9 @@
             <Grid.Background>
                 <SolidColorBrush Color="AliceBlue" Opacity="0.7" />
             </Grid.Background>
-            <TextBox Height="23" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="150" HorizontalAlignment="Center" Margin="70,30,68,0"/>
-            <PasswordBox Margin="70,88,68,113" VerticalAlignment="Center" HorizontalAlignment="Center" Width="150" Height="24"/>
-            <Button Content="Log In" HorizontalAlignment="Left" Margin="70,166,0,0" VerticalAlignment="Top" Width="150"/>
+            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding Login, Mode=TwoWay}" VerticalAlignment="Top" Width="150" HorizontalAlignment="Center" Margin="70,30,68,0"/>
+            <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="70,88,68,113" VerticalAlignment="Center" HorizontalAlignment="Center" Width="150" Height="24"/>
+            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="70,166,0,0" VerticalAlignment="Top" Width="150"/>
             <CheckBox Content="Save password" HorizontalAlignment="Left" Margin="70,129,0,0" VerticalAlignment="Top"/>
             <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284"/>
             <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284" Height="24"/>

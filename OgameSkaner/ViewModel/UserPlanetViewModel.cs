@@ -79,7 +79,7 @@ namespace OgameSkaner.ViewModel
         private void GetOverviewPage()
         {
             var sgameClient = new SgameRestClient();
-            sgameClient.LoginToSgame();
+           
 
 
 
