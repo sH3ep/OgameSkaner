@@ -127,9 +127,9 @@ namespace OgameSkaner.ViewModel
         private void LoadFromXmlFile()
         {
             Directory.CreateDirectory(string.Concat((object)Directory.GetCurrentDirectory(), "\\Data"));
-            if (File.Exists("GalaxyDatabase.xml"))
+            if (File.Exists("DatabaseFromApi.xml"))
             {
-                _dataManager.LoadFromXml();
+                _dataManager.LoadFromXml("DatabaseFromApi.xml");
                 ShowFilteredData();
             }
         }

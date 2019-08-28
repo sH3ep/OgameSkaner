@@ -56,10 +56,9 @@ namespace OgameSkaner.ViewModel
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); });
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
-            Directory.CreateDirectory(string.Concat((object)Directory.GetCurrentDirectory(), "\\Data"));
             if (File.Exists("GalaxyDatabase.xml"))
             {
-                dataManager.LoadFromXml();
+                usersPlanets = dataManager.LoadFromXml();
 
             }
         }

@@ -17,51 +17,113 @@ namespace OgameSkaner.Model
             get { return _fileCreationDate; }
         }
 
+        private bool _readUser = false;
+        private string line = "";
         public async Task AddPlayersFromFile(string fileText, ObservableCollection<UserPlanet> playersPlanets, DateTime creationDate)
         {
             _fileCreationDate = creationDate;
             StringReader stringReader = new StringReader(fileText);
-            string line = "";
+            
             string planetLocalization = "0:0";
             bool isGalaxyAndSystemReaded = false;
+            string positionLine="";
             int errorCount = 0;
-            while (true)
+            try
             {
-                line = stringReader.ReadLine();
-                if (line != null && line.Contains("System ") && !isGalaxyAndSystemReaded)
-                {
-                    planetLocalization = await readPlanetLocalization(line);
-                    isGalaxyAndSystemReaded = true;
-                    var tempUserPlanet = new UserPlanet("temp", planetLocalization, creationDate);
-                    var solarSystemCreationDate = GetSolarSystemCreationDate(tempUserPlanet, playersPlanets);
-                    if (_fileCreationDate > solarSystemCreationDate)
-                    {
-                        await markToDelete(tempUserPlanet, playersPlanets);
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
 
-
-                if (line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")) && isGalaxyAndSystemReaded)
+                while (true)
                 {
-                    var userName = readUserName(line);
-                    var userPlanet = new UserPlanet(await userName, planetLocalization, _fileCreationDate);
-                    playersPlanets.Add(userPlanet);
-                }
-
-                if (line == null)
-                {
-                    errorCount++;
-                    if (errorCount > 100)
+                    line = stringReader.ReadLine();
+                    if (line != null && line.Contains("System ") && !isGalaxyAndSystemReaded)
                     {
-                        break;
+                        planetLocalization = await readPlanetLocalization(line);
+                        isGalaxyAndSystemReaded = true;
+                        var tempUserPlanet = new UserPlanet("temp", planetLocalization, creationDate);
+                        var solarSystemCreationDate = GetSolarSystemCreationDate(tempUserPlanet, playersPlanets);
+                        if (_fileCreationDate > solarSystemCreationDate)
+                        {
+                            await markToDelete(tempUserPlanet, playersPlanets);
+                        }
+                        else
+                        {
+                            break;
+                        }
                     }
+
+                    if (isGalaxyAndSystemReaded)
+                    {
+                        positionLine = GetLineWithPosition(stringReader, positionLine);
+                    }
+
+                    if (_readUser)
+                    {
+                        var userName = readUserName(line);
+                        var position = GetPositionFromLine(positionLine);
+                        var userPlanet = new UserPlanet(await userName, planetLocalization, position, _fileCreationDate);
+
+                        playersPlanets.Add(userPlanet);
+                        _readUser = false;
+                    }
+
+                    if (line == null)
+                    {
+                        errorCount++;
+                        if (errorCount > 100)
+                        {
+                            break;
+                        }
+                    }
+
                 }
+            }
+            catch(Exception e)
+            {
+                var info = e.Message;
 
             }
+        }
+
+        private string GetLineWithPosition(StringReader stringReader,string previousLine)
+        {
+            try
+            {
+                if (line != null && line.Contains("<tr>"))
+                {
+                    line = stringReader.ReadLine();
+                    if (line.Contains("<td>"))
+                    {
+                        var position = stringReader.ReadLine();
+                        return position;
+                        
+                    }
+                    else if(line != null && (line.Contains("<span class=\"galaxy-username") || line.Contains("<span class=\" galaxy-username")))
+                    {
+                        _readUser = true;
+                        return previousLine;
+                    }
+                   
+                }
+                return previousLine;
+            }catch(Exception e)
+            {
+                var tempo = e.StackTrace;
+                return 5.ToString();
+            }
+        }
+
+        private int GetPositionFromLine(string linePosition)
+        {
+            try
+            {
+            string positionString = new string(linePosition.Where(char.IsDigit).ToArray());
+            int position = int.Parse(positionString);
+            return position;
+
+            }catch(Exception e)
+            {
+                return 0;
+            }
+            
         }
 
 

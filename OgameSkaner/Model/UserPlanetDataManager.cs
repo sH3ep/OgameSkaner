@@ -58,7 +58,7 @@ namespace OgameSkaner.Model
             }
             else
             {
-                foreach (var item in _userPlanets.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ToList())
+                foreach (var item in _userPlanets.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ThenBy(x=>x.Position).ToList())
                 {
                     filteredList.Add(item);
                 }
