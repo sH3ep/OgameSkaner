@@ -3,7 +3,9 @@
     public enum RequestType
     {
         GetSolarSystem,
-        SpyPlanet,
+        SpyPlanetPart1,
+        SpyPlanetPart2,
+        SpyPlanetPart3,
         Login,
         StartPage,
     }

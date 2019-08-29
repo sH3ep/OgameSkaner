@@ -87,6 +87,7 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Web" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -110,9 +111,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\ColorToBrushConverter.cs" />
     <Compile Include="Model\GalaxySkanRange.cs" />
     <Compile Include="Model\RestException.cs" />
     <Compile Include="Model\Token.cs" />
+    <Compile Include="RestClient\LoginStatus.cs" />
     <Compile Include="RestClient\RequestConfigurator.cs" />
     <Compile Include="RestClient\RequestType.cs" />
     <Compile Include="Model\UserPlanetDataManager.cs" />
@@ -122,9 +125,13 @@
     <Compile Include="RestClient\SgameRestClient.cs" />
     <Compile Include="ViewModel\GetDataViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
+    <Compile Include="ViewModel\UserPlanetDetailedViewModel.cs" />
     <Compile Include="ViewModel\UserPlanetViewModel.cs" />
     <Compile Include="View\GetDataView.xaml.cs">
       <DependentUpon>GetDataView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\UserPlanetDetailedView.xaml.cs">
+      <DependentUpon>UserPlanetDetailedView.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\UserPlanetView.xaml.cs">
       <DependentUpon>UserPlanetView.xaml</DependentUpon>
@@ -143,6 +150,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="View\GetDataView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\UserPlanetDetailedView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

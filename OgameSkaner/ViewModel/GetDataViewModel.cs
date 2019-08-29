@@ -141,8 +141,8 @@ namespace OgameSkaner.ViewModel
         public GetDataViewModel()
         {
             usersPlanets = new ObservableCollection<UserPlanet>();
-            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); });
-            LogInCommand = new DelegateCommand(async () => { await LogIn(); });
+            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); },CanExecute);
+            LogInCommand = new DelegateCommand(async () => { await LogIn(); },CanExecute);
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
             if (File.Exists("GalaxyDatabase.xml"))

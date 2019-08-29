@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
 using RestSharp;
@@ -84,10 +85,40 @@ namespace OgameSkaner.RestClient
             return solarSystemPage;
         }
 
+        public LoginStatus CheckLogInStatus()
+        {
+            var request = _requestConfigurator.Configure(RequestType.StartPage);
+            var response = _client.Execute(request);
+            if (IsClientLoggedIn(response))
+            {
+                return LoginStatus.LoggedIn;
+            }
+            return LoginStatus.LoggedOut;
+        }
+
         #endregion
 
         #region PrivateMethods
 
+        private bool IsClientLoggedIn(IRestResponse response)
+        {
+            try
+            {
+                var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
+                test = Regex.Match(test, @"\d+").Value;
+                if (int.Parse(test) < 1500)
+                {
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return false;
+            }
+
+            return true;
+        }
 
         private bool IsResponseCorrect(IRestResponse response)
         {

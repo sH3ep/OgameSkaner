@@ -12,6 +12,7 @@ using System.Windows.Input;
 using System.Xml.Serialization;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.View;
 using OgameSkaner.WpfExtensions;
 using Prism.Commands;
 
@@ -27,9 +28,10 @@ namespace OgameSkaner.ViewModel
         private string _filteredName;
         private UserPlanetDataManager _dataManager;
         private string _folderLocalization = string.Concat((object)Directory.GetCurrentDirectory(), "\\Data");
+        private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetails;
 
         #endregion
-        
+
         #region Constructor
 
         public UserPlanetViewModel()
@@ -39,8 +41,9 @@ namespace OgameSkaner.ViewModel
             ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
             TurnOnAdminModeCommand = new DelegateCommand(TurnOnAdminMode, canExecuteFilter);
             GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization, canExecuteLoadFiles);
-            GetOverviewPageCommand = new DelegateCommand(GetOverviewPage,canExecuteFilter);
+            GetOverviewPageCommand = new DelegateCommand(GetOverviewPage, canExecuteFilter);
             _filteredUsersPlanets = new ObservableCollection<UserPlanet>();
+            _usersPlanetsDetails = new ObservableCollection<UserPlanetDetailedView>();
             _dataManager = new UserPlanetDataManager(PlayersPlanets);
             LoadFromXmlFile();
         }
@@ -71,15 +74,24 @@ namespace OgameSkaner.ViewModel
         {
             return true;
         }
-        
+
         #endregion
 
         #region private methods
 
+        private void RefreshUsersPlanetsDetails()
+        {
+            UsersPlanetsDetails.Clear();
+            foreach (var item in FilteredUsersPlanets)
+            {
+                UsersPlanetsDetails.Add(new UserPlanetDetailedView(item));
+            }
+            
+        }
         private void GetOverviewPage()
         {
             var sgameClient = new SgameRestClient();
-           
+
 
 
 
@@ -122,6 +134,7 @@ namespace OgameSkaner.ViewModel
         private void ShowFilteredData()
         {
             FilteredUsersPlanets = _dataManager.FilterDataByUserName(FilteredName);
+            RefreshUsersPlanetsDetails();
         }
 
         private void LoadFromXmlFile()
@@ -131,6 +144,7 @@ namespace OgameSkaner.ViewModel
             {
                 _dataManager.LoadFromXml("DatabaseFromApi.xml");
                 ShowFilteredData();
+                RefreshUsersPlanetsDetails();
             }
         }
 
@@ -154,6 +168,15 @@ namespace OgameSkaner.ViewModel
 
         public ObservableCollection<UserPlanet> PlayersPlanets = new ObservableCollection<UserPlanet>();
 
+        public ObservableCollection<UserPlanetDetailedView> UsersPlanetsDetails
+        {
+            get { return _usersPlanetsDetails; }
+            set
+            {
+                _usersPlanetsDetails = value;
+                RaisePropertyChanged("UsersPlanetsDetails");
+            }
+        }
         public ObservableCollection<UserPlanet> FilteredUsersPlanets
         {
             get { return _filteredUsersPlanets; }

@@ -31,6 +31,7 @@ namespace OgameSkaner.View
         {
             if (this.DataContext != null)
             { ((dynamic)this.DataContext).SecurePassword = ((PasswordBox)sender).SecurePassword; }
+            
         }
     }
 }

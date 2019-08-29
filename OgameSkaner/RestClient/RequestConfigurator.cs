@@ -16,13 +16,33 @@ namespace OgameSkaner.Model
                 case RequestType.Login:
                     return GetLoginRequestConfiguration();
                     break;
-                case RequestType.SpyPlanet:
-                    return GetSpyReqestConfiguration();
+                case RequestType.SpyPlanetPart1:
+                    return GetSpyPart1ReqestConfiguration();
+                    break;
+                case RequestType.SpyPlanetPart2:
+                    return GetSpyPart2ReqestConfiguration();
+                    break;
+                case RequestType.SpyPlanetPart3:
+                    return GetSpyPart3ReqestConfiguration();
                     break;
                 default:
                     return GetStartPageRequestConfiguration();
                     break;
             }
+        }
+
+        private RestRequest GetSpyPart3ReqestConfiguration()
+        {
+            throw new NotImplementedException();
+        }
+
+        private RestRequest GetSpyPart2ReqestConfiguration()
+        {
+            throw new NotImplementedException();
+        }
+        private RestRequest GetSpyPart1ReqestConfiguration()
+        {
+            throw new NotImplementedException();
         }
 
         private RestRequest GetStartPageRequestConfiguration()
@@ -36,9 +56,6 @@ namespace OgameSkaner.Model
                 "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3");
             request.AddHeader("accept-encoding", "gzip, deflate, br");
             request.AddHeader("accept-language", "pl - PL, pl; q = 0.9,en - US; q = 0.8,en; q = 0.7");
-            request.AddCookie("lang", "pl");
-            request.AddCookie("scroll", "0");
-            request.AddCookie("2Moons", "6qa24isbmkd4fgj40utuuctbsr");
             request.AddHeader("referer", "https://uni2.sgame.pl/game.php?page=overview");
             request.AddHeader("sec-fetch-mode", "navigate");
             request.AddHeader("sec-fetch-site", "same-origin");
@@ -48,13 +65,12 @@ namespace OgameSkaner.Model
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36");
 
             request.AddQueryParameter("page", "overview");
+            var token = new Token();
+            request.AddCookie("lang", "pl");
+            request.AddCookie("scroll", "0");
+            request.AddCookie("2Moons", token.GetToken());
 
             return request;
-        }
-
-        private RestRequest GetSpyReqestConfiguration()
-        {
-            throw new NotImplementedException();
         }
 
         private RestRequest GetLoginRequestConfiguration()
@@ -93,9 +109,6 @@ namespace OgameSkaner.Model
 
             return request;
         }
-
-
-       
 
         private RestRequest GetSolarSystemRequestConfiguration()
         {
