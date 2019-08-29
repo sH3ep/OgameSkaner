@@ -1,18 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Annotations;
 
 namespace OgameSkaner.Model
 {
-    [Serializable()]
-    public class UserPlanet  
+    [Serializable]
+    public class UserPlanet
     {
-        public UserPlanet() { }
+        #region Constructors
+
+        public UserPlanet() {
+        }
 
         public UserPlanet(string userName, string planetLocalization)
         {
@@ -20,29 +16,28 @@ namespace OgameSkaner.Model
             _galaxy = GetGalaxy(planetLocalization);
             _solarSystem = GetSolarSystem(planetLocalization);
             _localization = _galaxy + ":" + _solarSystem;
-
         }
 
-        public UserPlanet(string userName, string planetLocalization,DateTime creationDate)
+        public UserPlanet(string userName, string planetLocalization, DateTime creationDate)
         {
             _userName = userName;
             _galaxy = GetGalaxy(planetLocalization);
             _solarSystem = GetSolarSystem(planetLocalization);
             _localization = _galaxy + ":" + _solarSystem;
             _creationDate = creationDate;
-
         }
 
-        public UserPlanet(string userName, string planetLocalization,int position, DateTime creationDate)
+        public UserPlanet(string userName, string planetLocalization, int position, DateTime creationDate)
         {
             _userName = userName;
             _galaxy = GetGalaxy(planetLocalization);
             _solarSystem = GetSolarSystem(planetLocalization);
             _position = position;
-            _localization = _galaxy + ":" + _solarSystem +":"+_position;
+            _localization = _galaxy + ":" + _solarSystem + ":" + _position;
             _creationDate = creationDate;
-
         }
+
+        #endregion
 
         #region private fields
 
@@ -53,15 +48,22 @@ namespace OgameSkaner.Model
         private bool _toDelete;
         private DateTime _creationDate;
         private int _position;
+        private int _planetId;
 
         #endregion
 
         #region Public properties
 
+        public int PlanetId
+        {
+            set => _planetId = value;
+            get => _planetId;
+        }
+
         public DateTime CreationDate
         {
-            get { return _creationDate; }
-            set { _creationDate = value; }
+            get => _creationDate;
+            set => _creationDate = value;
         }
 
 
@@ -107,39 +109,27 @@ namespace OgameSkaner.Model
 
         private int GetGalaxy(string localization)
         {
-            foreach (char c in localization)
-            {
+            foreach (var c in localization)
                 if (char.IsNumber(c))
-                {
                     return c - '0';
-                }
-            }
 
             return 0;
         }
 
         private int GetSolarSystem(string localization)
         {
-            bool galaxyReded = false;
-            string solarSystemString = "";
-            foreach (char c in localization)
+            var galaxyReded = false;
+            var solarSystemString = "";
+            foreach (var c in localization)
             {
+                if (char.IsNumber(c) && galaxyReded) solarSystemString = solarSystemString + c;
 
-
-                if (char.IsNumber(c) && galaxyReded)
-                {
-                    solarSystemString = solarSystemString + c;
-                }
-
-                if (char.IsNumber(c) && !galaxyReded)
-                {
-                    galaxyReded = true;
-                }
+                if (char.IsNumber(c) && !galaxyReded) galaxyReded = true;
             }
 
             try
             {
-                int solarSystem = int.Parse(solarSystemString);
+                var solarSystem = int.Parse(solarSystemString);
                 return solarSystem;
             }
             catch (Exception e)
@@ -147,8 +137,6 @@ namespace OgameSkaner.Model
                 Console.WriteLine(e);
                 return 0;
             }
-
-
         }
 
         #endregion

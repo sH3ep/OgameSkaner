@@ -14,8 +14,7 @@
             </Grid.Background>
             <TextBox Height="23" TextWrapping="Wrap" Text="{Binding Login, Mode=TwoWay}" VerticalAlignment="Top" Width="150" HorizontalAlignment="Center" Margin="70,30,68,0"/>
             <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="70,88,68,113" VerticalAlignment="Center" HorizontalAlignment="Center" Width="150" Height="24"/>
-            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="70,166,0,0" VerticalAlignment="Top" Width="150"/>
-            <CheckBox Content="Save password" HorizontalAlignment="Left" Margin="70,129,0,0" VerticalAlignment="Top"/>
+            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="70,147,0,0" VerticalAlignment="Top" Width="150" Height="39"/>
             <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284"/>
             <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284" Height="24"/>
         </Grid>
@@ -23,17 +22,26 @@
             <Grid.Background>
                 <SolidColorBrush Color="Bisque" Opacity="0.7" />
             </Grid.Background>
-            <TextBox HorizontalAlignment="Left" Height="26" Margin="91,10,0,0" TextWrapping="Wrap" Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187"/>
-            <Button Content="Save Token" HorizontalAlignment="Left" Margin="164,69,0,0" VerticalAlignment="Top" Width="114" Height="43"/>
-            <Label Content="Token:" HorizontalAlignment="Left" Margin="33,10,0,0" VerticalAlignment="Top" Width="58"/>
+            <TextBox HorizontalAlignment="Left" Height="26" Margin="68,10,0,0" TextWrapping="Wrap" Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187"/>
+            <Button Content="Save Token" Margin="92,55,92,24"/>
+            <Label Content="Token:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58"/>
         </Grid>
         <Grid Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="LightGreen" Opacity="0.7" />
             </Grid.Background>
             <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="66" VerticalAlignment="Top" Width="301"/>
-            <Button Content="GetSelectedData" Command="{Binding GetSolarSystemsDataCommand}" HorizontalAlignment="Left" Margin="18,217,0,0" VerticalAlignment="Top" Width="122" Height="44"/>
-            <Label Content="{Binding ApiRequestCounter,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="10,266,0,0" VerticalAlignment="Top" Height="48" Width="137" FontSize="23"/>
+            <Button Content="Get data" Command="{Binding GetSolarSystemsDataCommand}" Margin="76,163,103,0" VerticalAlignment="Top" Height="44"/>
+            <Label Content="{Binding ApiRequestCounter,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="76,232,0,0" VerticalAlignment="Top" Height="45" Width="122" FontSize="23" RenderTransformOrigin="0.5,0.5">
+                <Label.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform Angle="0.061"/>
+                        <TranslateTransform/>
+                    </TransformGroup>
+                </Label.RenderTransform>
+            </Label>
             <TextBox HorizontalAlignment="Left" Height="23" Margin="53,33,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.StartGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
             <TextBox HorizontalAlignment="Left" Height="23" Margin="161,33,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.StartSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
             <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="6,29,0,0" VerticalAlignment="Top" Height="27"  />

@@ -17,7 +17,7 @@
         <TextBlock HorizontalAlignment="Left" Margin="252,393,0,0" TextWrapping="Wrap" Text="sH3ep  @2019" VerticalAlignment="Top" Width="319"/>
         <Button Content="UserPlanetView" Command="{Binding ShowUserPlanetViewCommand}" HorizontalAlignment="Left" Margin="10,55,0,0" VerticalAlignment="Top" Width="133" Height="40"/>
         <Button Content="Get data" Command="{Binding ShowGetDataCommand}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="133" Height="40"/>
-        <Rectangle Fill="{Binding LoginRectangleCollor}" HorizontalAlignment="Left" Height="63" Margin="10,309,0,0" Stroke="Black" VerticalAlignment="Top" Width="73">
+        <Rectangle Fill="{Binding LoginRectangleCollor}" Opacity="0.7" HorizontalAlignment="Left" Height="63" Margin="10,309,0,0" Stroke="Black" VerticalAlignment="Top" Width="73">
             <Rectangle.Style>
                 <Style>
                     <Style.Triggers>
@@ -32,7 +32,7 @@
             </Rectangle.Style>
         </Rectangle>
         <Label Content="Login status:" HorizontalAlignment="Left" Margin="6,278,0,0" VerticalAlignment="Top"/>
-        <Label Content="{Binding LoginStatus,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="10,336,0,0" VerticalAlignment="Top" Width="73"/>
+        <Label Content="{Binding LoginStatus,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="10,327,0,0" VerticalAlignment="Top" Width="73"/>
     </Grid>
 
 

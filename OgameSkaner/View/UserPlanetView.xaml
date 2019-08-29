@@ -34,7 +34,6 @@
             </TextBlock.Background>
         </TextBlock>
         <Button Content="Filtruj" HorizontalAlignment="Left" Margin="645,10,0,0" VerticalAlignment="Top" Width="103" Height="24" Command="{Binding ShowFilteredDataCommand}"/>
-        <Button Content="Button" Command="{Binding GetOverviewPageCommand}" HorizontalAlignment="Left" Margin="46,206,0,0" VerticalAlignment="Top" Width="76"/>
         <ListBox ItemsSource="{Binding UsersPlanetsDetails}" Opacity="0.8" HorizontalAlignment="Left" Height="367" Margin="253,39,0,0" VerticalAlignment="Top" Width="537"/>
 
     </Grid>
