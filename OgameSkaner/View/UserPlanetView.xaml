@@ -9,32 +9,20 @@
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Margin="0,0,0,34">
-        <Button Content="Wczytaj wcześniej stworzoną strukture" HorizontalAlignment="Left" Command="{Binding LoadFromXMLFileCommand}" Margin="10,120,0,0" VerticalAlignment="Top" Width="155" Height="63" Visibility="Hidden"/>
-
-        <!-- <DataGrid HorizontalAlignment="Left" Height="321" Margin="253,45,0,0" VerticalAlignment="Top" Width="495"
-            AutoGenerateColumns="False" ItemsSource="{Binding FilteredUsersPlanets,UpdateSourceTrigger=PropertyChanged}"
-            Opacity="0.8">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Nazwa użytkwnika" Binding="{Binding UserName}"/>
-                <DataGridTextColumn Header="Lokalizacja" Binding="{Binding Localization}"/>
-            </DataGrid.Columns>
-        </DataGrid>-->
-
-
-
-
         <TextBox HorizontalAlignment="Left" Height="23" Margin="471,11,0,0" TextWrapping="Wrap" Text="{Binding FilteredName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top" Width="146">
             <TextBox.InputBindings>
                 <KeyBinding Command="{Binding ShowFilteredDataCommand}" Key="Return" />
             </TextBox.InputBindings>
         </TextBox>
-        <TextBlock HorizontalAlignment="Left" Margin="253,11,0,0" TextWrapping="Wrap" Text="Nazwa poszukiwanego Gracza: " VerticalAlignment="Top" Height="23" Width="196">
+        <TextBlock HorizontalAlignment="Left" Margin="253,11,0,0" TextWrapping="Wrap" Text="Search player by name: " VerticalAlignment="Top" Height="23" Width="196">
             <TextBlock.Background>
                 <SolidColorBrush Color="Red" Opacity="0.5" />
             </TextBlock.Background>
         </TextBlock>
         <Button Content="Filtruj" HorizontalAlignment="Left" Margin="645,10,0,0" VerticalAlignment="Top" Width="103" Height="24" Command="{Binding ShowFilteredDataCommand}"/>
-        <ListBox ItemsSource="{Binding UsersPlanetsDetails}" Opacity="0.8" HorizontalAlignment="Left" Height="367" Margin="253,39,0,0" VerticalAlignment="Top" Width="537"/>
+        <ListBox ItemsSource="{Binding UsersPlanetsDetails}" Opacity="0.8" HorizontalAlignment="Left" Height="367" Margin="253,39,0,0" VerticalAlignment="Top" Width="537">
+           
+        </ListBox>
 
     </Grid>
 </UserControl>

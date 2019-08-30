@@ -43,7 +43,7 @@ namespace OgameSkaner.Model
             ObservableCollection<UserPlanet> filteredList = new ObservableCollection<UserPlanet>();
             if (userName != null && userName.Length > 1)
             {
-                var tempList = _userPlanets.Where(x => x.UserName.ToLower().Equals(userName.ToLower()));
+                var tempList = _userPlanets.Where(x => x.UserName.ToLower().Contains(userName.ToLower()));
                 foreach (var item in tempList.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ToList())
                 {
                     filteredList.Add(item);
@@ -74,7 +74,7 @@ namespace OgameSkaner.Model
                 }
 
             }
-            catch (IOException ioExp)
+            catch (IOException)
             {
                 MessageBox.Show("Wystapił błąd przy próbie zapisania danych do pliku xml");
             }

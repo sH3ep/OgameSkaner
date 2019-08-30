@@ -1,3 +1,40 @@
+﻿{"slots":"6","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}
+----------------------------------------------30.08.2019 08:54:20--------------------------------------
+﻿{"slots":"6","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}----------------------------------------------30.08.2019 09:01:15--------------------------------------
+﻿{"slots":"6","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}----------------------------------------------30.08.2019 09:21:33--------------------------------------
+﻿{"slots":"6","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}
+
+----------------------------------------------30.08.2019 09:23:33--------------------------------------
+﻿{"slots":"0","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}
+
+----------------------------------------------30.08.2019 09:28:23--------------------------------------
+﻿{"slots":"0","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}
+
+----------------------------------------------30.08.2019 09:28:57--------------------------------------
+﻿{"slots":"0","code":601,"mess":"B\u0142\u0105d - planeta nie istnieje"}
+
+----------------------------------------------30.08.2019 09:40:21--------------------------------------
+﻿{"slots":1,"ships":{"210":1700},"code":600,"mess":"Wys\u0142ano 50 Sonda Szpiegowska do 1:144:6."}
+
+----------------------------------------------30.08.2019 09:41:26--------------------------------------
+﻿{"slots":1,"ships":{"210":1700},"code":600,"mess":"Wys\u0142ano 50 Sonda Szpiegowska do 1:1:7."}
+
+----------------------------------------------30.08.2019 09:47:16--------------------------------------
+﻿{"slots":"0","ships":{"210":1700},"code":603,"mess":"Gracz za s\u0142aby"}
+
+----------------------------------------------30.08.2019 12:51:51--------------------------------------
+﻿{"slots":"6","ships":{"210":1700},"code":603,"mess":"Gracz za s\u0142aby"}
+
+----------------------------------------------30.08.2019 13:00:05--------------------------------------
+﻿{"slots":"0","ships":{"210":1700},"code":603,"mess":"Gracz za s\u0142aby"}
+
+----------------------------------------------30.08.2019 13:00:09--------------------------------------
+﻿{"slots":"0","ships":{"210":1700},"code":603,"mess":"Gracz za s\u0142aby"}
+
+----------------------------------------------30.08.2019 13:00:11--------------------------------------
+﻿{"slots":1,"ships":{"210":1700},"code":600,"mess":"Wys\u0142ano 50 Sonda Szpiegowska do 1:1:7."}
+
+----------------------------------------------30.08.2019 13:15:25--------------------------------------
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -83,3 +120,183 @@
 	}
 </script>
 </html>
+
+----------------------------------------------30.08.2019 13:21:28--------------------------------------
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta property="og:image" content="img/og_image.jpg">
+	<meta name="generator" content="SGame v1.3">
+	<meta name="author" content="spieriz">
+	<meta name="keywords" content="SGame, XNova, 2Moons, OGame, Ugamela, OGam, Strategia, Gra, Przeglądarkowa, Online">
+	<meta name="description" content="SGame.pl - strategiczna gra przeglądarkowa, której akcja dzieje się w przestrzeni kosmicznej">
+
+	<title>SGame.pl</title>
+
+	<script type="application/ld+json">
+		{
+			"@type": "Organization",
+			"url": "https://sgame.pl",
+			"name": "SGame.pl - Strategiczna gra przeglądarkowa"
+		}
+	</script>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script src="https://www.google.com/recaptcha/api.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="styles/resource/css/login/main.css">
+	<link rel="shortcut icon" href="styles/resource/images/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+<header>
+    <div id="logotype">
+        <a href="https://sgame.pl"><img src="styles/resource/images/login/sgame-logo-white.png"></a>
+    </div>
+</header>
+
+<div id="content">
+    <div id="window">
+        
+	<div id="login_window" class="box_window">
+		<form id="login_form" name="login" action="index.php?page=login" method="post">
+			<span class="box_window_header">Logowanie</span>
+			<input type="text" name="username" class="input_text" placeholder="Nazwa użytkownika">
+			<input type="password" name="password" id="password" class="input_text" placeholder="Hasło">
+			<input type="submit" class="input_submit" value="Zaloguj się">
+		</form>
+		<span class="description_text"><a href="index.php?page=lostPassword">Zresetuj hasło</a></span>
+	</div>
+
+	<div id="border"></div>
+
+	<div id="register_window" class="box_window">
+		<form id="register_form" name="register" action="index.php?page=register" method="post">
+			<span class="box_window_header">Rejestracja</span>
+			<input type="text" name="username" class="input_text" placeholder="Nazwa użytkownika">
+			<input type="email" name="email" class="input_text" placeholder="Adres email" autocomplete="off">
+			<input type="password" name="password" class="input_text" placeholder="Hasło">
+
+			<input type="hidden" value="send" name="mode">
+			<input type="hidden" value="0" name="externalAuth[account]">
+			<input type="hidden" value="" name="externalAuth[method]">
+			<input type="hidden" value="0" name="referralID">
+			<input type="hidden" value="pl" name="language">
+			<input type="hidden" name="rules" id="rules" value="1" style="display: none;">
+
+			<button class="g-recaptcha input_submit" data-sitekey="6Ldp1Y4UAAAAADmFUp0T0Gh4XO1UHFZj-shn6TDs" data-callback='submitForm'>Zarejestruj się</button>
+		</form>
+		<span class="description_text">Zakładając konto akceptujesz <a href="https://sgame.pl/rules.html">regulamin</a>
+                    oraz <a href="https://sgame.pl/rules.html#privacy_policy">politykę prywatności</a>.</span>
+	</div>
+
+    </div>
+</div>
+
+<footer>
+	<span>Powered by <a href="http://2moons.cc/" title="2Moons" target="copy">2Moons</a> 2009-2013</span>
+	<span>Modified by <a href="#" title="spieriz">spieriz</a> 2018-2019</span>
+</footer>
+</body>
+<script>
+	function submitForm() {
+		let form = document.getElementById("register_form");
+		form.submit();
+	}
+</script>
+</html>
+
+----------------------------------------------30.08.2019 13:21:32--------------------------------------
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+	<meta property="og:image" content="img/og_image.jpg">
+	<meta name="generator" content="SGame v1.3">
+	<meta name="author" content="spieriz">
+	<meta name="keywords" content="SGame, XNova, 2Moons, OGame, Ugamela, OGam, Strategia, Gra, Przeglądarkowa, Online">
+	<meta name="description" content="SGame.pl - strategiczna gra przeglądarkowa, której akcja dzieje się w przestrzeni kosmicznej">
+
+	<title>SGame.pl</title>
+
+	<script type="application/ld+json">
+		{
+			"@type": "Organization",
+			"url": "https://sgame.pl",
+			"name": "SGame.pl - Strategiczna gra przeglądarkowa"
+		}
+	</script>
+
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script src="https://www.google.com/recaptcha/api.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="styles/resource/css/login/main.css">
+	<link rel="shortcut icon" href="styles/resource/images/favicon.ico" type="image/x-icon">
+</head>
+
+<body>
+<header>
+    <div id="logotype">
+        <a href="https://sgame.pl"><img src="styles/resource/images/login/sgame-logo-white.png"></a>
+    </div>
+</header>
+
+<div id="content">
+    <div id="window">
+        
+	<div id="login_window" class="box_window">
+		<form id="login_form" name="login" action="index.php?page=login" method="post">
+			<span class="box_window_header">Logowanie</span>
+			<input type="text" name="username" class="input_text" placeholder="Nazwa użytkownika">
+			<input type="password" name="password" id="password" class="input_text" placeholder="Hasło">
+			<input type="submit" class="input_submit" value="Zaloguj się">
+		</form>
+		<span class="description_text"><a href="index.php?page=lostPassword">Zresetuj hasło</a></span>
+	</div>
+
+	<div id="border"></div>
+
+	<div id="register_window" class="box_window">
+		<form id="register_form" name="register" action="index.php?page=register" method="post">
+			<span class="box_window_header">Rejestracja</span>
+			<input type="text" name="username" class="input_text" placeholder="Nazwa użytkownika">
+			<input type="email" name="email" class="input_text" placeholder="Adres email" autocomplete="off">
+			<input type="password" name="password" class="input_text" placeholder="Hasło">
+
+			<input type="hidden" value="send" name="mode">
+			<input type="hidden" value="0" name="externalAuth[account]">
+			<input type="hidden" value="" name="externalAuth[method]">
+			<input type="hidden" value="0" name="referralID">
+			<input type="hidden" value="pl" name="language">
+			<input type="hidden" name="rules" id="rules" value="1" style="display: none;">
+
+			<button class="g-recaptcha input_submit" data-sitekey="6Ldp1Y4UAAAAADmFUp0T0Gh4XO1UHFZj-shn6TDs" data-callback='submitForm'>Zarejestruj się</button>
+		</form>
+		<span class="description_text">Zakładając konto akceptujesz <a href="https://sgame.pl/rules.html">regulamin</a>
+                    oraz <a href="https://sgame.pl/rules.html#privacy_policy">politykę prywatności</a>.</span>
+	</div>
+
+    </div>
+</div>
+
+<footer>
+	<span>Powered by <a href="http://2moons.cc/" title="2Moons" target="copy">2Moons</a> 2009-2013</span>
+	<span>Modified by <a href="#" title="spieriz">spieriz</a> 2018-2019</span>
+</footer>
+</body>
+<script>
+	function submitForm() {
+		let form = document.getElementById("register_form");
+		form.submit();
+	}
+</script>
+</html>
+
+----------------------------------------------30.08.2019 13:22:39--------------------------------------
+﻿{"slots":"0","ships":{"210":1700},"code":603,"mess":"Gracz za s\u0142aby"}
+
+----------------------------------------------30.08.2019 13:22:40--------------------------------------
+﻿{"slots":1,"ships":{"210":1700},"code":600,"mess":"Wys\u0142ano 50 Sonda Szpiegowska do 1:1:7."}

@@ -1,0 +1,87 @@
+
+<---------------------------->30.08.2019 14:15:24<---------------------------->
+loading multiple UserPlanetDetailedView took: 2910,09
+
+<---------------------------->30.08.2019 14:15:27<---------------------------->
+loading multiple UserPlanetDetailedView took: 2334,2655
+
+<---------------------------->30.08.2019 14:15:37<---------------------------->
+loading multiple UserPlanetDetailedView took: 1766,3063
+
+<---------------------------->30.08.2019 14:15:38<---------------------------->
+loading multiple UserPlanetDetailedView took: 1830,3681
+
+<---------------------------->30.08.2019 14:15:46<---------------------------->
+loading multiple UserPlanetDetailedView took: 1865,5067
+
+<---------------------------->30.08.2019 14:15:48<---------------------------->
+loading multiple UserPlanetDetailedView took: 1822,2085
+
+<---------------------------->30.08.2019 14:17:04<---------------------------->
+loading multiple UserPlanetDetailedView took: 2096,1168
+
+<---------------------------->30.08.2019 14:17:06<---------------------------->
+loading multiple UserPlanetDetailedView took: 1901,3259
+
+<---------------------------->30.08.2019 14:17:43<---------------------------->
+loading multiple UserPlanetDetailedView took: 1885,121
+
+<---------------------------->30.08.2019 14:17:56<---------------------------->
+loading multiple UserPlanetDetailedView took: 1700,3729
+
+<---------------------------->30.08.2019 14:19:15<---------------------------->
+loading multiple UserPlanetDetailedView took: 1850,1211
+
+<---------------------------->30.08.2019 14:19:17<---------------------------->
+loading multiple UserPlanetDetailedView took: 1890,6843
+
+<---------------------------->30.08.2019 14:22:34<---------------------------->
+loading multiple UserPlanetDetailedView took: 2803,5325
+
+<---------------------------->30.08.2019 14:22:36<---------------------------->
+loading multiple UserPlanetDetailedView took: 1984,9533
+
+<---------------------------->30.08.2019 14:22:45<---------------------------->
+loading multiple UserPlanetDetailedView took: 1856,6665
+
+<---------------------------->30.08.2019 14:22:47<---------------------------->
+loading multiple UserPlanetDetailedView took: 1983,4558
+
+<---------------------------->30.08.2019 14:25:12<---------------------------->
+loading multiple UserPlanetDetailedView took: 2701,9534
+
+<---------------------------->30.08.2019 14:25:14<---------------------------->
+loading multiple UserPlanetDetailedView took: 2046,3727
+
+<---------------------------->30.08.2019 14:25:22<---------------------------->
+loading multiple UserPlanetDetailedView took: 2383,7265
+
+<---------------------------->30.08.2019 14:25:24<---------------------------->
+loading multiple UserPlanetDetailedView took: 2190,7848
+
+<---------------------------->30.08.2019 14:40:16<---------------------------->
+loading multiple UserPlanetDetailedView took: 101,6724
+
+<---------------------------->30.08.2019 14:40:16<---------------------------->
+loading multiple UserPlanetDetailedView took: 121,1145
+
+<---------------------------->30.08.2019 14:40:28<---------------------------->
+loading multiple UserPlanetDetailedView took: 50,6827
+
+<---------------------------->30.08.2019 14:40:28<---------------------------->
+loading multiple UserPlanetDetailedView took: 53,377
+
+<---------------------------->30.08.2019 14:40:31<---------------------------->
+loading multiple UserPlanetDetailedView took: 9,3482
+
+<---------------------------->30.08.2019 14:40:35<---------------------------->
+loading multiple UserPlanetDetailedView took: 1,5174
+
+<---------------------------->30.08.2019 14:40:39<---------------------------->
+loading multiple UserPlanetDetailedView took: 6,2815
+
+<---------------------------->30.08.2019 14:42:05<---------------------------->
+loading multiple UserPlanetDetailedView took: 80,585
+
+<---------------------------->30.08.2019 14:42:05<---------------------------->
+loading multiple UserPlanetDetailedView took: 84,8966

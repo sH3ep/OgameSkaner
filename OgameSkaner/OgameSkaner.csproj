@@ -111,8 +111,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\ApplicationLogger.cs" />
     <Compile Include="Model\ColorToBrushConverter.cs" />
+    <Compile Include="Model\EncryptionHelper.cs" />
     <Compile Include="Model\GalaxySkanRange.cs" />
+    <Compile Include="Model\LogFileType.cs" />
     <Compile Include="Model\RestException.cs" />
     <Compile Include="Model\Token.cs" />
     <Compile Include="RestClient\LoginStatus.cs" />

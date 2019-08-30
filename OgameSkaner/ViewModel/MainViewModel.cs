@@ -108,12 +108,12 @@ namespace OgameSkaner.ViewModel
                         status = sGameClient.CheckLogInStatus();
                         if (status == RestClient.LoginStatus.LoggedIn)
                         {
-                            LoginStatus = "LoggedIn";
+                            LoginStatus = "Logged In";
                             LoginRectangleCollor = "green";
                         }
                         if (status == RestClient.LoginStatus.LoggedOut)
                         {
-                            LoginStatus = "LoggedOut";
+                            LoginStatus = "Logged Out";
                             LoginRectangleCollor = "red";
                         }
                         

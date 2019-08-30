@@ -49,7 +49,7 @@ namespace OgameSkaner.ViewModel
             set
             {
                 _token = value;
-                RaisePropertyChanged("ApiRequestCounter");
+                RaisePropertyChanged("Token");
             }
             get => _token;
         }
@@ -63,10 +63,9 @@ namespace OgameSkaner.ViewModel
 
         #region PrivateMethods
 
-
         private async Task LogIn()
         {
-            await Task.Run(async () =>
+            await Task.Run(() =>
             {
                 try
                 {
@@ -107,12 +106,13 @@ namespace OgameSkaner.ViewModel
                         MessageBox.Show(e.Message);
 
                     }
-                    catch (Exception e)
+                    catch (Exception)
                     {
                         MessageBox.Show("Unknow exception, contact with developer");
                     }
 
                     dataManager.SaveIntoXmlFile("DatabaseFromApi");
+                    MessageBox.Show("Saving data finished");
                 });
 
             }
@@ -123,6 +123,18 @@ namespace OgameSkaner.ViewModel
 
         }
 
+        private void SaveToken()
+        {
+            var token = new Token();
+            token.SaveToken(Token);
+            Token = "";
+        }
+
+        private void LogOut()
+        {
+            var token = new Token();
+            token.Delete();
+        }
         #endregion
 
         #region CanExecute
@@ -137,12 +149,21 @@ namespace OgameSkaner.ViewModel
         public DelegateCommand GetSolarSystemsDataCommand { set; get; }
 
         public DelegateCommand LogInCommand { set; get; }
+
+        public DelegateCommand SaveTokenCommand { set; get; }
+
+        public DelegateCommand LogOutCommand { set; get; }
+
         #endregion
+
         public GetDataViewModel()
         {
             usersPlanets = new ObservableCollection<UserPlanet>();
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); },CanExecute);
             LogInCommand = new DelegateCommand(async () => { await LogIn(); },CanExecute);
+            SaveTokenCommand = new DelegateCommand(SaveToken, CanExecute);
+            LogOutCommand = new DelegateCommand(LogOut, CanExecute);
+
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
             if (File.Exists("GalaxyDatabase.xml"))

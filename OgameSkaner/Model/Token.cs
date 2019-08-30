@@ -29,7 +29,8 @@ namespace OgameSkaner.Model
         public void SaveToken(string token)
         {
             var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            config.AppSettings.Settings["token"].Value = token;
+            var encryptedToken = EncryptionHelper.Encrypt(token);
+            config.AppSettings.Settings["token"].Value = encryptedToken;
             config.Save(ConfigurationSaveMode.Modified);
             config.Save();
             ConfigurationManager.RefreshSection("appSettings");
@@ -37,7 +38,14 @@ namespace OgameSkaner.Model
 
         public string GetToken()
         {
-            return ConfigurationManager.AppSettings.Get("token");
+            var encryptedToken = ConfigurationManager.AppSettings.Get("token");
+            var token = EncryptionHelper.Decrypt(encryptedToken);
+            return token;
+        }
+
+        public void Delete()
+        {
+            SaveToken("");
         }
     }
 }

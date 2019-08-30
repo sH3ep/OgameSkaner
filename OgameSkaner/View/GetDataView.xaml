@@ -14,17 +14,18 @@
             </Grid.Background>
             <TextBox Height="23" TextWrapping="Wrap" Text="{Binding Login, Mode=TwoWay}" VerticalAlignment="Top" Width="150" HorizontalAlignment="Center" Margin="70,30,68,0"/>
             <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="70,88,68,113" VerticalAlignment="Center" HorizontalAlignment="Center" Width="150" Height="24"/>
-            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="70,147,0,0" VerticalAlignment="Top" Width="150" Height="39"/>
+            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="75,130,0,0" VerticalAlignment="Top" Width="150" Height="39"/>
             <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284"/>
             <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284" Height="24"/>
+            <Button Command="{Binding LogOutCommand}" Content="Log Out" Margin="100,184,99,0" VerticalAlignment="Top" Height="31"/>
         </Grid>
         <Grid Margin="497,0,10,55" Height="122" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="Bisque" Opacity="0.7" />
             </Grid.Background>
             <TextBox HorizontalAlignment="Left" Height="26" Margin="68,10,0,0" TextWrapping="Wrap" Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187"/>
-            <Button Content="Save Token" Margin="92,55,92,24"/>
-            <Label Content="Token:" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58"/>
+            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="92,55,92,24"/>
+            <Label Content="Token:" ToolTip="Coping token from browser cookies allows to use this app and browser game simultaneously" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58"/>
         </Grid>
         <Grid Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
             <Grid.Background>

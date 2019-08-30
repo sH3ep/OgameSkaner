@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Policy;
@@ -29,6 +30,7 @@ namespace OgameSkaner.ViewModel
         private UserPlanetDataManager _dataManager;
         private string _folderLocalization = string.Concat((object)Directory.GetCurrentDirectory(), "\\Data");
         private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetails;
+        private int _maxShowedPlayer = 50;  //todo require setter in view
 
         #endregion
 
@@ -47,9 +49,7 @@ namespace OgameSkaner.ViewModel
             _dataManager = new UserPlanetDataManager(PlayersPlanets);
             LoadFromXmlFile();
         }
-
-
-
+        
         #endregion
 
         #region CanExecute
@@ -81,19 +81,28 @@ namespace OgameSkaner.ViewModel
 
         private void RefreshUsersPlanetsDetails()
         {
+            var stopWatch = new Stopwatch();
             UsersPlanetsDetails.Clear();
+            stopWatch.Start();
+            int playerLoadedCounter = 0;
             foreach (var item in FilteredUsersPlanets)
             {
                 UsersPlanetsDetails.Add(new UserPlanetDetailedView(item));
+                playerLoadedCounter++;
+                if (playerLoadedCounter > _maxShowedPlayer)
+                {
+                    break;
+                }
             }
-            
+            stopWatch.Stop();
+            var logger = new ApplicationLogger(LogFileType.timeLog);
+            logger.AddLog("loading multiple UserPlanetDetailedView took: " + stopWatch.Elapsed.TotalMilliseconds);
+           //TODO layzyloading, create 1 collection with all object and than only attached it to filtered list.
+
         }
         private void GetOverviewPage()
         {
             var sgameClient = new SgameRestClient();
-
-
-
 
             var temp = sgameClient.GetMainPage();
 
@@ -129,6 +138,16 @@ namespace OgameSkaner.ViewModel
         private void SaveDataIntoXmlFile()
         {
             _dataManager.SaveIntoXmlFile("GalaxyDatabase");
+        }
+
+        private async Task ShowFilteredDataAsync()
+        {
+            await Task.Run(() =>
+            {
+                FilteredUsersPlanets = _dataManager.FilterDataByUserName(FilteredName);
+                RefreshUsersPlanetsDetails();
+            });
+
         }
 
         private void ShowFilteredData()

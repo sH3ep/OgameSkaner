@@ -12,37 +12,44 @@ namespace OgameSkaner.Model
             {
                 case RequestType.GetSolarSystem:
                     return GetSolarSystemRequestConfiguration();
-                    break;
                 case RequestType.Login:
                     return GetLoginRequestConfiguration();
-                    break;
-                case RequestType.SpyPlanetPart1:
-                    return GetSpyPart1ReqestConfiguration();
-                    break;
-                case RequestType.SpyPlanetPart2:
-                    return GetSpyPart2ReqestConfiguration();
-                    break;
-                case RequestType.SpyPlanetPart3:
-                    return GetSpyPart3ReqestConfiguration();
-                    break;
+                case RequestType.SpyPlanet:
+                    return GetSpyReportReqestConfiguration();
                 default:
                     return GetStartPageRequestConfiguration();
-                    break;
             }
         }
 
-        private RestRequest GetSpyPart3ReqestConfiguration()
+        private RestRequest GetSpyReportReqestConfiguration()
         {
-            throw new NotImplementedException();
-        }
+            var request = new RestRequest("https://uni2.sgame.pl/game.php?", Method.GET);
+            request.AddHeader("authority", "uni2.sgame.pl");
+            request.AddHeader("method", "GET");
+            
+            request.AddHeader("scheme", "https");
+            request.AddHeader("accept",
+                "application/json, text/javascript, */*; q=0.01");
+            request.AddHeader("accept-encoding", "gzip, deflate, br");
+            request.AddHeader("accept-language", "pl - PL, pl; q = 0.9,en - US; q = 0.8,en; q = 0.7");
+            request.AddHeader("referer", "https://uni2.sgame.pl/game.php?page=galaxy");
+            request.AddHeader("sec-fetch-mode", "cors");
+            request.AddHeader("sec-fetch-site", "same-origin");
+            request.AddHeader("user-agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36");
 
-        private RestRequest GetSpyPart2ReqestConfiguration()
-        {
-            throw new NotImplementedException();
-        }
-        private RestRequest GetSpyPart1ReqestConfiguration()
-        {
-            throw new NotImplementedException();
+            
+
+            var token = new Token();
+            request.AddCookie("lang", "pl");
+            request.AddCookie("scroll", "0");
+            request.AddCookie("2Moons", token.GetToken());
+
+            request.AddQueryParameter("page", "fleetAjax");
+            request.AddQueryParameter("ajax", "1");
+            request.AddQueryParameter("mission", "6");
+
+            return request;
         }
 
         private RestRequest GetStartPageRequestConfiguration()

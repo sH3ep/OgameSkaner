@@ -37,12 +37,12 @@ namespace OgameSkaner.RestClient
 
             var response = _client.Execute(request);
             var content = response.Content;
-            saveContent(content);
+            SaveIntoLogFile(content);
 
             return content;
         }
 
-        public string LoginToSgame(string login,SecureString password)
+        public string LoginToSgame(string login, SecureString password)
         {
             var request = _requestConfigurator.Configure(RequestType.Login);
 
@@ -55,7 +55,7 @@ namespace OgameSkaner.RestClient
             var erorMessage = response.ErrorMessage;
             if (erorMessage != null)
             {
-                saveContent(solarSystemPage + Environment.NewLine +
+                SaveIntoLogFile(solarSystemPage + Environment.NewLine +
                             "------------------------------Error Message Below----------------------------" +
                             Environment.NewLine + erorMessage);
                 throw new RestException("Login Error");
@@ -78,7 +78,7 @@ namespace OgameSkaner.RestClient
             var solarSystemPage = response.Content;
             if (!IsResponseCorrect(response))
             {
-                saveContent(solarSystemPage);
+                SaveIntoLogFile(solarSystemPage);
                 throw new RestException("Problem with download Data, check token or LogIn again");
             }
 
@@ -96,10 +96,34 @@ namespace OgameSkaner.RestClient
             return LoginStatus.LoggedOut;
         }
 
+
+        public void SpyPlanet(UserPlanet userPlanet)
+        {
+            var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
+            request.Resource= "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID="+userPlanet.PlanetId.ToString();
+            AddSpecialSpyParameters(request, userPlanet);
+
+            var response = _client.Execute(request);
+            SaveIntoLogFile(response.Content);
+            if (IsSpyResponseCorrect(response))
+            {
+                
+                return;
+            }
+            
+            throw new RestException("There was an error during Spy request");
+        }
+
         #endregion
 
         #region PrivateMethods
 
+        private void AddSpecialSpyParameters(RestRequest request, UserPlanet userPlanet)
+        {
+            request.AddHeader("path", "/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" + userPlanet.PlanetId);
+
+            request.AddQueryParameter("PlanetId", userPlanet.PlanetId.ToString());
+        }
         private bool IsClientLoggedIn(IRestResponse response)
         {
             try
@@ -125,8 +149,8 @@ namespace OgameSkaner.RestClient
             try
             {
                 var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
-               test = Regex.Match(test, @"\d+").Value;
-                if (int.Parse(test)<1500 )
+                test = Regex.Match(test, @"\d+").Value;
+                if (int.Parse(test) < 1500)
                 {
                     return false;
                 }
@@ -136,14 +160,32 @@ namespace OgameSkaner.RestClient
                 Console.WriteLine(e);
                 throw;
             }
-
-
-
-
-
             return true;
         }
-         
+
+        private bool IsSpyResponseCorrect(IRestResponse response)
+        {
+            try
+            {
+                var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
+                test = Regex.Match(test, @"\d+").Value;
+                int contentLength = int.Parse(test);
+                if (contentLength < 300 && contentLength > 60)
+                {
+                    if(response.Content.Contains("Sonda Szpiegowska"))
+                    {
+                        return true;
+                    }
+                    
+                }
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
         private string SecureStringToString(SecureString value)
         {
             IntPtr bstr = Marshal.SecureStringToBSTR(value);
@@ -158,13 +200,16 @@ namespace OgameSkaner.RestClient
             }
         }
 
-        private void saveContent(string text)
+        private void SaveIntoLogFile(string text)
         {
             var path = "request_log" + ".txt";
 
             // Create a file to write to.
-            using (var sw = File.CreateText(path))
+            using (var sw = File.AppendText(path))
             {
+                sw.WriteLine("");
+                sw.WriteLine("----------------------------------------------" + DateTime.Now.ToString() + "--------------------------------------");
+                
                 sw.WriteLine(text);
 
                 sw.Close();

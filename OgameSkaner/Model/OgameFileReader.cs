@@ -122,7 +122,7 @@ namespace OgameSkaner.Model
                 var position = int.Parse(positionString);
                 return position;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return 0;
             }
@@ -187,11 +187,11 @@ namespace OgameSkaner.Model
                     x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).CreationDate;
                 return solarSystemCreationDate;
             }
-            catch (ArgumentNullException e)
+            catch (ArgumentNullException)
             {
                 return new DateTime(5, 1, 1, 1, 1, 1);
             }
-            catch (InvalidOperationException e)
+            catch (InvalidOperationException)
             {
                 return new DateTime(5, 1, 1, 1, 1, 1);
             }
