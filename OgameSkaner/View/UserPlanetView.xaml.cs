@@ -22,8 +22,9 @@ namespace OgameSkaner.View
     {
         public UserPlanetView()
         {
-            InitializeComponent();
+            
             this.DataContext = new OgameSkaner.ViewModel.UserPlanetViewModel();
+            InitializeComponent();
         }
     }
 }

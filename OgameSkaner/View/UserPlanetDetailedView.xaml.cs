@@ -26,9 +26,10 @@ namespace OgameSkaner.View
 
         public UserPlanetDetailedView(UserPlanet userPlanetData)
         {
-            InitializeComponent();
+            
             this.DataContext = new UserPlanetDetailedViewModel();
             ((UserPlanetDetailedViewModel)DataContext).UserPlanetData = userPlanetData;
+            InitializeComponent();
         }
     }
 }

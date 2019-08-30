@@ -1,16 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Security.Policy;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Forms;
-using System.Windows.Input;
-using System.Xml.Serialization;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
 using OgameSkaner.View;
@@ -21,54 +14,38 @@ namespace OgameSkaner.ViewModel
 {
     public class UserPlanetViewModel : NotifyPropertyChanged
     {
+        #region Constructor
+
+        public UserPlanetViewModel()
+        {
+           
+            LoadFromXmlFileCommand = new DelegateCommand(SaveDataIntoTxtFile);
+            ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
+            GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization);
+            GetOverviewPageCommand = new DelegateCommand(GetOverviewPage, canExecuteFilter);
+            AddTenUserPlanetViewsCommand = new DelegateCommand(AddPlanetsOnScrolling);
+            _filteredUsersPlanets = new ObservableCollection<UserPlanet>();
+            _usersPlanetsDetailsView = new ObservableCollection<UserPlanetDetailedView>();
+            _dataManager = new UserPlanetDataManager(PlayersPlanets);
+            LoadFromXmlFile();
+        }
+
+        #endregion
+
         #region private_fields
 
         private ObservableCollection<UserPlanet> _filteredUsersPlanets;
         private string _adminCode = "";
         private bool _canExecuteLoadFiles;
         private string _filteredName;
-        private UserPlanetDataManager _dataManager;
-        private string _folderLocalization = string.Concat((object)Directory.GetCurrentDirectory(), "\\Data");
-        private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetails;
-        private int _maxShowedPlayer = 50;  //todo require setter in view
+        private readonly UserPlanetDataManager _dataManager;
+        private string _folderLocalization = string.Concat((object) Directory.GetCurrentDirectory(), "\\Data");
+        private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetailsView;
+        private readonly int _maxShowedPlayer = 50; //todo require setter in view
 
-        #endregion
-
-        #region Constructor
-
-        public UserPlanetViewModel()
-        {
-            LoadDataFromFilesCommand = new DelegateCommand(LoadDataFromFiles, canExecuteLoadFiles);
-            LoadFromXmlFileCommand = new DelegateCommand(SaveDataIntoTxtFile, canExecuteLoadFiles);
-            ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
-            TurnOnAdminModeCommand = new DelegateCommand(TurnOnAdminMode, canExecuteFilter);
-            GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization, canExecuteLoadFiles);
-            GetOverviewPageCommand = new DelegateCommand(GetOverviewPage, canExecuteFilter);
-            _filteredUsersPlanets = new ObservableCollection<UserPlanet>();
-            _usersPlanetsDetails = new ObservableCollection<UserPlanetDetailedView>();
-            _dataManager = new UserPlanetDataManager(PlayersPlanets);
-            LoadFromXmlFile();
-        }
-        
         #endregion
 
         #region CanExecute
-
-        private bool canExecuteLoadFiles()
-        {
-            return CanExecuteLoadFiles;
-        }
-
-        public bool CanExecuteLoadFiles
-        {
-            get { return _canExecuteLoadFiles; }
-            set
-            {
-                _canExecuteLoadFiles = value;
-                LoadDataFromFilesCommand.RaiseCanExecuteChanged();
-                GetFolderLocalizationCommand.RaiseCanExecuteChanged();
-            }
-        }
 
         private bool canExecuteFilter()
         {
@@ -81,25 +58,30 @@ namespace OgameSkaner.ViewModel
 
         private void RefreshUsersPlanetsDetails()
         {
-            var stopWatch = new Stopwatch();
-            UsersPlanetsDetails.Clear();
-            stopWatch.Start();
-            int playerLoadedCounter = 0;
+          
+            UsersPlanetsDetailsView.Clear();
+            var playerLoadedCounter = 0;
             foreach (var item in FilteredUsersPlanets)
             {
-                UsersPlanetsDetails.Add(new UserPlanetDetailedView(item));
+                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(item));
                 playerLoadedCounter++;
-                if (playerLoadedCounter > _maxShowedPlayer)
-                {
-                    break;
-                }
+                if (playerLoadedCounter > _maxShowedPlayer) break;
             }
-            stopWatch.Stop();
-            var logger = new ApplicationLogger(LogFileType.timeLog);
-            logger.AddLog("loading multiple UserPlanetDetailedView took: " + stopWatch.Elapsed.TotalMilliseconds);
-           //TODO layzyloading, create 1 collection with all object and than only attached it to filtered list.
-
+         
         }
+
+        private void AddPlanetsOnScrolling()
+        {
+            var actualAmountOfViews = UsersPlanetsDetailsView.Count();
+            var quantityOfAddedUserPlanet = 0;
+            for (var i = actualAmountOfViews; i < FilteredUsersPlanets.Count; i++)
+            {
+                quantityOfAddedUserPlanet++;
+                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(FilteredUsersPlanets[i]));
+                if (quantityOfAddedUserPlanet > 4) break;
+            }
+        }
+
         private void GetOverviewPage()
         {
             var sgameClient = new SgameRestClient();
@@ -115,9 +97,7 @@ namespace OgameSkaner.ViewModel
             {
                 dialog.SelectedPath = _folderLocalization;
                 if (dialog.ShowDialog(this.GetIWin32Window()) == System.Windows.Forms.DialogResult.OK)
-                {
-                    FolderLocalization = dialog.SelectedPath.ToString();
-                }
+                    FolderLocalization = dialog.SelectedPath;
             }
         }
 
@@ -132,22 +112,11 @@ namespace OgameSkaner.ViewModel
         private void SaveDataIntoTxtFile()
         {
             _dataManager.SaveIntoTxtFile("UkladGraczyWGalaktykach");
-
         }
 
         private void SaveDataIntoXmlFile()
         {
             _dataManager.SaveIntoXmlFile("GalaxyDatabase");
-        }
-
-        private async Task ShowFilteredDataAsync()
-        {
-            await Task.Run(() =>
-            {
-                FilteredUsersPlanets = _dataManager.FilterDataByUserName(FilteredName);
-                RefreshUsersPlanetsDetails();
-            });
-
         }
 
         private void ShowFilteredData()
@@ -158,26 +127,12 @@ namespace OgameSkaner.ViewModel
 
         private void LoadFromXmlFile()
         {
-            Directory.CreateDirectory(string.Concat((object)Directory.GetCurrentDirectory(), "\\Data"));
+            Directory.CreateDirectory(string.Concat((object) Directory.GetCurrentDirectory(), "\\Data"));
             if (File.Exists("DatabaseFromApi.xml"))
             {
                 _dataManager.LoadFromXml("DatabaseFromApi.xml");
                 ShowFilteredData();
                 RefreshUsersPlanetsDetails();
-            }
-        }
-
-        private void TurnOnAdminMode()
-        {
-            if (AdminCode.Equals("12345"))
-            {
-                CanExecuteLoadFiles = true;
-                AdminCode = "";
-            }
-            else
-            {
-                CanExecuteLoadFiles = false;
-                AdminCode = "";
             }
         }
 
@@ -187,18 +142,19 @@ namespace OgameSkaner.ViewModel
 
         public ObservableCollection<UserPlanet> PlayersPlanets = new ObservableCollection<UserPlanet>();
 
-        public ObservableCollection<UserPlanetDetailedView> UsersPlanetsDetails
+        public ObservableCollection<UserPlanetDetailedView> UsersPlanetsDetailsView
         {
-            get { return _usersPlanetsDetails; }
+            get => _usersPlanetsDetailsView;
             set
             {
-                _usersPlanetsDetails = value;
-                RaisePropertyChanged("UsersPlanetsDetails");
+                _usersPlanetsDetailsView = value;
+                RaisePropertyChanged("UsersPlanetsDetailsView");
             }
         }
+
         public ObservableCollection<UserPlanet> FilteredUsersPlanets
         {
-            get { return _filteredUsersPlanets; }
+            get => _filteredUsersPlanets;
             set
             {
                 _filteredUsersPlanets = value;
@@ -208,17 +164,18 @@ namespace OgameSkaner.ViewModel
 
         public string FilteredName
         {
-            get { return _filteredName; }
+            get => _filteredName;
             set
             {
                 _filteredName = value;
+                ShowFilteredData();
                 RaisePropertyChanged("FilteredName");
             }
         }
 
         public string FolderLocalization
         {
-            get { return _folderLocalization; }
+            get => _folderLocalization;
             set
             {
                 _folderLocalization = value;
@@ -226,26 +183,15 @@ namespace OgameSkaner.ViewModel
             }
         }
 
-        public string AdminCode
-        {
-            get { return _adminCode; }
-            set
-            {
-                _adminCode = value;
-                RaisePropertyChanged("AdminCode");
-            }
-        }
-
         #endregion
 
         #region Commands
-
-        public DelegateCommand LoadDataFromFilesCommand { set; get; }
+        
         public DelegateCommand LoadFromXmlFileCommand { set; get; }
         public DelegateCommand ShowFilteredDataCommand { set; get; }
-        public DelegateCommand TurnOnAdminModeCommand { set; get; }
         public DelegateCommand GetFolderLocalizationCommand { set; get; }
         public DelegateCommand GetOverviewPageCommand { set; get; }
+        public DelegateCommand AddTenUserPlanetViewsCommand { set; get; }
 
         #endregion
     }

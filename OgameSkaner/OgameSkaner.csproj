@@ -139,6 +139,8 @@
     <Compile Include="View\UserPlanetView.xaml.cs">
       <DependentUpon>UserPlanetView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="WpfExtensions\ListBoxExtensions.cs" />
+    <Compile Include="WpfExtensions\UIHelper.cs" />
     <Compile Include="WpfExtensions\WinFormsCompatibility.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>

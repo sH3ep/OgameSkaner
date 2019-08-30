@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:OgameSkaner.ViewModel"
              d:DataContext="{d:DesignInstance local:UserPlanetViewModel, IsDesignTimeCreatable=True}"
              xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+             xmlns:wpfExtensions="clr-namespace:OgameSkaner.WpfExtensions"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Margin="0,0,0,34">
@@ -20,8 +21,8 @@
             </TextBlock.Background>
         </TextBlock>
         <Button Content="Filtruj" HorizontalAlignment="Left" Margin="645,10,0,0" VerticalAlignment="Top" Width="103" Height="24" Command="{Binding ShowFilteredDataCommand}"/>
-        <ListBox ItemsSource="{Binding UsersPlanetsDetails}" Opacity="0.8" HorizontalAlignment="Left" Height="367" Margin="253,39,0,0" VerticalAlignment="Top" Width="537">
-           
+        <ListBox ItemsSource="{Binding UsersPlanetsDetailsView}" wpfExtensions:ListBoxExtensions.ScrollChangedCommand="{Binding AddTenUserPlanetViewsCommand}"  Opacity="0.8" HorizontalAlignment="Left" Height="367" Margin="253,39,0,0" VerticalAlignment="Top" Width="537">
+
         </ListBox>
 
     </Grid>
