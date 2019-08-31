@@ -134,3 +134,5 @@ C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\UserPlanetDet
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\UserPlanetDetailedView.g.cs
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\UserPlanetDetailedView.baml
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\GeneratedInternalTypeHelper.g.cs
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\GetTokenGifView.g.cs
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\GetTokenGifView.baml

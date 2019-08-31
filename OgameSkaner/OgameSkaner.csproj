@@ -105,15 +105,16 @@
     <Reference Include="WindowsBase" />
     <Reference Include="PresentationCore" />
     <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsFormsIntegration" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="Model\ApplicationLogger.cs" />
-    <Compile Include="Model\ColorToBrushConverter.cs" />
-    <Compile Include="Model\EncryptionHelper.cs" />
+    <Compile Include="Utils\ApplicationLogger.cs" />
+    <Compile Include="Utils\ColorToBrushConverter.cs" />
+    <Compile Include="Utils\EncryptionHelper.cs" />
     <Compile Include="Model\GalaxySkanRange.cs" />
     <Compile Include="Model\LogFileType.cs" />
     <Compile Include="Model\RestException.cs" />
@@ -122,7 +123,7 @@
     <Compile Include="RestClient\RequestConfigurator.cs" />
     <Compile Include="RestClient\RequestType.cs" />
     <Compile Include="Model\UserPlanetDataManager.cs" />
-    <Compile Include="Model\NotifyPropertyChanged.cs" />
+    <Compile Include="Utils\NotifyPropertyChanged.cs" />
     <Compile Include="Model\OgameFileReader.cs" />
     <Compile Include="RestClient\SgameApiData.cs" />
     <Compile Include="RestClient\SgameRestClient.cs" />
@@ -133,12 +134,16 @@
     <Compile Include="View\GetDataView.xaml.cs">
       <DependentUpon>GetDataView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="View\GetTokenGifView.xaml.cs">
+      <DependentUpon>GetTokenGifView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\UserPlanetDetailedView.xaml.cs">
       <DependentUpon>UserPlanetDetailedView.xaml</DependentUpon>
     </Compile>
     <Compile Include="View\UserPlanetView.xaml.cs">
       <DependentUpon>UserPlanetView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="WpfExtensions\GifImage.cs" />
     <Compile Include="WpfExtensions\ListBoxExtensions.cs" />
     <Compile Include="WpfExtensions\UIHelper.cs" />
     <Compile Include="WpfExtensions\WinFormsCompatibility.cs" />
@@ -155,6 +160,10 @@
       <SubType>Code</SubType>
     </Compile>
     <Page Include="View\GetDataView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\GetTokenGifView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

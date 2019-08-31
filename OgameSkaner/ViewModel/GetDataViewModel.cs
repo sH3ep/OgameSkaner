@@ -1,26 +1,48 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Configuration;
-using System.Diagnostics;
-using System.IO;
 using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.View;
 using Prism.Commands;
 
 namespace OgameSkaner.ViewModel
 {
     public class GetDataViewModel : NotifyPropertyChanged
     {
+        public GetDataViewModel()
+        {
+            usersPlanets = new ObservableCollection<UserPlanet>();
+            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); }, CanExecute);
+            LogInCommand = new DelegateCommand(async () => { await LogIn(); }, CanExecute);
+            SaveTokenCommand = new DelegateCommand(SaveToken, CanExecute);
+            LogOutCommand = new DelegateCommand(LogOut, CanExecute);
+            ShowGetTokenHelpCommand = new DelegateCommand(ShowGetTokenHelp);
+            ReadSavedLogin();
 
+            var dataManager = new UserPlanetDataManager(usersPlanets);
+
+            usersPlanets = dataManager.LoadFromXml();
+
+            SkanRange = new GalaxySkanRange();
+        }
+
+        #region CanExecute
+
+        private bool CanExecute()
+        {
+            return true;
+        }
+
+        #endregion
 
         #region fields
 
-        private string _apiRequestCounter;
+        private string _actualPositionReaded;
         private string _token;
-        private string _login;
 
         #endregion
 
@@ -28,20 +50,16 @@ namespace OgameSkaner.ViewModel
 
         public SecureString SecurePassword { private get; set; }
 
-        public string Login
-        {
-            set { _login = value; }
-            get { return _login; }
-        }
+        public string Login { set; get; }
 
-        public string ApiRequestCounter
+        public string ActualPositionReaded
         {
             set
             {
-                _apiRequestCounter = value;
-                RaisePropertyChanged("ApiRequestCounter");
+                _actualPositionReaded = value;
+                RaisePropertyChanged("ActualPositionReaded");
             }
-            get => _apiRequestCounter;
+            get => _actualPositionReaded;
         }
 
         public string Token
@@ -58,7 +76,6 @@ namespace OgameSkaner.ViewModel
 
         public ObservableCollection<UserPlanet> usersPlanets { set; get; }
 
-
         #endregion
 
         #region PrivateMethods
@@ -70,20 +87,19 @@ namespace OgameSkaner.ViewModel
                 try
                 {
                     var sGameClient = new SgameRestClient();
-                    sGameClient.LoginToSgame(_login, SecurePassword);
+                    sGameClient.LoginToSgame(Login, SecurePassword);
+                    SaveLogin();
                 }
                 catch (RestException e)
                 {
                     MessageBox.Show(e.Message);
                 }
-
             });
         }
 
         private async Task GetSolarSystems()
         {
             if (SkanRange.IsValid())
-            {
                 await Task.Run(async () =>
                 {
                     var sGameFileReader = new OgameFileReader();
@@ -92,35 +108,32 @@ namespace OgameSkaner.ViewModel
                     string solarSysteFile;
                     try
                     {
-                        for (var i = SkanRange.StartGalaxy; i <= SkanRange.EndGalaxy; i++)
-                            for (var j = SkanRange.StartSystem; j <= SkanRange.EndSystem; j++)
-                            {
-                                solarSysteFile = sGameClient.GetSolarSystem(i, j);
-                                await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
-                                ApiRequestCounter = i.ToString() + ":" + j.ToString();
-                            }
+                        for (var actualGalaxy = SkanRange.StartGalaxy;
+                            actualGalaxy <= SkanRange.EndGalaxy;
+                            actualGalaxy++)
+                        for (var actualSolarSystem = SkanRange.StartSystem;
+                            actualSolarSystem <= SkanRange.EndSystem;
+                            actualSolarSystem++)
+                        {
+                            solarSysteFile = sGameClient.GetSolarSystem(actualGalaxy, actualSolarSystem);
+                            await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
+                            ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
+                        }
 
+                        dataManager.SaveIntoXmlFile("DatabaseFromApi");
+                        MessageBox.Show("Saving data finished");
                     }
                     catch (RestException e)
                     {
                         MessageBox.Show(e.Message);
-
                     }
                     catch (Exception)
                     {
                         MessageBox.Show("Unknow exception, contact with developer");
                     }
-
-                    dataManager.SaveIntoXmlFile("DatabaseFromApi");
-                    MessageBox.Show("Saving data finished");
                 });
-
-            }
             else
-            {
                 MessageBox.Show("Wrong data");
-            }
-
         }
 
         private void SaveToken()
@@ -130,18 +143,40 @@ namespace OgameSkaner.ViewModel
             Token = "";
         }
 
+        private void SaveLogin()
+        {
+            try
+            {
+                var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+                config.AppSettings.Settings["SgameLogin"].Value = Login;
+                config.Save(ConfigurationSaveMode.Modified);
+                ConfigurationManager.RefreshSection("appSettings");
+            }
+            catch (Exception)
+            {
+               var logger = new ApplicationLogger(LogFileType.errorLog);
+               logger.AddLog("saving login failed");
+            }
+
+        }
+
         private void LogOut()
         {
             var token = new Token();
             token.Delete();
         }
-        #endregion
 
-        #region CanExecute
-        private bool CanExecute()
+        private void ReadSavedLogin()
         {
-            return true;
+            Login = ConfigurationManager.AppSettings.Get("SgameLogin");
         }
+
+        private void ShowGetTokenHelp()
+        {
+            var gifWindow = new GetTokenGifView();
+            gifWindow.Show();
+        }
+
         #endregion
 
         #region Commands
@@ -154,30 +189,8 @@ namespace OgameSkaner.ViewModel
 
         public DelegateCommand LogOutCommand { set; get; }
 
+        public DelegateCommand ShowGetTokenHelpCommand { set; get; }
+
         #endregion
-
-        public GetDataViewModel()
-        {
-            usersPlanets = new ObservableCollection<UserPlanet>();
-            GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); },CanExecute);
-            LogInCommand = new DelegateCommand(async () => { await LogIn(); },CanExecute);
-            SaveTokenCommand = new DelegateCommand(SaveToken, CanExecute);
-            LogOutCommand = new DelegateCommand(LogOut, CanExecute);
-
-            var dataManager = new UserPlanetDataManager(usersPlanets);
-
-            if (File.Exists("GalaxyDatabase.xml"))
-            {
-                usersPlanets = dataManager.LoadFromXml();
-            }
-
-            SkanRange = new GalaxySkanRange();
-        }
-
-
-
-
-
-
     }
 }

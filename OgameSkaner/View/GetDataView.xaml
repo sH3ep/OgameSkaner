@@ -24,8 +24,9 @@
                 <SolidColorBrush Color="Bisque" Opacity="0.7" />
             </Grid.Background>
             <TextBox HorizontalAlignment="Left" Height="26" Margin="68,10,0,0" TextWrapping="Wrap" Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187"/>
-            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="92,55,92,24"/>
+            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="68,56,116,23"/>
             <Label Content="Token:" ToolTip="Coping token from browser cookies allows to use this app and browser game simultaneously" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58"/>
+            <Button Content="Token Helper" Command="{Binding ShowGetTokenHelpCommand}" HorizontalAlignment="Left" Margin="187,62,0,0" VerticalAlignment="Top" Width="101" Height="31"/>
         </Grid>
         <Grid Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
             <Grid.Background>
@@ -33,7 +34,7 @@
             </Grid.Background>
             <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="66" VerticalAlignment="Top" Width="301"/>
             <Button Content="Get data" Command="{Binding GetSolarSystemsDataCommand}" Margin="76,163,103,0" VerticalAlignment="Top" Height="44"/>
-            <Label Content="{Binding ApiRequestCounter,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="76,232,0,0" VerticalAlignment="Top" Height="45" Width="122" FontSize="23" RenderTransformOrigin="0.5,0.5">
+            <Label Content="{Binding ActualPositionReaded,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="76,232,0,0" VerticalAlignment="Top" Height="45" Width="122" FontSize="23" RenderTransformOrigin="0.5,0.5">
                 <Label.RenderTransform>
                     <TransformGroup>
                         <ScaleTransform/>

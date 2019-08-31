@@ -30,12 +30,17 @@ namespace OgameSkaner.Model
         #region PublicMethods
         public ObservableCollection<UserPlanet> LoadFromXml(string fileName = "DatabaseFromApi.xml")
         {
-            XmlSerializer serialiser = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
-            TextReader filestream = new StreamReader(fileName);
-            _userPlanets.Clear();
-            _userPlanets = (ObservableCollection<UserPlanet>)serialiser.Deserialize(filestream);
-            filestream.Close();
-            return _userPlanets;
+            if (File.Exists(fileName))
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
+                TextReader filestream = new StreamReader(fileName);
+                _userPlanets.Clear();
+                _userPlanets = (ObservableCollection<UserPlanet>)serializer.Deserialize(filestream);
+                filestream.Close();
+                return _userPlanets;
+            }
+            return new ObservableCollection<UserPlanet>();
+           
         }
 
         public ObservableCollection<UserPlanet> FilterDataByUserName(string userName)
