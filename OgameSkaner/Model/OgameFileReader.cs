@@ -34,7 +34,9 @@ namespace OgameSkaner.Model
                     planetLocalization = await readPlanetLocalization(_actualLine);
                     isGalaxyAndSystemReaded = true;
                     var tempUserPlanet = new UserPlanet("temp", planetLocalization, fileCreationDate);
+                    
                     await DeleteOldSolarSystems(tempUserPlanet, playersPlanets);
+                    
                 }
 
                 if (isGalaxyAndSystemReaded) positionLine = GetLineWithPosition(stringReader, positionLine);
@@ -47,7 +49,11 @@ namespace OgameSkaner.Model
                     var userPlanet = new UserPlanet(await userName, planetLocalization, position, fileCreationDate);
                     userPlanet.PlanetId = planetId;
 
-                    playersPlanets.Add(userPlanet);
+                    lock (playersPlanets)
+                    {
+                        playersPlanets.Add(userPlanet);
+                    }
+                    
                     _startToReadUserData = false;
                 }
 
@@ -65,8 +71,10 @@ namespace OgameSkaner.Model
 
         private int GetPlanetId(StringReader stringReader)
         {
+            int readedLine = 0;
             while (true)
             {
+                readedLine++;
                 _actualLine = stringReader.ReadLine();
                 if (_actualLine != null && (_actualLine.Contains("<a href=\"javascript: doit(") ||
                                             _actualLine.Contains("< a href =\"javascript:doit(") ||
@@ -88,6 +96,11 @@ namespace OgameSkaner.Model
 
                         if (c == ',' && !isReadingPLanetId) isReadingPLanetId = true;
                     }
+                }
+
+                if (readedLine > 10)
+                {
+                    return 0;
                 }
             }
         }
@@ -172,10 +185,14 @@ namespace OgameSkaner.Model
         private async Task DeleteOldSolarSystems(UserPlanet tempUserPlanet,
             ObservableCollection<UserPlanet> playersPlanets)
         {
-            var solarSystemsToRemove = playersPlanets.Where(x =>
+            lock (playersPlanets)
+            {
+                var solarSystemsToRemove = playersPlanets.Where(x =>
                 x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).ToList();
-
-            foreach (var item in solarSystemsToRemove) playersPlanets.Remove(item);
+            
+                foreach (var item in solarSystemsToRemove) playersPlanets.Remove(item);
+            }
+            
         }
 
         private DateTime GetSolarSystemCreationDate(UserPlanet tempUserPlanet,

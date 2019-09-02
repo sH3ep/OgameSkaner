@@ -55,6 +55,7 @@
             <TextBox HorizontalAlignment="Left" Height="23" Margin="53,106,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.EndGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
             <Label Content="System:" HorizontalAlignment="Left" Margin="111,102,0,0" VerticalAlignment="Top" Height="27"  />
             <TextBox HorizontalAlignment="Left" Height="23" Margin="161,106,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.EndSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
+            <ProgressBar Height="26"  Maximum="{Binding PbData.MaxValue}"  Value="{Binding PbData.ActualValue}" Foreground="DarkGreen" Margin="6,0,10,42" VerticalAlignment="Bottom"/>
 
         </Grid>
 

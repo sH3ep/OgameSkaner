@@ -127,6 +127,7 @@
     <Compile Include="Model\OgameFileReader.cs" />
     <Compile Include="RestClient\SgameApiData.cs" />
     <Compile Include="RestClient\SgameRestClient.cs" />
+    <Compile Include="Utils\ProgresBarData.cs" />
     <Compile Include="ViewModel\GetDataViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
     <Compile Include="ViewModel\UserPlanetDetailedViewModel.cs" />

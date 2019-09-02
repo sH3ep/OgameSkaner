@@ -85,6 +85,36 @@ namespace OgameSkaner.RestClient
             return solarSystemPage;
         }
 
+        public async Task<string> GetSolarSystemAsync(int galaxy, int solarSystem,ProgresBarData pBData)
+        {
+            string solarSystemPage = "";
+            await Task.Run(() =>
+            {
+
+                var request = _requestConfigurator.Configure(RequestType.GetSolarSystem);
+
+                request.AddQueryParameter("page", "galaxy");
+
+                request.AddParameter("galaxy", galaxy);
+                request.AddParameter("system", solarSystem);
+
+                var response = _client.Execute(request);
+                solarSystemPage = response.Content;
+                if (!IsResponseCorrect(response))
+                {
+                    SaveIntoLogFile(solarSystemPage);
+                    throw new RestException("Problem with download Data, check token or LogIn again");
+                }
+
+                lock (pBData)
+                {
+                    pBData.ActualValue++;
+                }
+               
+           });
+            return solarSystemPage;
+        }
+
         public LoginStatus CheckLogInStatus()
         {
             var request = _requestConfigurator.Configure(RequestType.StartPage);
@@ -100,17 +130,17 @@ namespace OgameSkaner.RestClient
         public void SpyPlanet(UserPlanet userPlanet)
         {
             var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
-            request.Resource= "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID="+userPlanet.PlanetId.ToString();
+            request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" + userPlanet.PlanetId.ToString();
             AddSpecialSpyParameters(request, userPlanet);
 
             var response = _client.Execute(request);
             SaveIntoLogFile(response.Content);
             if (IsSpyResponseCorrect(response))
             {
-                
+
                 return;
             }
-            
+
             throw new RestException("There was an error during Spy request");
         }
 
@@ -158,7 +188,6 @@ namespace OgameSkaner.RestClient
             catch (Exception e)
             {
                 Console.WriteLine(e);
-                throw;
             }
             return true;
         }
@@ -172,11 +201,11 @@ namespace OgameSkaner.RestClient
                 int contentLength = int.Parse(test);
                 if (contentLength < 300 && contentLength > 60)
                 {
-                    if(response.Content.Contains("Sonda Szpiegowska"))
+                    if (response.Content.Contains("Sonda Szpiegowska"))
                     {
                         return true;
                     }
-                    
+
                 }
                 return false;
             }
@@ -209,7 +238,7 @@ namespace OgameSkaner.RestClient
             {
                 sw.WriteLine("");
                 sw.WriteLine("----------------------------------------------" + DateTime.Now.ToString() + "--------------------------------------");
-                
+
                 sw.WriteLine(text);
 
                 sw.Close();
