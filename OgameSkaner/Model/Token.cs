@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Configuration;
+using OgameSkaner.Utils;
 
 namespace OgameSkaner.Model
 {

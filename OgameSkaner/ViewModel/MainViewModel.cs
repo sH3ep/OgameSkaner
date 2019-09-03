@@ -7,10 +7,11 @@ using System.Windows;
 using GalaSoft.MvvmLight;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
-using OgameSkaner.View;
 using Prism.Commands;
+using GetDataView = OgameSkaner.View.GetDataView;
+using UserPlanetView = OgameSkaner.View.UserPlanetView;
 
-namespace OgameSkaner.ViewModel
+namespace OgameScaner.ViewModel
 {
     public class MainViewModel : ViewModelBase
     {
@@ -33,8 +34,12 @@ namespace OgameSkaner.ViewModel
             get { return _loginRectangleCollor; }
         }
 
-        public string LoginStatus { get { return _loginStatus; }
-            set { _loginStatus = value;
+        public string LoginStatus
+        {
+            get { return _loginStatus; }
+            set
+            {
+                _loginStatus = value;
                 RaisePropertyChanged("LoginStatus");
             }
         }
@@ -101,26 +106,26 @@ namespace OgameSkaner.ViewModel
                 try
                 {
                     var sGameClient = new SgameRestClient();
-                    LoginStatus status = RestClient.LoginStatus.LoggedOut;
+                    LoginStatus status = OgameSkaner.RestClient.LoginStatus.LoggedOut;
                     while (true)
                     {
-                        
+
                         status = sGameClient.CheckLogInStatus();
-                        if (status == RestClient.LoginStatus.LoggedIn)
+                        if (status == OgameSkaner.RestClient.LoginStatus.LoggedIn)
                         {
                             LoginStatus = "Logged In";
                             LoginRectangleCollor = "green";
                         }
-                        if (status == RestClient.LoginStatus.LoggedOut)
+                        if (status == OgameSkaner.RestClient.LoginStatus.LoggedOut)
                         {
                             LoginStatus = "Logged Out";
                             LoginRectangleCollor = "red";
                         }
-                        
+
                         await Task.Delay(10000);
 
                     }
-                    
+
                 }
                 catch (RestException e)
                 {

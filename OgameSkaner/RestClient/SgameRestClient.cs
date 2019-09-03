@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
+using OgameSkaner.Utils;
 using RestSharp;
 
 namespace OgameSkaner.RestClient

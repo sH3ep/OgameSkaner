@@ -3,10 +3,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:OgameSkaner.ViewModel"
-             d:DataContext="{d:DesignInstance local:UserPlanetViewModel, IsDesignTimeCreatable=True}"
+             xmlns:local="clr-namespace:OgameScaner.ViewModel"
+             d:DataContext="{d:DesignInstance viewModel:UserPlanetViewModel, IsDesignTimeCreatable=True}"
              xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
-             xmlns:wpfExtensions="clr-namespace:OgameSkaner.WpfExtensions"
+             xmlns:wpfExtensions1="clr-namespace:OgameSkaner.WpfExtensions"
+             xmlns:viewModel="clr-namespace:OgameSkaner.ViewModel"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Margin="0,0,0,34">
@@ -21,7 +22,7 @@
             </TextBlock.Background>
         </TextBlock>
         <Button Content="Filtruj" HorizontalAlignment="Left" Margin="645,10,0,0" VerticalAlignment="Top" Width="103" Height="24" Command="{Binding ShowFilteredDataCommand}"/>
-        <ListBox ItemsSource="{Binding UsersPlanetsDetailsView}" wpfExtensions:ListBoxExtensions.ScrollChangedCommand="{Binding AddTenUserPlanetViewsCommand}"  Opacity="0.8" Margin="220,39,10,10"/>
+        <ListBox ItemsSource="{Binding UsersPlanetsDetailsView}" wpfExtensions1:ListBoxExtensions.ScrollChangedCommand="{Binding AddTenUserPlanetViewsCommand}"  Opacity="0.8" Margin="220,39,10,10"/>
 
     </Grid>
 </UserControl>

@@ -1,12 +1,8 @@
-﻿using OgameSkaner.Model;
+﻿using System;
+using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.Utils;
 using Prism.Commands;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 
 namespace OgameSkaner.ViewModel
 {

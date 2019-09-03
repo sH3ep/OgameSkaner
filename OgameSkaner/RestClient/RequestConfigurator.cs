@@ -1,8 +1,7 @@
-﻿using System;
-using System.Configuration;
+﻿using OgameSkaner.Model;
 using RestSharp;
 
-namespace OgameSkaner.Model
+namespace OgameSkaner.RestClient
 {
     public class RequestConfigurator
     {

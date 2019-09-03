@@ -1,4 +1,4 @@
-﻿namespace OgameSkaner.Model
+﻿namespace OgameSkaner.RestClient
 {
     public enum RequestType
     {

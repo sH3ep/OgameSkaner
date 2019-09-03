@@ -41,7 +41,6 @@ C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.exe.ma
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.application
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\bin\Debug\RestSharp.dll
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\bin\Debug\RestSharp.xml
-C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.csprojAssemblyReference.cache
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\MainWindow.g.cs
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\UserPlanetView.g.cs
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\App.g.cs

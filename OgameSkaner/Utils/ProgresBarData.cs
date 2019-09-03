@@ -1,6 +1,6 @@
 ﻿using System.Drawing;
 
-namespace OgameSkaner.Model
+namespace OgameSkaner.Utils
 {
     public class ProgresBarData:NotifyPropertyChanged
     {

@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using OgameSkaner.Model;
 
-namespace OgameSkaner.Model
+namespace OgameSkaner.Utils
 {
     public class ApplicationLogger
     {

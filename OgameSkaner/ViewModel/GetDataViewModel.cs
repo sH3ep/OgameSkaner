@@ -2,13 +2,12 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Configuration;
-using System.Diagnostics;
 using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Documents;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.Utils;
 using OgameSkaner.View;
 using Prism.Commands;
 

@@ -1,11 +1,10 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.Utils;
 using OgameSkaner.View;
 using OgameSkaner.WpfExtensions;
 using Prism.Commands;
@@ -35,8 +34,6 @@ namespace OgameSkaner.ViewModel
         #region private_fields
 
         private ObservableCollection<UserPlanet> _filteredUsersPlanets;
-        private string _adminCode = "";
-        private bool _canExecuteLoadFiles;
         private string _filteredName;
         private readonly UserPlanetDataManager _dataManager;
         private string _folderLocalization = string.Concat((object) Directory.GetCurrentDirectory(), "\\Data");
