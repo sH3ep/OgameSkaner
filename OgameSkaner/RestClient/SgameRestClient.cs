@@ -154,6 +154,7 @@ namespace OgameSkaner.RestClient
 
             request.AddQueryParameter("PlanetId", userPlanet.PlanetId.ToString());
         }
+
         private bool IsClientLoggedIn(IRestResponse response)
         {
             try
