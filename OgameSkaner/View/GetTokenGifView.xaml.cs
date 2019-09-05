@@ -4,7 +4,7 @@ using System.Windows;
 namespace OgameSkaner.View
 {
     /// <summary>
-    /// Interaction logic for GetTokenGifView.xaml
+    ///     Interaction logic for GetTokenGifView.xaml
     /// </summary>
     public partial class GetTokenGifView : Window
     {

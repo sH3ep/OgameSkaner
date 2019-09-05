@@ -5,17 +5,14 @@ using OgameSkaner.ViewModel;
 namespace OgameSkaner.View
 {
     /// <summary>
-    /// Interaction logic for UserPlanetDetailedView.xaml
+    ///     Interaction logic for UserPlanetDetailedView.xaml
     /// </summary>
     public partial class UserPlanetDetailedView : UserControl
     {
-
-
         public UserPlanetDetailedView(UserPlanet userPlanetData)
         {
-            
-            this.DataContext = new UserPlanetDetailedViewModel();
-            ((UserPlanetDetailedViewModel)DataContext).UserPlanetData = userPlanetData;
+            DataContext = new UserPlanetDetailedViewModel();
+            ((UserPlanetDetailedViewModel) DataContext).UserPlanetData = userPlanetData;
             InitializeComponent();
         }
     }

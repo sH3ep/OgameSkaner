@@ -34,9 +34,8 @@ namespace OgameSkaner.Model
                     planetLocalization = await readPlanetLocalization(_actualLine);
                     isGalaxyAndSystemReaded = true;
                     var tempUserPlanet = new UserPlanet("temp", planetLocalization, fileCreationDate);
-                    
+
                     await DeleteOldSolarSystems(tempUserPlanet, playersPlanets);
-                    
                 }
 
                 if (isGalaxyAndSystemReaded) positionLine = GetLineWithPosition(stringReader, positionLine);
@@ -53,7 +52,7 @@ namespace OgameSkaner.Model
                     {
                         playersPlanets.Add(userPlanet);
                     }
-                    
+
                     _startToReadUserData = false;
                 }
 
@@ -71,7 +70,7 @@ namespace OgameSkaner.Model
 
         private int GetPlanetId(StringReader stringReader)
         {
-            int readedLine = 0;
+            var readedLine = 0;
             while (true)
             {
                 readedLine++;
@@ -98,10 +97,7 @@ namespace OgameSkaner.Model
                     }
                 }
 
-                if (readedLine > 10)
-                {
-                    return 0;
-                }
+                if (readedLine > 10) return 0;
             }
         }
 
@@ -188,11 +184,10 @@ namespace OgameSkaner.Model
             lock (playersPlanets)
             {
                 var solarSystemsToRemove = playersPlanets.Where(x =>
-                x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).ToList();
-            
+                    x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).ToList();
+
                 foreach (var item in solarSystemsToRemove) playersPlanets.Remove(item);
             }
-            
         }
 
         private DateTime GetSolarSystemCreationDate(UserPlanet tempUserPlanet,

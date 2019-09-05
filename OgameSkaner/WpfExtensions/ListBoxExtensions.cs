@@ -5,46 +5,38 @@ using System.Windows.Input;
 
 namespace OgameSkaner.WpfExtensions
 {
-    class ListBoxExtensions
+    internal class ListBoxExtensions
     {
         public static readonly DependencyProperty ScrollChangedCommandProperty = DependencyProperty.RegisterAttached(
-               "ScrollChangedCommand", typeof(ICommand), typeof(ListBoxExtensions),
-               new PropertyMetadata(default(ICommand), OnScrollChangedCommandChanged));
+            "ScrollChangedCommand", typeof(ICommand), typeof(ListBoxExtensions),
+            new PropertyMetadata(default(ICommand), OnScrollChangedCommandChanged));
 
         private static void OnScrollChangedCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            ListBox listBox = d as ListBox;
+            var listBox = d as ListBox;
             if (listBox == null)
                 return;
             if (e.NewValue != null)
-            {
                 listBox.Loaded += ListBoxOnLoaded;
-            }
-            else if (e.OldValue != null)
-            {
-                listBox.Loaded -= ListBoxOnLoaded;
-            }
+            else if (e.OldValue != null) listBox.Loaded -= ListBoxOnLoaded;
         }
 
         private static void ListBoxOnLoaded(object sender, RoutedEventArgs routedEventArgs)
         {
-            ListBox listBox = sender as ListBox;
+            var listBox = sender as ListBox;
             if (listBox == null)
                 return;
 
-            ScrollViewer scrollViewer = UIHelper.FindChildren<ScrollViewer>(listBox).FirstOrDefault();
-            if (scrollViewer != null)
-            {
-                scrollViewer.ScrollChanged += ScrollViewerOnScrollChanged;
-            }
+            var scrollViewer = UIHelper.FindChildren<ScrollViewer>(listBox).FirstOrDefault();
+            if (scrollViewer != null) scrollViewer.ScrollChanged += ScrollViewerOnScrollChanged;
         }
 
         private static void ScrollViewerOnScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            ListBox dataGrid = UIHelper.FindParent<ListBox>(sender as ScrollViewer);
+            var dataGrid = UIHelper.FindParent<ListBox>(sender as ScrollViewer);
             if (dataGrid != null)
             {
-                ICommand command = GetScrollChangedCommand(dataGrid);
+                var command = GetScrollChangedCommand(dataGrid);
                 command.Execute(e);
             }
         }
@@ -56,7 +48,7 @@ namespace OgameSkaner.WpfExtensions
 
         public static ICommand GetScrollChangedCommand(DependencyObject element)
         {
-            return (ICommand)element.GetValue(ScrollChangedCommandProperty);
+            return (ICommand) element.GetValue(ScrollChangedCommandProperty);
         }
     }
 }

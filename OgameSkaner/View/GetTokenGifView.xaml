@@ -10,8 +10,7 @@
         Loaded="Window_Loaded">
     <Grid>
         <WindowsFormsHost>
-            <winForms:PictureBox x:Name="pictureBoxLoading">
-            </winForms:PictureBox>
+            <winForms:PictureBox x:Name="pictureBoxLoading" />
         </WindowsFormsHost>
     </Grid>
 </Window>

@@ -5,6 +5,6 @@
         GetSolarSystem,
         SpyPlanet,
         Login,
-        StartPage,
+        StartPage
     }
 }

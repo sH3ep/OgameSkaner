@@ -7,7 +7,8 @@ namespace OgameSkaner.Model
     {
         #region Constructors
 
-        public UserPlanet() {
+        public UserPlanet()
+        {
         }
 
         public UserPlanet(string userName, string planetLocalization)

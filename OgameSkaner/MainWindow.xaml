@@ -11,28 +11,35 @@
 
     <Grid>
         <Grid.Background>
-            <ImageBrush ImageSource="{Binding BackgroundPath}"/>
+            <ImageBrush ImageSource="{Binding BackgroundPath}" />
         </Grid.Background>
-        <ContentControl Content="{Binding CurrentView, Mode=OneWay}" Margin="148,0,4,0"/>
-        <TextBlock HorizontalAlignment="Left" Margin="88,0,0,39" TextWrapping="Wrap" Text="sH3ep  @2019" Width="319" Height="24" VerticalAlignment="Bottom"/>
-        <Button Content="UserPlanetView" Command="{Binding ShowUserPlanetViewCommand}" HorizontalAlignment="Left" Margin="10,55,0,0" VerticalAlignment="Top" Width="133" Height="40"/>
-        <Button Content="Get data/Login Options" Command="{Binding ShowGetDataCommand}" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="133" Height="40"/>
-        <Rectangle ToolTip="Checked every 10 second" Fill="{Binding LoginRectangleCollor}" Opacity="0.7" HorizontalAlignment="Left" Height="63" Margin="10,309,0,0" Stroke="Black" VerticalAlignment="Top" Width="73">
+        <ContentControl Content="{Binding CurrentView, Mode=OneWay}" Margin="148,0,4,0" />
+        <TextBlock HorizontalAlignment="Left" Margin="88,0,0,39" TextWrapping="Wrap" Text="sH3ep  @2019" Width="319"
+                   Height="24" VerticalAlignment="Bottom" />
+        <Button Content="UserPlanetView" Command="{Binding ShowUserPlanetViewCommand}" HorizontalAlignment="Left"
+                Margin="10,55,0,0" VerticalAlignment="Top" Width="133" Height="40" />
+        <Button Content="Get data/Login Options" Command="{Binding ShowGetDataCommand}" HorizontalAlignment="Left"
+                Margin="10,10,0,0" VerticalAlignment="Top" Width="133" Height="40" />
+        <Rectangle ToolTip="Checked every 10 second" Fill="{Binding LoginRectangleCollor}" Opacity="0.7"
+                   HorizontalAlignment="Left" Height="63" Margin="10,309,0,0" Stroke="Black" VerticalAlignment="Top"
+                   Width="73">
             <Rectangle.Style>
                 <Style>
                     <Style.Triggers>
                         <DataTrigger Binding="{Binding LoginRectangleCollor}" Value="red">
-                            <Setter Property="Rectangle.Fill" Value="Red"/>
+                            <Setter Property="Rectangle.Fill" Value="Red" />
                         </DataTrigger>
                         <DataTrigger Binding="{Binding LoginRectangleCollor}" Value="green">
-                            <Setter Property="Rectangle.Fill" Value="Green"/>
+                            <Setter Property="Rectangle.Fill" Value="Green" />
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
             </Rectangle.Style>
         </Rectangle>
-        <Label Content="Login status:" Foreground="Yellow" HorizontalAlignment="Left" Margin="6,278,0,0" VerticalAlignment="Top"/>
-        <Label Content="{Binding LoginStatus,UpdateSourceTrigger=PropertyChanged}"  Foreground="Yellow" HorizontalAlignment="Left" Margin="10,327,0,0" VerticalAlignment="Top" Width="73"/>
+        <Label Content="Login status:" Foreground="Yellow" HorizontalAlignment="Left" Margin="6,278,0,0"
+               VerticalAlignment="Top" />
+        <Label Content="{Binding LoginStatus,UpdateSourceTrigger=PropertyChanged}" Foreground="Yellow"
+               HorizontalAlignment="Left" Margin="10,327,0,0" VerticalAlignment="Top" Width="73" />
     </Grid>
 
 

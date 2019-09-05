@@ -97,7 +97,7 @@
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>+px0uy8XmhL4JatSCM0iW4ufnO7izH4JMD+UnZDibdY=</dsig:DigestValue>
+        <dsig:DigestValue>gZ8+Jl0mE1Sd9zkUhVczJ2nBSYn0p6iR+2oSZ8OFECE=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -149,13 +149,13 @@
       </hash>
     </dependentAssembly>
   </dependency>
-  <file name="OgameSkaner.exe.config" size="731">
+  <file name="OgameSkaner.exe.config" size="724">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>Br9q2bYdPkFvEqyoHrZkHGhvpfIlwrEaNXsK3YVsRjM=</dsig:DigestValue>
+      <dsig:DigestValue>MGZohfzZ0BXnP4xFbW7VC+zdVcWrAAu6f7m6HQ/1NX8=</dsig:DigestValue>
     </hash>
   </file>
 </asmv1:assembly>

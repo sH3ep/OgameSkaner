@@ -7,7 +7,8 @@ namespace OgameSkaner.Utils
     public class ApplicationLogger
     {
         private string _logFileName;
-        private LogFileType _logFiletype;
+        private readonly LogFileType _logFiletype;
+
         public ApplicationLogger(string logFileName)
         {
             _logFileName = logFileName;
@@ -35,9 +36,7 @@ namespace OgameSkaner.Utils
                 case LogFileType.timeLog:
                     _logFileName = "timeLog.txt";
                     return;
-
             }
-
         }
 
         public void AddLog(string logText)
@@ -46,7 +45,7 @@ namespace OgameSkaner.Utils
             {
                 sw.WriteLine("");
                 sw.WriteLine(
-                    "<---------------------------->" + DateTime.Now.ToString() + "<---------------------------->");
+                    "<---------------------------->" + DateTime.Now + "<---------------------------->");
 
                 sw.WriteLine(logText);
                 sw.Close();

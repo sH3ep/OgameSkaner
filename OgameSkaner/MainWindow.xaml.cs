@@ -5,17 +5,14 @@ using OgameScaner.ViewModel;
 namespace OgameSkaner
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    ///     Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
         public MainWindow()
         {
-            this.DataContext = new MainViewModel();
+            DataContext = new MainViewModel();
             InitializeComponent();
-
-            
-
         }
 
         protected override void OnClosed(EventArgs e)

@@ -5,6 +5,6 @@
         timeLog,
         requestLog,
         responseLog,
-        errorLog,
+        errorLog
     }
 }

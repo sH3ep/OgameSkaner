@@ -3,6 +3,6 @@
     public enum LoginStatus
     {
         LoggedIn,
-        LoggedOut,
+        LoggedOut
     }
 }

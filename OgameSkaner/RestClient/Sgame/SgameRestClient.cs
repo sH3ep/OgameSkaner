@@ -14,7 +14,6 @@ namespace OgameSkaner.RestClient
 {
     public class SgameRestClient
     {
-
         public SgameRestClient()
         {
             _client = new RestSharp.RestClient("https://uni2.sgame.pl");
@@ -29,8 +28,6 @@ namespace OgameSkaner.RestClient
         #endregion
 
         #region PublicMethods
-
-
 
         public string GetMainPage()
         {
@@ -57,10 +54,11 @@ namespace OgameSkaner.RestClient
             if (erorMessage != null)
             {
                 SaveIntoLogFile(solarSystemPage + Environment.NewLine +
-                            "------------------------------Error Message Below----------------------------" +
-                            Environment.NewLine + erorMessage);
+                                "------------------------------Error Message Below----------------------------" +
+                                Environment.NewLine + erorMessage);
                 throw new RestException("Login Error");
             }
+
             MessageBox.Show("Login successful");
             return solarSystemPage;
         }
@@ -86,12 +84,11 @@ namespace OgameSkaner.RestClient
             return solarSystemPage;
         }
 
-        public async Task<string> GetSolarSystemAsync(int galaxy, int solarSystem,ProgresBarData pBData)
+        public async Task<string> GetSolarSystemAsync(int galaxy, int solarSystem, ProgresBarData pBData)
         {
-            string solarSystemPage = "";
+            var solarSystemPage = "";
             await Task.Run(() =>
             {
-
                 var request = _requestConfigurator.Configure(RequestType.GetSolarSystem);
 
                 request.AddQueryParameter("page", "galaxy");
@@ -111,8 +108,7 @@ namespace OgameSkaner.RestClient
                 {
                     pBData.ActualValue++;
                 }
-               
-           });
+            });
             return solarSystemPage;
         }
 
@@ -120,10 +116,7 @@ namespace OgameSkaner.RestClient
         {
             var request = _requestConfigurator.Configure(RequestType.StartPage);
             var response = _client.Execute(request);
-            if (IsClientLoggedIn(response))
-            {
-                return LoginStatus.LoggedIn;
-            }
+            if (IsClientLoggedIn(response)) return LoginStatus.LoggedIn;
             return LoginStatus.LoggedOut;
         }
 
@@ -131,16 +124,13 @@ namespace OgameSkaner.RestClient
         public void SpyPlanet(UserPlanet userPlanet)
         {
             var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
-            request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" + userPlanet.PlanetId.ToString();
+            request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" +
+                               userPlanet.PlanetId;
             AddSpecialSpyParameters(request, userPlanet);
 
             var response = _client.Execute(request);
             SaveIntoLogFile(response.Content);
-            if (IsSpyResponseCorrect(response))
-            {
-
-                return;
-            }
+            if (IsSpyResponseCorrect(response)) return;
 
             throw new RestException("There was an error during Spy request");
         }
@@ -162,10 +152,7 @@ namespace OgameSkaner.RestClient
             {
                 var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
                 test = Regex.Match(test, @"\d+").Value;
-                if (int.Parse(test) < 1500)
-                {
-                    return false;
-                }
+                if (int.Parse(test) < 1500) return false;
             }
             catch (Exception e)
             {
@@ -182,15 +169,13 @@ namespace OgameSkaner.RestClient
             {
                 var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
                 test = Regex.Match(test, @"\d+").Value;
-                if (int.Parse(test) < 1500)
-                {
-                    return false;
-                }
+                if (int.Parse(test) < 1500) return false;
             }
             catch (Exception e)
             {
                 Console.WriteLine(e);
             }
+
             return true;
         }
 
@@ -200,15 +185,10 @@ namespace OgameSkaner.RestClient
             {
                 var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
                 test = Regex.Match(test, @"\d+").Value;
-                int contentLength = int.Parse(test);
+                var contentLength = int.Parse(test);
                 if (contentLength < 300 && contentLength > 60)
-                {
                     if (response.Content.Contains("Sonda Szpiegowska"))
-                    {
                         return true;
-                    }
-
-                }
                 return false;
             }
             catch (Exception)
@@ -219,7 +199,7 @@ namespace OgameSkaner.RestClient
 
         private string SecureStringToString(SecureString value)
         {
-            IntPtr bstr = Marshal.SecureStringToBSTR(value);
+            var bstr = Marshal.SecureStringToBSTR(value);
 
             try
             {
@@ -239,7 +219,8 @@ namespace OgameSkaner.RestClient
             using (var sw = File.AppendText(path))
             {
                 sw.WriteLine("");
-                sw.WriteLine("----------------------------------------------" + DateTime.Now.ToString() + "--------------------------------------");
+                sw.WriteLine("----------------------------------------------" + DateTime.Now +
+                             "--------------------------------------");
 
                 sw.WriteLine(text);
 
@@ -248,6 +229,5 @@ namespace OgameSkaner.RestClient
         }
 
         #endregion
-
     }
 }

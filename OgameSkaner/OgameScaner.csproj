@@ -115,18 +115,18 @@
     <Compile Include="Utils\ApplicationLogger.cs" />
     <Compile Include="Utils\ColorToBrushConverter.cs" />
     <Compile Include="Utils\EncryptionHelper.cs" />
-    <Compile Include="Model\GalaxySkanRange.cs" />
-    <Compile Include="Model\LogFileType.cs" />
-    <Compile Include="Model\RestException.cs" />
-    <Compile Include="Model\Token.cs" />
-    <Compile Include="RestClient\LoginStatus.cs" />
-    <Compile Include="RestClient\RequestConfigurator.cs" />
-    <Compile Include="RestClient\RequestType.cs" />
-    <Compile Include="Model\UserPlanetDataManager.cs" />
+    <Compile Include="Model\Shared\GalaxySkanRange.cs" />
+    <Compile Include="Model\Shared\LogFileType.cs" />
+    <Compile Include="Model\Shared\RestException.cs" />
+    <Compile Include="Model\Shared\Token.cs" />
+    <Compile Include="RestClient\Shared\LoginStatus.cs" />
+    <Compile Include="RestClient\Sgame\RequestConfigurator.cs" />
+    <Compile Include="RestClient\Shared\RequestType.cs" />
+    <Compile Include="Model\Shared\UserPlanetDataManager.cs" />
     <Compile Include="Utils\NotifyPropertyChanged.cs" />
-    <Compile Include="Model\OgameFileReader.cs" />
-    <Compile Include="RestClient\SgameApiData.cs" />
-    <Compile Include="RestClient\SgameRestClient.cs" />
+    <Compile Include="Model\Sgame\OgameFileReader.cs" />
+    <Compile Include="RestClient\Sgame\SgameApiData.cs" />
+    <Compile Include="RestClient\Sgame\SgameRestClient.cs" />
     <Compile Include="Utils\ProgresBarData.cs" />
     <Compile Include="ViewModel\GetDataViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
@@ -178,7 +178,7 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Model\UserPlanet.cs" />
+    <Compile Include="Model\Shared\UserPlanet.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -217,6 +217,10 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Model\InterWar\" />
+    <Folder Include="RestClient\InterWar\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

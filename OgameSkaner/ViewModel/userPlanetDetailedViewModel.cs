@@ -8,25 +8,20 @@ namespace OgameSkaner.ViewModel
 {
     public class UserPlanetDetailedViewModel : NotifyPropertyChanged
     {
-        private UserPlanet _userPlanet;
         private string _spySuccededRectangleColor;
         private string _spySuccededRectangleToolTip;
+        private UserPlanet _userPlanet;
+
+        public UserPlanetDetailedViewModel()
+        {
+            SpyPlanetCommand = new DelegateCommand(SpyPlanet, CanExecuteSpy);
+        }
+
         public DelegateCommand SpyPlanetCommand { set; get; }
 
-        private bool CanExecuteSpy()
-        {
-            if (_userPlanet != null)
-            {
-                if (_userPlanet.PlanetId > 0)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
         public UserPlanet UserPlanetData
         {
-            get { return _userPlanet; }
+            get => _userPlanet;
             set
             {
                 _userPlanet = value;
@@ -42,7 +37,7 @@ namespace OgameSkaner.ViewModel
                 _spySuccededRectangleColor = value;
                 RaisePropertyChanged("SpySuccededRectangleColor");
             }
-            get { return _spySuccededRectangleColor; }
+            get => _spySuccededRectangleColor;
         }
 
         public string SpySuccededRectangleToolTip
@@ -52,15 +47,15 @@ namespace OgameSkaner.ViewModel
                 _spySuccededRectangleToolTip = value;
                 RaisePropertyChanged("SpySuccededRectangleToolTip");
             }
-            get
-            {
-                return _spySuccededRectangleToolTip;
-            }
+            get => _spySuccededRectangleToolTip;
         }
 
-        public UserPlanetDetailedViewModel()
+        private bool CanExecuteSpy()
         {
-            SpyPlanetCommand = new DelegateCommand(SpyPlanet, CanExecuteSpy);
+            if (_userPlanet != null)
+                if (_userPlanet.PlanetId > 0)
+                    return true;
+            return false;
         }
 
         private void SpyPlanet()
@@ -77,10 +72,6 @@ namespace OgameSkaner.ViewModel
                 SpySuccededRectangleColor = "red";
                 SpySuccededRectangleToolTip = "Spy failed";
             }
-
         }
-
-
-
     }
 }

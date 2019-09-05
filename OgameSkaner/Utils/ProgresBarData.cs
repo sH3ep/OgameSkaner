@@ -2,9 +2,13 @@
 
 namespace OgameSkaner.Utils
 {
-    public class ProgresBarData:NotifyPropertyChanged
+    public class ProgresBarData : NotifyPropertyChanged
     {
         private int _actualValue;
+
+        private Brush _color = Brushes.Green;
+
+        private int _maxValue;
 
         public int ActualValue
         {
@@ -13,10 +17,8 @@ namespace OgameSkaner.Utils
                 _actualValue = value;
                 RaisePropertyChanged("ActualValue");
             }
-            get { return _actualValue; }
+            get => _actualValue;
         }
-
-        private int _maxValue;
 
         public int MaxValue
         {
@@ -25,19 +27,17 @@ namespace OgameSkaner.Utils
                 _maxValue = value;
                 RaisePropertyChanged("MaxValue");
             }
-            get { return _maxValue; }
+            get => _maxValue;
         }
 
-        private Brush _color = Brushes.Green;
         public Brush Color
         {
             set
             {
                 _color = value;
                 RaisePropertyChanged("Color");
-
             }
-            get { return _color; }
-        } 
+            get => _color;
+        }
     }
 }

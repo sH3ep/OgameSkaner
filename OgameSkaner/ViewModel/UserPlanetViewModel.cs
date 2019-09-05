@@ -17,7 +17,6 @@ namespace OgameSkaner.ViewModel
 
         public UserPlanetViewModel()
         {
-           
             LoadFromXmlFileCommand = new DelegateCommand(SaveDataIntoTxtFile);
             ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
             GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization);
@@ -27,6 +26,15 @@ namespace OgameSkaner.ViewModel
             _usersPlanetsDetailsView = new ObservableCollection<UserPlanetDetailedView>();
             _dataManager = new UserPlanetDataManager(PlayersPlanets);
             LoadFromXmlFile();
+        }
+
+        #endregion
+
+        #region CanExecute
+
+        private bool canExecuteFilter()
+        {
+            return true;
         }
 
         #endregion
@@ -42,20 +50,10 @@ namespace OgameSkaner.ViewModel
 
         #endregion
 
-        #region CanExecute
-
-        private bool canExecuteFilter()
-        {
-            return true;
-        }
-
-        #endregion
-
         #region private methods
 
         private void RefreshUsersPlanetsDetails()
         {
-          
             UsersPlanetsDetailsView.Clear();
             var playerLoadedCounter = 0;
             foreach (var item in FilteredUsersPlanets)
@@ -64,7 +62,6 @@ namespace OgameSkaner.ViewModel
                 playerLoadedCounter++;
                 if (playerLoadedCounter > _maxShowedPlayer) break;
             }
-         
         }
 
         private void AddPlanetsOnScrolling()
@@ -183,7 +180,7 @@ namespace OgameSkaner.ViewModel
         #endregion
 
         #region Commands
-        
+
         public DelegateCommand LoadFromXmlFileCommand { set; get; }
         public DelegateCommand ShowFilteredDataCommand { set; get; }
         public DelegateCommand GetFolderLocalizationCommand { set; get; }
