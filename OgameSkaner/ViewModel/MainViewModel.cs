@@ -7,6 +7,7 @@ using System.Windows;
 using GalaSoft.MvvmLight;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.RestClient.InterWar;
 using Prism.Commands;
 using GetDataView = OgameSkaner.View.GetDataView;
 using UserPlanetView = OgameSkaner.View.UserPlanetView;
@@ -20,6 +21,8 @@ namespace OgameScaner.ViewModel
         private System.Windows.Controls.UserControl _currentView;
         private string _loginRectangleCollor;
         private string _loginStatus;
+        private IGameRestClient _restClient =new IWgameRestClient();
+
         #endregion
 
         #region Properties
@@ -105,12 +108,12 @@ namespace OgameScaner.ViewModel
             {
                 try
                 {
-                    var sGameClient = new SgameRestClient();
+                    
                     LoginStatus status = OgameSkaner.RestClient.LoginStatus.LoggedOut;
                     while (true)
                     {
 
-                        status = sGameClient.CheckLogInStatus();
+                        status = _restClient.CheckLogInStatus();
                         if (status == OgameSkaner.RestClient.LoginStatus.LoggedIn)
                         {
                             LoginStatus = "Logged In";

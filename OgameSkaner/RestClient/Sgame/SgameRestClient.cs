@@ -12,7 +12,9 @@ using RestSharp;
 
 namespace OgameSkaner.RestClient
 {
-    public class SgameRestClient
+  
+
+    public class SgameRestClient : IGameRestClient
     {
         public SgameRestClient()
         {
@@ -231,3 +233,4 @@ namespace OgameSkaner.RestClient
         #endregion
     }
 }
+

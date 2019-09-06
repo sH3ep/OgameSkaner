@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.Utils;
 using OgameSkaner.View;
 using Prism.Commands;
@@ -45,6 +46,7 @@ namespace OgameSkaner.ViewModel
 
         #region fields
 
+        private GameType _gameType = GameType.IWgame;
         private string _actualPositionReaded;
         private string _token;
 
@@ -92,7 +94,7 @@ namespace OgameSkaner.ViewModel
             {
                 try
                 {
-                    var sGameClient = new SgameRestClient();
+                    var sGameClient = new IWgameRestClient();
                     sGameClient.LoginToSgame(Login, SecurePassword);
                     SaveLogin();
                 }
@@ -204,7 +206,7 @@ namespace OgameSkaner.ViewModel
 
         private void SaveToken()
         {
-            var token = new Token();
+            var token = new Token(_gameType);
             token.SaveToken(Token);
             Token = "";
         }
@@ -227,7 +229,7 @@ namespace OgameSkaner.ViewModel
 
         private void LogOut()
         {
-            var token = new Token();
+            var token = new Token(_gameType);
             token.Delete();
             MessageBox.Show("Logged out");
         }

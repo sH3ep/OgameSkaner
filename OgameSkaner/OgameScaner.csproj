@@ -112,7 +112,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\Shared\GameType.cs" />
     <Compile Include="RestClient\InterWar\InterWarRequestConfigurator.cs" />
+    <Compile Include="RestClient\InterWar\IWgameRestClient.cs" />
+    <Compile Include="RestClient\Shared\IGameRestClient.cs" />
     <Compile Include="Utils\ApplicationLogger.cs" />
     <Compile Include="Utils\ColorToBrushConverter.cs" />
     <Compile Include="Utils\EncryptionHelper.cs" />
