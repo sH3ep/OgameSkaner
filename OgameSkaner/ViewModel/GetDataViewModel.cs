@@ -117,7 +117,7 @@ namespace OgameSkaner.ViewModel
             if (SkanRange.IsValid())
                 await Task.Run(async () =>
                 {
-                    var sGameFileReader = new SgameFileReader();
+                    var sGameFileReader = new IWgameFileReader();
                     var sGameClient = new SgameRestClient();
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     string solarSysteFile;
@@ -159,7 +159,7 @@ namespace OgameSkaner.ViewModel
                 PbData.MaxValue = CountElementsToDownload();
                 await Task.Run(async () =>
                 {
-                    var sGameFileReader = new SgameFileReader();
+                    var sGameFileReader = new IWgameFileReader();
                     var sGameClient = new IWgameRestClient();
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     var getSolarSystemTasks = new List<Task<string>>();

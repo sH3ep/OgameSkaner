@@ -128,7 +128,7 @@
     <Compile Include="RestClient\Shared\RequestType.cs" />
     <Compile Include="Model\Shared\UserPlanetDataManager.cs" />
     <Compile Include="Utils\NotifyPropertyChanged.cs" />
-    <Compile Include="Model\Sgame\SgameFileReader.cs" />
+    <Compile Include="Model\InterWar\IWgameFileReader.cs" />
     <Compile Include="RestClient\Sgame\SgameApiData.cs" />
     <Compile Include="RestClient\Sgame\SgameRestClient.cs" />
     <Compile Include="Utils\ProgresBarData.cs" />
@@ -223,7 +223,7 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="Model\InterWar\" />
+    <Folder Include="Model\Sgame\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

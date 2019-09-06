@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OgameSkaner.Model
 {
-    public class SgameFileReader
+    public class IWgameFileReader
     {
         #region Properties
 
