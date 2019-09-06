@@ -120,7 +120,7 @@ namespace OgameSkaner.Model
 
         public async Task LoadFromPhpFile(string folderLocalization)
         {
-            var reader = new OgameFileReader();
+            var reader = new SgameFileReader();
             var d = new DirectoryInfo(folderLocalization); //Assuming Test is your Folder
             var files = d.GetFiles("*.txt"); //Getting Text files
             string fileName;

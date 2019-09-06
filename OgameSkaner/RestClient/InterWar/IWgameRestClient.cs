@@ -75,6 +75,7 @@ namespace OgameSkaner.RestClient.InterWar
             var request = _requestConfigurator.Configure(RequestType.GetSolarSystem);
 
             request.AddQueryParameter("page", "galaxy");
+            request.AddQueryParameter("mode", "1");
 
             request.AddParameter("galaxy", galaxy);
             request.AddParameter("system", solarSystem);
