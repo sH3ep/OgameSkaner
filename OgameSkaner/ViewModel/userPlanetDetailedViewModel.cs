@@ -1,6 +1,7 @@
 ﻿using System;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
+using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.Utils;
 using Prism.Commands;
 
@@ -11,6 +12,7 @@ namespace OgameSkaner.ViewModel
         private string _spySuccededRectangleColor;
         private string _spySuccededRectangleToolTip;
         private UserPlanet _userPlanet;
+        private GameType gameType = GameType.IWgame;
 
         public UserPlanetDetailedViewModel()
         {
@@ -60,12 +62,14 @@ namespace OgameSkaner.ViewModel
 
         private void SpyPlanet()
         {
-            var client = new SgameRestClient();
+            var client = new IWgameRestClient();
             try
             {
-                client.SpyPlanet(_userPlanet);
+                client.SpyPlanet(_userPlanet,PlanetType.PLANET);
+                
                 SpySuccededRectangleColor = "green";
                 SpySuccededRectangleToolTip = "Spy succeeded";
+                client.SpyPlanet(_userPlanet, PlanetType.MOON);
             }
             catch (Exception)
             {

@@ -16,11 +16,11 @@
 
             if (StartSystem > EndSystem) return false;
 
-            if (StartGalaxy < 1 || StartGalaxy > 7) return false;
+            if (StartGalaxy < 1 || StartGalaxy > 9) return false;
 
             if (StartSystem < 1 || StartSystem > 499) return false;
 
-            if (EndGalaxy < 1 || EndGalaxy > 7) return false;
+            if (EndGalaxy < 1 || EndGalaxy > 9) return false;
 
             if (EndSystem < 1 || EndSystem > 499) return false;
 

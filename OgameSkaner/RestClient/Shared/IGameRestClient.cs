@@ -14,6 +14,7 @@ namespace OgameSkaner.RestClient
         Task<string> GetSolarSystemAsync(int galaxy, int solarSystem, ProgresBarData pBData);
         LoginStatus CheckLogInStatus();
         void SpyPlanet(UserPlanet userPlanet);
+        void SpyPlanet(UserPlanet userPlanet,UserPlanet planetType);
     }
 
 }

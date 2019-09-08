@@ -112,9 +112,11 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Model\Sgame\SgameFileReader.cs" />
     <Compile Include="Model\Shared\GameType.cs" />
     <Compile Include="RestClient\InterWar\InterWarRequestConfigurator.cs" />
     <Compile Include="RestClient\InterWar\IWgameRestClient.cs" />
+    <Compile Include="RestClient\InterWar\PlanetType.cs" />
     <Compile Include="RestClient\Shared\IGameRestClient.cs" />
     <Compile Include="Utils\ApplicationLogger.cs" />
     <Compile Include="Utils\ColorToBrushConverter.cs" />
@@ -222,8 +224,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Model\Sgame\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -19,7 +19,6 @@ namespace OgameSkaner.ViewModel
         public GetDataViewModel()
         {
             usersPlanets = new ObservableCollection<UserPlanet>();
-            //GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); }, CanExecute);GetSolarSystemAsync
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystemAsync(); }, CanExecute);
             LogInCommand = new DelegateCommand(async () => { await LogIn(); }, CanExecute);
             SaveTokenCommand = new DelegateCommand(SaveToken, CanExecute);

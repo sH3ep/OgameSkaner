@@ -128,12 +128,17 @@ namespace OgameSkaner.RestClient.InterWar
         }
 
 
-        public void SpyPlanet(UserPlanet userPlanet)
+        public void SpyPlanet(UserPlanet userPlanet,PlanetType planetType)
         {
             var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
-            request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" +
-                               userPlanet.PlanetId;
-            AddSpecialSpyParameters(request, userPlanet);
+            request.Resource = "http://www.inter-war.com.pl/";
+            request.AddParameter("mission", "6");
+            request.AddParameter("galaxy", userPlanet.Galaxy);
+            request.AddParameter("system", userPlanet.SolarSystem);
+            request.AddParameter("planet", userPlanet.Position);
+            int planetTypeNumber =(int) planetType;
+            request.AddParameter("planettype", planetTypeNumber.ToString());
+            request.AddParameter("ships", "1");
 
             var response = _client.Execute(request);
             SaveIntoLogFile(response.Content);
@@ -146,12 +151,6 @@ namespace OgameSkaner.RestClient.InterWar
 
         #region PrivateMethods
 
-        private void AddSpecialSpyParameters(RestRequest request, UserPlanet userPlanet)
-        {
-            request.AddHeader("path", "/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" + userPlanet.PlanetId);
-
-            request.AddQueryParameter("PlanetId", userPlanet.PlanetId.ToString());
-        }
 
         private bool IsClientLoggedIn(IRestResponse response)
         {
@@ -240,6 +239,16 @@ namespace OgameSkaner.RestClient.InterWar
 
                 sw.Close();
             }
+        }
+
+        public void SpyPlanet(UserPlanet userPlanet)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SpyPlanet(UserPlanet userPlanet, UserPlanet planetType)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

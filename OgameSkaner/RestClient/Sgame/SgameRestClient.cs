@@ -230,6 +230,11 @@ namespace OgameSkaner.RestClient
             }
         }
 
+        public void SpyPlanet(UserPlanet userPlanet, UserPlanet planetType)
+        {
+            throw new NotImplementedException();
+        }
+
         #endregion
     }
 }

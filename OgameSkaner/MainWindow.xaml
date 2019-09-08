@@ -39,7 +39,7 @@
         <Label Content="Login status:" Foreground="Yellow" HorizontalAlignment="Left" Margin="6,278,0,0"
                VerticalAlignment="Top" />
         <Label Content="{Binding LoginStatus,UpdateSourceTrigger=PropertyChanged}" Foreground="Yellow"
-               HorizontalAlignment="Left" Margin="10,327,0,0" VerticalAlignment="Top" Width="73" />
+               HorizontalAlignment="Left" Margin="10,335,0,0" VerticalAlignment="Top" Width="73" />
     </Grid>
 
 
