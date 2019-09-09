@@ -26,7 +26,7 @@
         </TextBlock>
         <Button Content="Filtruj" HorizontalAlignment="Left" Margin="645,10,0,0" VerticalAlignment="Top" Width="103"
                 Height="24" Command="{Binding ShowFilteredDataCommand}" />
-        <ListBox ItemsSource="{Binding UsersPlanetsDetailsView}"
+        <ListBox
                  wpfExtensions1:ListBoxExtensions.ScrollChangedCommand="{Binding AddTenUserPlanetViewsCommand}"
                  Opacity="0.8" Margin="220,39,10,10" />
 

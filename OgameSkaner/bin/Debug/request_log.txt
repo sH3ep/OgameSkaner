@@ -770,3 +770,839 @@ Darmowa rejestracja!<br /><br /><br /><center><b>Dla nowych graczy, wydobycie 20
 </body>
 
 </html>
+
+----------------------------------------------09.09.2019 17:17:35--------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Inter-War - Prywatny serwer gry Ogame typu Ugamela i Xnova.</title>
+    <meta name="keywords" content="gra kosmiczna, inter-war, inter, war, gra strategiczna, ogame, gra przez przeglądarkę,ugamela,xnova,klon ogame,prywatny serwer ogame, serwer ogame,prywatny serwer" />
+    <meta name="description" content="Inter-War jest darmową grą przeglądarkową w stylu Ogame.Jest to najlepsza Ugamela oraz Xnova w sieci!" />
+    <meta name="author" content="" />
+    <meta name="revisit-after" content="10 days" />
+    <link rel="apple-touch-icon" href="images/icon-iphone.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="images/icon-ipad.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="images/icon-iphone4.png" />
+
+    <link rel="stylesheet" href="style.css" media="all">
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-37166774-1']);
+  _gaq.push(['_setDomainName', 'inter-war.com.pl']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+    <script src="scripts/cookiealert.js"></script>
+    <script type="text/javascript">
+    $(function(){
+    //focus blur on input
+        $('.focusBlur').focus(function(){
+        	var field = $(this);
+        	if(field.val()==field.attr('defaultValue')){
+        		field.val('');
+        	}
+        });
+        $('.focusBlur').blur(function(){
+        	var field = $(this);
+        	var defaultValue = field.attr('defaultValue');
+        	if(field.val()==''){
+        		field.val(defaultValue);
+        	}
+        });
+    });
+    </script>
+</head>
+
+<body>
+<div id="container">
+
+    <div class="header">
+        <a href="index.php"></a>
+    </div>
+
+    <div class="content_top"></div>
+    <div class="content_repeat">
+        <div class="content">
+            <div class="left">
+                <ul>
+                    <li class="forum current"><a href="http://www.inter-war.com.pl/forum" target="_blank"></a></li>
+                    <li class="zasady"><a href="index.php?page=rules"></a></li>
+                    <li class="screeny"><a href="index.php?page=screens"></a></li>
+		    <li class="poradnik"><a href="index.php"></a></li>
+		    <center><table>
+			<tr>
+			<td><a href="?lang=pl"><img width="35" height="30" src="images/pl.png" ></img></a>
+			</td>
+			<td><a href="?lang=eng"><img width="35" height="30" src="images/eng.png"></img></a>
+			</td>
+			</tr>
+		    </table></center>
+                </ul>
+
+                <div class="clear"></div>
+
+                <div class="buttons">
+                    <a href='http://www.mozilla.com/pl/firefox/'><img src="images/firefox.png" alt="" width="130" height="50" /></a>
+                    <a href='http://www.opera.com/portal/choice/?language=pl'><img src="images/opera.png" alt="" width="130" height="50" /></a>
+                </div>
+
+            </div>
+            <div class="center">
+	    <center><b>Inter-War</b> jest <b>darmową grą przeglądarkową</b> w stylu <b>Ogame</b>.<br />
+Jest to najlepsza <b>Ugamela</b> oraz <b>Xnova</b> w sieci!<br />Marzy Ci się, by być gwiezdnym imperatorem, jesteś dobrym strategiem, chcesz podbijać nowe planety, galaktyki, wyeliminować innych wrogów i być na samym czele gwiezdnych graczy - zarejestruj się. Poprzez rozbudowę swojej infrasturktury, odkrywanie nowych technologii, licznym wojnom, sojuszom pnij sie na sam szczyt. Tylko dzięki swojej wytrwałości stalowych nerwów, stoickiego spokoju, opanowania w krytycznych momentach możesz dosięgnąć szczytu swoich najskrytszych marzeń. Zostań najlepszym Imperatorem w wirtualnym kosmosie!
+<br />Gwiezdna strategia w czasie rzeczywistym.<br />
+Możesz grać z setkami ludzi z całego świata.<br />
+Nie musisz nic pobierać, ani instalować - wystarczy przeglądarka internetowa.<br />
+Darmowa rejestracja!<br /><br /><br /><center><b>Dla nowych graczy, wydobycie 200% przez 72 godziny!</b></center><br />
+          <br />
+          	    	 <iframe src="//www.facebook.com/plugins/likebox.php?href=http%3A%2F%2Fwww.facebook.com%2Fpages%2FInter-Warpl%2F145082935533036&amp;width=222&amp;colorscheme=light&amp;show_faces=false&amp;border_color&amp;stream=false&amp;header=true&amp;height=62&amp;appId=167200829967196" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:90px;" allowTransparency="true"></iframe> 
+          
+  </div>
+            <div class="right">
+	    <form id="login" name="login" action="index.php" method="post">
+	    <div class="pole"><img width="15" height="19" src="images/nick_12.png" alt=""/> <input name="username" id="username" size="16" type="text" class="focusBlur"><br /></div>
+	    <div class="pole"><img width="15" height="19" src="images/haslo_17.png" alt=""/> <input name="password" id="password"  size="16" type="password" class="focusBlur"><br /></div>
+	    <br><label for="universe">Serwer:</label><select name="uni" id="universe"><option value="1" selected="selected">Universum 1</option><option value="2">Universum 2</option></select><br />
+	    <input type="image" src="images/logowanie.png" name="submit" style="margin:4px 0;"><br />				    </form>
+	    	                <a href="index.php?page=reg"><img src="images/rejestracja.png" width="113" height="30" alt="" /></a>
+			<br>
+				    <a href="http://inter-war.com.pl/index.php?page=lostpassword">Przypomnij haslo UNI1</a><br>
+			
+                <div class="clear"></div>
+                <div style="padding: 4px;margin-top:35px;">
+                   Uniwersum 1 <br/>
+        Online : 11<br />
+	Graczy : 1266<br />
+	Aktywni(24h) : 45<br /><br />
+	Uniwersum 2 <br/>
+	        Online : 1<br />
+	Graczy : 190<br />
+	Aktywni(24h) : 17<br />
+	
+            </div>
+        </div>
+    </div>
+    <div class="content_bottom"></div>
+
+</div>
+
+<div id="loga">
+    <table>
+        <tr>
+            <td>
+	    <a href="http://top50.com.pl/"><img src="http://top50.com.pl/button.php?u=MOgame&t=2" alt="TOP50 Gry" width="40" height="40" border="0" />
+		<a href="http://www.wcograc.pl" title="Gry przeglądarkowe"><img src="http://www.wcograc.pl/img/4u/150x50.png" width="40" height="40" border="0" alt="Gry w przeglądarce" title="Gry internetowe" /></a>
+                <a href="http://toplista.i-rpg.pl/index.php?a=in&u=Armed"><img src="http://toplista.i-rpg.pl/button.php?u=Armed" width="40" height="40" alt="Najlepsze gry via www - rpg online!" border="0" /></a>
+                <a href="http://mmorpg.toplista.pl/?we=interwar"><img src="http://s207272909.onlinehome.us/tm.gif" width="40" height="40"></img></a>
+		<a href="http://www.play4now.pl/in/103" target="_blank" ><img width="40" height="40" src="http://www.play4now.pl/img/103/0" alt="Gry w przeglądarce" border="0" title="Gry internetowe" /></a>
+		</td> </tr>
+    </table>
+</div>
+<div id="footer">
+<br />
+    Copyright (&copy;) 2010-2017 Inter - War. All Rights Reserved.<br />
+    <span>Designed by Creative-Web.biz</span><br />
+</div>
+<script>CookieAlert.init();</script>
+</body>
+
+</html>
+
+----------------------------------------------09.09.2019 17:20:42--------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Inter-War - Prywatny serwer gry Ogame typu Ugamela i Xnova.</title>
+    <meta name="keywords" content="gra kosmiczna, inter-war, inter, war, gra strategiczna, ogame, gra przez przeglądarkę,ugamela,xnova,klon ogame,prywatny serwer ogame, serwer ogame,prywatny serwer" />
+    <meta name="description" content="Inter-War jest darmową grą przeglądarkową w stylu Ogame.Jest to najlepsza Ugamela oraz Xnova w sieci!" />
+    <meta name="author" content="" />
+    <meta name="revisit-after" content="10 days" />
+    <link rel="apple-touch-icon" href="images/icon-iphone.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="images/icon-ipad.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="images/icon-iphone4.png" />
+
+    <link rel="stylesheet" href="style.css" media="all">
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-37166774-1']);
+  _gaq.push(['_setDomainName', 'inter-war.com.pl']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+    <script src="scripts/cookiealert.js"></script>
+    <script type="text/javascript">
+    $(function(){
+    //focus blur on input
+        $('.focusBlur').focus(function(){
+        	var field = $(this);
+        	if(field.val()==field.attr('defaultValue')){
+        		field.val('');
+        	}
+        });
+        $('.focusBlur').blur(function(){
+        	var field = $(this);
+        	var defaultValue = field.attr('defaultValue');
+        	if(field.val()==''){
+        		field.val(defaultValue);
+        	}
+        });
+    });
+    </script>
+</head>
+
+<body>
+<div id="container">
+
+    <div class="header">
+        <a href="index.php"></a>
+    </div>
+
+    <div class="content_top"></div>
+    <div class="content_repeat">
+        <div class="content">
+            <div class="left">
+                <ul>
+                    <li class="forum current"><a href="http://www.inter-war.com.pl/forum" target="_blank"></a></li>
+                    <li class="zasady"><a href="index.php?page=rules"></a></li>
+                    <li class="screeny"><a href="index.php?page=screens"></a></li>
+		    <li class="poradnik"><a href="index.php"></a></li>
+		    <center><table>
+			<tr>
+			<td><a href="?lang=pl"><img width="35" height="30" src="images/pl.png" ></img></a>
+			</td>
+			<td><a href="?lang=eng"><img width="35" height="30" src="images/eng.png"></img></a>
+			</td>
+			</tr>
+		    </table></center>
+                </ul>
+
+                <div class="clear"></div>
+
+                <div class="buttons">
+                    <a href='http://www.mozilla.com/pl/firefox/'><img src="images/firefox.png" alt="" width="130" height="50" /></a>
+                    <a href='http://www.opera.com/portal/choice/?language=pl'><img src="images/opera.png" alt="" width="130" height="50" /></a>
+                </div>
+
+            </div>
+            <div class="center">
+	    <center><b>Inter-War</b> jest <b>darmową grą przeglądarkową</b> w stylu <b>Ogame</b>.<br />
+Jest to najlepsza <b>Ugamela</b> oraz <b>Xnova</b> w sieci!<br />Marzy Ci się, by być gwiezdnym imperatorem, jesteś dobrym strategiem, chcesz podbijać nowe planety, galaktyki, wyeliminować innych wrogów i być na samym czele gwiezdnych graczy - zarejestruj się. Poprzez rozbudowę swojej infrasturktury, odkrywanie nowych technologii, licznym wojnom, sojuszom pnij sie na sam szczyt. Tylko dzięki swojej wytrwałości stalowych nerwów, stoickiego spokoju, opanowania w krytycznych momentach możesz dosięgnąć szczytu swoich najskrytszych marzeń. Zostań najlepszym Imperatorem w wirtualnym kosmosie!
+<br />Gwiezdna strategia w czasie rzeczywistym.<br />
+Możesz grać z setkami ludzi z całego świata.<br />
+Nie musisz nic pobierać, ani instalować - wystarczy przeglądarka internetowa.<br />
+Darmowa rejestracja!<br /><br /><br /><center><b>Dla nowych graczy, wydobycie 200% przez 72 godziny!</b></center><br />
+          <br />
+          	    	 <iframe src="//www.facebook.com/plugins/likebox.php?href=http%3A%2F%2Fwww.facebook.com%2Fpages%2FInter-Warpl%2F145082935533036&amp;width=222&amp;colorscheme=light&amp;show_faces=false&amp;border_color&amp;stream=false&amp;header=true&amp;height=62&amp;appId=167200829967196" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:90px;" allowTransparency="true"></iframe> 
+          
+  </div>
+            <div class="right">
+	    <form id="login" name="login" action="index.php" method="post">
+	    <div class="pole"><img width="15" height="19" src="images/nick_12.png" alt=""/> <input name="username" id="username" size="16" type="text" class="focusBlur"><br /></div>
+	    <div class="pole"><img width="15" height="19" src="images/haslo_17.png" alt=""/> <input name="password" id="password"  size="16" type="password" class="focusBlur"><br /></div>
+	    <br><label for="universe">Serwer:</label><select name="uni" id="universe"><option value="1" selected="selected">Universum 1</option><option value="2">Universum 2</option></select><br />
+	    <input type="image" src="images/logowanie.png" name="submit" style="margin:4px 0;"><br />				    </form>
+	    	                <a href="index.php?page=reg"><img src="images/rejestracja.png" width="113" height="30" alt="" /></a>
+			<br>
+				    <a href="http://inter-war.com.pl/index.php?page=lostpassword">Przypomnij haslo UNI1</a><br>
+			
+                <div class="clear"></div>
+                <div style="padding: 4px;margin-top:35px;">
+                   Uniwersum 1 <br/>
+        Online : 11<br />
+	Graczy : 1266<br />
+	Aktywni(24h) : 45<br /><br />
+	Uniwersum 2 <br/>
+	        Online : 1<br />
+	Graczy : 190<br />
+	Aktywni(24h) : 17<br />
+	
+            </div>
+        </div>
+    </div>
+    <div class="content_bottom"></div>
+
+</div>
+
+<div id="loga">
+    <table>
+        <tr>
+            <td>
+	    <a href="http://top50.com.pl/"><img src="http://top50.com.pl/button.php?u=MOgame&t=2" alt="TOP50 Gry" width="40" height="40" border="0" />
+		<a href="http://www.wcograc.pl" title="Gry przeglądarkowe"><img src="http://www.wcograc.pl/img/4u/150x50.png" width="40" height="40" border="0" alt="Gry w przeglądarce" title="Gry internetowe" /></a>
+                <a href="http://toplista.i-rpg.pl/index.php?a=in&u=Armed"><img src="http://toplista.i-rpg.pl/button.php?u=Armed" width="40" height="40" alt="Najlepsze gry via www - rpg online!" border="0" /></a>
+                <a href="http://mmorpg.toplista.pl/?we=interwar"><img src="http://s207272909.onlinehome.us/tm.gif" width="40" height="40"></img></a>
+		<a href="http://www.play4now.pl/in/103" target="_blank" ><img width="40" height="40" src="http://www.play4now.pl/img/103/0" alt="Gry w przeglądarce" border="0" title="Gry internetowe" /></a>
+		</td> </tr>
+    </table>
+</div>
+<div id="footer">
+<br />
+    Copyright (&copy;) 2010-2017 Inter - War. All Rights Reserved.<br />
+    <span>Designed by Creative-Web.biz</span><br />
+</div>
+<script>CookieAlert.init();</script>
+</body>
+
+</html>
+
+----------------------------------------------09.09.2019 17:26:31--------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Inter-War - Prywatny serwer gry Ogame typu Ugamela i Xnova.</title>
+    <meta name="keywords" content="gra kosmiczna, inter-war, inter, war, gra strategiczna, ogame, gra przez przeglądarkę,ugamela,xnova,klon ogame,prywatny serwer ogame, serwer ogame,prywatny serwer" />
+    <meta name="description" content="Inter-War jest darmową grą przeglądarkową w stylu Ogame.Jest to najlepsza Ugamela oraz Xnova w sieci!" />
+    <meta name="author" content="" />
+    <meta name="revisit-after" content="10 days" />
+    <link rel="apple-touch-icon" href="images/icon-iphone.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="images/icon-ipad.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="images/icon-iphone4.png" />
+
+    <link rel="stylesheet" href="style.css" media="all">
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-37166774-1']);
+  _gaq.push(['_setDomainName', 'inter-war.com.pl']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+    <script src="scripts/cookiealert.js"></script>
+    <script type="text/javascript">
+    $(function(){
+    //focus blur on input
+        $('.focusBlur').focus(function(){
+        	var field = $(this);
+        	if(field.val()==field.attr('defaultValue')){
+        		field.val('');
+        	}
+        });
+        $('.focusBlur').blur(function(){
+        	var field = $(this);
+        	var defaultValue = field.attr('defaultValue');
+        	if(field.val()==''){
+        		field.val(defaultValue);
+        	}
+        });
+    });
+    </script>
+</head>
+
+<body>
+<div id="container">
+
+    <div class="header">
+        <a href="index.php"></a>
+    </div>
+
+    <div class="content_top"></div>
+    <div class="content_repeat">
+        <div class="content">
+            <div class="left">
+                <ul>
+                    <li class="forum current"><a href="http://www.inter-war.com.pl/forum" target="_blank"></a></li>
+                    <li class="zasady"><a href="index.php?page=rules"></a></li>
+                    <li class="screeny"><a href="index.php?page=screens"></a></li>
+		    <li class="poradnik"><a href="index.php"></a></li>
+		    <center><table>
+			<tr>
+			<td><a href="?lang=pl"><img width="35" height="30" src="images/pl.png" ></img></a>
+			</td>
+			<td><a href="?lang=eng"><img width="35" height="30" src="images/eng.png"></img></a>
+			</td>
+			</tr>
+		    </table></center>
+                </ul>
+
+                <div class="clear"></div>
+
+                <div class="buttons">
+                    <a href='http://www.mozilla.com/pl/firefox/'><img src="images/firefox.png" alt="" width="130" height="50" /></a>
+                    <a href='http://www.opera.com/portal/choice/?language=pl'><img src="images/opera.png" alt="" width="130" height="50" /></a>
+                </div>
+
+            </div>
+            <div class="center">
+	    <center><b>Inter-War</b> jest <b>darmową grą przeglądarkową</b> w stylu <b>Ogame</b>.<br />
+Jest to najlepsza <b>Ugamela</b> oraz <b>Xnova</b> w sieci!<br />Marzy Ci się, by być gwiezdnym imperatorem, jesteś dobrym strategiem, chcesz podbijać nowe planety, galaktyki, wyeliminować innych wrogów i być na samym czele gwiezdnych graczy - zarejestruj się. Poprzez rozbudowę swojej infrasturktury, odkrywanie nowych technologii, licznym wojnom, sojuszom pnij sie na sam szczyt. Tylko dzięki swojej wytrwałości stalowych nerwów, stoickiego spokoju, opanowania w krytycznych momentach możesz dosięgnąć szczytu swoich najskrytszych marzeń. Zostań najlepszym Imperatorem w wirtualnym kosmosie!
+<br />Gwiezdna strategia w czasie rzeczywistym.<br />
+Możesz grać z setkami ludzi z całego świata.<br />
+Nie musisz nic pobierać, ani instalować - wystarczy przeglądarka internetowa.<br />
+Darmowa rejestracja!<br /><br /><br /><center><b>Dla nowych graczy, wydobycie 200% przez 72 godziny!</b></center><br />
+          <br />
+          	    	 <iframe src="//www.facebook.com/plugins/likebox.php?href=http%3A%2F%2Fwww.facebook.com%2Fpages%2FInter-Warpl%2F145082935533036&amp;width=222&amp;colorscheme=light&amp;show_faces=false&amp;border_color&amp;stream=false&amp;header=true&amp;height=62&amp;appId=167200829967196" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:90px;" allowTransparency="true"></iframe> 
+          
+  </div>
+            <div class="right">
+	    <form id="login" name="login" action="index.php" method="post">
+	    <div class="pole"><img width="15" height="19" src="images/nick_12.png" alt=""/> <input name="username" id="username" size="16" type="text" class="focusBlur"><br /></div>
+	    <div class="pole"><img width="15" height="19" src="images/haslo_17.png" alt=""/> <input name="password" id="password"  size="16" type="password" class="focusBlur"><br /></div>
+	    <br><label for="universe">Serwer:</label><select name="uni" id="universe"><option value="1" selected="selected">Universum 1</option><option value="2">Universum 2</option></select><br />
+	    <input type="image" src="images/logowanie.png" name="submit" style="margin:4px 0;"><br />				    </form>
+	    	                <a href="index.php?page=reg"><img src="images/rejestracja.png" width="113" height="30" alt="" /></a>
+			<br>
+				    <a href="http://inter-war.com.pl/index.php?page=lostpassword">Przypomnij haslo UNI1</a><br>
+			
+                <div class="clear"></div>
+                <div style="padding: 4px;margin-top:35px;">
+                   Uniwersum 1 <br/>
+        Online : 11<br />
+	Graczy : 1266<br />
+	Aktywni(24h) : 45<br /><br />
+	Uniwersum 2 <br/>
+	        Online : 2<br />
+	Graczy : 190<br />
+	Aktywni(24h) : 17<br />
+	
+            </div>
+        </div>
+    </div>
+    <div class="content_bottom"></div>
+
+</div>
+
+<div id="loga">
+    <table>
+        <tr>
+            <td>
+	    <a href="http://top50.com.pl/"><img src="http://top50.com.pl/button.php?u=MOgame&t=2" alt="TOP50 Gry" width="40" height="40" border="0" />
+		<a href="http://www.wcograc.pl" title="Gry przeglądarkowe"><img src="http://www.wcograc.pl/img/4u/150x50.png" width="40" height="40" border="0" alt="Gry w przeglądarce" title="Gry internetowe" /></a>
+                <a href="http://toplista.i-rpg.pl/index.php?a=in&u=Armed"><img src="http://toplista.i-rpg.pl/button.php?u=Armed" width="40" height="40" alt="Najlepsze gry via www - rpg online!" border="0" /></a>
+                <a href="http://mmorpg.toplista.pl/?we=interwar"><img src="http://s207272909.onlinehome.us/tm.gif" width="40" height="40"></img></a>
+		<a href="http://www.play4now.pl/in/103" target="_blank" ><img width="40" height="40" src="http://www.play4now.pl/img/103/0" alt="Gry w przeglądarce" border="0" title="Gry internetowe" /></a>
+		</td> </tr>
+    </table>
+</div>
+<div id="footer">
+<br />
+    Copyright (&copy;) 2010-2017 Inter - War. All Rights Reserved.<br />
+    <span>Designed by Creative-Web.biz</span><br />
+</div>
+<script>CookieAlert.init();</script>
+</body>
+
+</html>
+
+----------------------------------------------09.09.2019 17:27:58--------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Inter-War - Prywatny serwer gry Ogame typu Ugamela i Xnova.</title>
+    <meta name="keywords" content="gra kosmiczna, inter-war, inter, war, gra strategiczna, ogame, gra przez przeglądarkę,ugamela,xnova,klon ogame,prywatny serwer ogame, serwer ogame,prywatny serwer" />
+    <meta name="description" content="Inter-War jest darmową grą przeglądarkową w stylu Ogame.Jest to najlepsza Ugamela oraz Xnova w sieci!" />
+    <meta name="author" content="" />
+    <meta name="revisit-after" content="10 days" />
+    <link rel="apple-touch-icon" href="images/icon-iphone.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="images/icon-ipad.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="images/icon-iphone4.png" />
+
+    <link rel="stylesheet" href="style.css" media="all">
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-37166774-1']);
+  _gaq.push(['_setDomainName', 'inter-war.com.pl']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+    <script src="scripts/cookiealert.js"></script>
+    <script type="text/javascript">
+    $(function(){
+    //focus blur on input
+        $('.focusBlur').focus(function(){
+        	var field = $(this);
+        	if(field.val()==field.attr('defaultValue')){
+        		field.val('');
+        	}
+        });
+        $('.focusBlur').blur(function(){
+        	var field = $(this);
+        	var defaultValue = field.attr('defaultValue');
+        	if(field.val()==''){
+        		field.val(defaultValue);
+        	}
+        });
+    });
+    </script>
+</head>
+
+<body>
+<div id="container">
+
+    <div class="header">
+        <a href="index.php"></a>
+    </div>
+
+    <div class="content_top"></div>
+    <div class="content_repeat">
+        <div class="content">
+            <div class="left">
+                <ul>
+                    <li class="forum current"><a href="http://www.inter-war.com.pl/forum" target="_blank"></a></li>
+                    <li class="zasady"><a href="index.php?page=rules"></a></li>
+                    <li class="screeny"><a href="index.php?page=screens"></a></li>
+		    <li class="poradnik"><a href="index.php"></a></li>
+		    <center><table>
+			<tr>
+			<td><a href="?lang=pl"><img width="35" height="30" src="images/pl.png" ></img></a>
+			</td>
+			<td><a href="?lang=eng"><img width="35" height="30" src="images/eng.png"></img></a>
+			</td>
+			</tr>
+		    </table></center>
+                </ul>
+
+                <div class="clear"></div>
+
+                <div class="buttons">
+                    <a href='http://www.mozilla.com/pl/firefox/'><img src="images/firefox.png" alt="" width="130" height="50" /></a>
+                    <a href='http://www.opera.com/portal/choice/?language=pl'><img src="images/opera.png" alt="" width="130" height="50" /></a>
+                </div>
+
+            </div>
+            <div class="center">
+	    <center><b>Inter-War</b> jest <b>darmową grą przeglądarkową</b> w stylu <b>Ogame</b>.<br />
+Jest to najlepsza <b>Ugamela</b> oraz <b>Xnova</b> w sieci!<br />Marzy Ci się, by być gwiezdnym imperatorem, jesteś dobrym strategiem, chcesz podbijać nowe planety, galaktyki, wyeliminować innych wrogów i być na samym czele gwiezdnych graczy - zarejestruj się. Poprzez rozbudowę swojej infrasturktury, odkrywanie nowych technologii, licznym wojnom, sojuszom pnij sie na sam szczyt. Tylko dzięki swojej wytrwałości stalowych nerwów, stoickiego spokoju, opanowania w krytycznych momentach możesz dosięgnąć szczytu swoich najskrytszych marzeń. Zostań najlepszym Imperatorem w wirtualnym kosmosie!
+<br />Gwiezdna strategia w czasie rzeczywistym.<br />
+Możesz grać z setkami ludzi z całego świata.<br />
+Nie musisz nic pobierać, ani instalować - wystarczy przeglądarka internetowa.<br />
+Darmowa rejestracja!<br /><br /><br /><center><b>Dla nowych graczy, wydobycie 200% przez 72 godziny!</b></center><br />
+          <br />
+          	    	 <iframe src="//www.facebook.com/plugins/likebox.php?href=http%3A%2F%2Fwww.facebook.com%2Fpages%2FInter-Warpl%2F145082935533036&amp;width=222&amp;colorscheme=light&amp;show_faces=false&amp;border_color&amp;stream=false&amp;header=true&amp;height=62&amp;appId=167200829967196" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:90px;" allowTransparency="true"></iframe> 
+          
+  </div>
+            <div class="right">
+	    <form id="login" name="login" action="index.php" method="post">
+	    <div class="pole"><img width="15" height="19" src="images/nick_12.png" alt=""/> <input name="username" id="username" size="16" type="text" class="focusBlur"><br /></div>
+	    <div class="pole"><img width="15" height="19" src="images/haslo_17.png" alt=""/> <input name="password" id="password"  size="16" type="password" class="focusBlur"><br /></div>
+	    <br><label for="universe">Serwer:</label><select name="uni" id="universe"><option value="1" selected="selected">Universum 1</option><option value="2">Universum 2</option></select><br />
+	    <input type="image" src="images/logowanie.png" name="submit" style="margin:4px 0;"><br />				    </form>
+	    	                <a href="index.php?page=reg"><img src="images/rejestracja.png" width="113" height="30" alt="" /></a>
+			<br>
+				    <a href="http://inter-war.com.pl/index.php?page=lostpassword">Przypomnij haslo UNI1</a><br>
+			
+                <div class="clear"></div>
+                <div style="padding: 4px;margin-top:35px;">
+                   Uniwersum 1 <br/>
+        Online : 9<br />
+	Graczy : 1266<br />
+	Aktywni(24h) : 45<br /><br />
+	Uniwersum 2 <br/>
+	        Online : 2<br />
+	Graczy : 190<br />
+	Aktywni(24h) : 17<br />
+	
+            </div>
+        </div>
+    </div>
+    <div class="content_bottom"></div>
+
+</div>
+
+<div id="loga">
+    <table>
+        <tr>
+            <td>
+	    <a href="http://top50.com.pl/"><img src="http://top50.com.pl/button.php?u=MOgame&t=2" alt="TOP50 Gry" width="40" height="40" border="0" />
+		<a href="http://www.wcograc.pl" title="Gry przeglądarkowe"><img src="http://www.wcograc.pl/img/4u/150x50.png" width="40" height="40" border="0" alt="Gry w przeglądarce" title="Gry internetowe" /></a>
+                <a href="http://toplista.i-rpg.pl/index.php?a=in&u=Armed"><img src="http://toplista.i-rpg.pl/button.php?u=Armed" width="40" height="40" alt="Najlepsze gry via www - rpg online!" border="0" /></a>
+                <a href="http://mmorpg.toplista.pl/?we=interwar"><img src="http://s207272909.onlinehome.us/tm.gif" width="40" height="40"></img></a>
+		<a href="http://www.play4now.pl/in/103" target="_blank" ><img width="40" height="40" src="http://www.play4now.pl/img/103/0" alt="Gry w przeglądarce" border="0" title="Gry internetowe" /></a>
+		</td> </tr>
+    </table>
+</div>
+<div id="footer">
+<br />
+    Copyright (&copy;) 2010-2017 Inter - War. All Rights Reserved.<br />
+    <span>Designed by Creative-Web.biz</span><br />
+</div>
+<script>CookieAlert.init();</script>
+</body>
+
+</html>
+
+----------------------------------------------09.09.2019 17:30:12--------------------------------------
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Inter-War - Prywatny serwer gry Ogame typu Ugamela i Xnova.</title>
+    <meta name="keywords" content="gra kosmiczna, inter-war, inter, war, gra strategiczna, ogame, gra przez przeglądarkę,ugamela,xnova,klon ogame,prywatny serwer ogame, serwer ogame,prywatny serwer" />
+    <meta name="description" content="Inter-War jest darmową grą przeglądarkową w stylu Ogame.Jest to najlepsza Ugamela oraz Xnova w sieci!" />
+    <meta name="author" content="" />
+    <meta name="revisit-after" content="10 days" />
+    <link rel="apple-touch-icon" href="images/icon-iphone.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="images/icon-ipad.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="images/icon-iphone4.png" />
+
+    <link rel="stylesheet" href="style.css" media="all">
+    <script type="text/javascript">
+
+  var _gaq = _gaq || [];
+  _gaq.push(['_setAccount', 'UA-37166774-1']);
+  _gaq.push(['_setDomainName', 'inter-war.com.pl']);
+  _gaq.push(['_trackPageview']);
+
+  (function() {
+    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+  })();
+
+</script>
+    <script src="scripts/cookiealert.js"></script>
+    <script type="text/javascript">
+    $(function(){
+    //focus blur on input
+        $('.focusBlur').focus(function(){
+        	var field = $(this);
+        	if(field.val()==field.attr('defaultValue')){
+        		field.val('');
+        	}
+        });
+        $('.focusBlur').blur(function(){
+        	var field = $(this);
+        	var defaultValue = field.attr('defaultValue');
+        	if(field.val()==''){
+        		field.val(defaultValue);
+        	}
+        });
+    });
+    </script>
+</head>
+
+<body>
+<div id="container">
+
+    <div class="header">
+        <a href="index.php"></a>
+    </div>
+
+    <div class="content_top"></div>
+    <div class="content_repeat">
+        <div class="content">
+            <div class="left">
+                <ul>
+                    <li class="forum current"><a href="http://www.inter-war.com.pl/forum" target="_blank"></a></li>
+                    <li class="zasady"><a href="index.php?page=rules"></a></li>
+                    <li class="screeny"><a href="index.php?page=screens"></a></li>
+		    <li class="poradnik"><a href="index.php"></a></li>
+		    <center><table>
+			<tr>
+			<td><a href="?lang=pl"><img width="35" height="30" src="images/pl.png" ></img></a>
+			</td>
+			<td><a href="?lang=eng"><img width="35" height="30" src="images/eng.png"></img></a>
+			</td>
+			</tr>
+		    </table></center>
+                </ul>
+
+                <div class="clear"></div>
+
+                <div class="buttons">
+                    <a href='http://www.mozilla.com/pl/firefox/'><img src="images/firefox.png" alt="" width="130" height="50" /></a>
+                    <a href='http://www.opera.com/portal/choice/?language=pl'><img src="images/opera.png" alt="" width="130" height="50" /></a>
+                </div>
+
+            </div>
+            <div class="center">
+	    <center><b>Inter-War</b> jest <b>darmową grą przeglądarkową</b> w stylu <b>Ogame</b>.<br />
+Jest to najlepsza <b>Ugamela</b> oraz <b>Xnova</b> w sieci!<br />Marzy Ci się, by być gwiezdnym imperatorem, jesteś dobrym strategiem, chcesz podbijać nowe planety, galaktyki, wyeliminować innych wrogów i być na samym czele gwiezdnych graczy - zarejestruj się. Poprzez rozbudowę swojej infrasturktury, odkrywanie nowych technologii, licznym wojnom, sojuszom pnij sie na sam szczyt. Tylko dzięki swojej wytrwałości stalowych nerwów, stoickiego spokoju, opanowania w krytycznych momentach możesz dosięgnąć szczytu swoich najskrytszych marzeń. Zostań najlepszym Imperatorem w wirtualnym kosmosie!
+<br />Gwiezdna strategia w czasie rzeczywistym.<br />
+Możesz grać z setkami ludzi z całego świata.<br />
+Nie musisz nic pobierać, ani instalować - wystarczy przeglądarka internetowa.<br />
+Darmowa rejestracja!<br /><br /><br /><center><b>Dla nowych graczy, wydobycie 200% przez 72 godziny!</b></center><br />
+          <br />
+          	    	 <iframe src="//www.facebook.com/plugins/likebox.php?href=http%3A%2F%2Fwww.facebook.com%2Fpages%2FInter-Warpl%2F145082935533036&amp;width=222&amp;colorscheme=light&amp;show_faces=false&amp;border_color&amp;stream=false&amp;header=true&amp;height=62&amp;appId=167200829967196" scrolling="no" frameborder="0" style="border:none; overflow:hidden; width:200px; height:90px;" allowTransparency="true"></iframe> 
+          
+  </div>
+            <div class="right">
+	    <form id="login" name="login" action="index.php" method="post">
+	    <div class="pole"><img width="15" height="19" src="images/nick_12.png" alt=""/> <input name="username" id="username" size="16" type="text" class="focusBlur"><br /></div>
+	    <div class="pole"><img width="15" height="19" src="images/haslo_17.png" alt=""/> <input name="password" id="password"  size="16" type="password" class="focusBlur"><br /></div>
+	    <br><label for="universe">Serwer:</label><select name="uni" id="universe"><option value="1" selected="selected">Universum 1</option><option value="2">Universum 2</option></select><br />
+	    <input type="image" src="images/logowanie.png" name="submit" style="margin:4px 0;"><br />				    </form>
+	    	                <a href="index.php?page=reg"><img src="images/rejestracja.png" width="113" height="30" alt="" /></a>
+			<br>
+				    <a href="http://inter-war.com.pl/index.php?page=lostpassword">Przypomnij haslo UNI1</a><br>
+			
+                <div class="clear"></div>
+                <div style="padding: 4px;margin-top:35px;">
+                   Uniwersum 1 <br/>
+        Online : 10<br />
+	Graczy : 1266<br />
+	Aktywni(24h) : 45<br /><br />
+	Uniwersum 2 <br/>
+	        Online : 2<br />
+	Graczy : 190<br />
+	Aktywni(24h) : 17<br />
+	
+            </div>
+        </div>
+    </div>
+    <div class="content_bottom"></div>
+
+</div>
+
+<div id="loga">
+    <table>
+        <tr>
+            <td>
+	    <a href="http://top50.com.pl/"><img src="http://top50.com.pl/button.php?u=MOgame&t=2" alt="TOP50 Gry" width="40" height="40" border="0" />
+		<a href="http://www.wcograc.pl" title="Gry przeglądarkowe"><img src="http://www.wcograc.pl/img/4u/150x50.png" width="40" height="40" border="0" alt="Gry w przeglądarce" title="Gry internetowe" /></a>
+                <a href="http://toplista.i-rpg.pl/index.php?a=in&u=Armed"><img src="http://toplista.i-rpg.pl/button.php?u=Armed" width="40" height="40" alt="Najlepsze gry via www - rpg online!" border="0" /></a>
+                <a href="http://mmorpg.toplista.pl/?we=interwar"><img src="http://s207272909.onlinehome.us/tm.gif" width="40" height="40"></img></a>
+		<a href="http://www.play4now.pl/in/103" target="_blank" ><img width="40" height="40" src="http://www.play4now.pl/img/103/0" alt="Gry w przeglądarce" border="0" title="Gry internetowe" /></a>
+		</td> </tr>
+    </table>
+</div>
+<div id="footer">
+<br />
+    Copyright (&copy;) 2010-2017 Inter - War. All Rights Reserved.<br />
+    <span>Designed by Creative-Web.biz</span><br />
+</div>
+<script>CookieAlert.init();</script>
+</body>
+
+</html>
+
+----------------------------------------------09.09.2019 18:11:11--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:13:05--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:13:34--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:14:32--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:17:48--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:18:25--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:18:53--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:18:55--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:19:17--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:20:21--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:20:21--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:21:07--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:21:18--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:22:10--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:22:14--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:23:11--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:23:11--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:23:30--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:23:30--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:25:38--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:25:38--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:26:03--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:26:03--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:28:06--------------------------------------
+600; Wysyłanie 1 Sonda szpiegowska na 8:391:7...|1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:28:09--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 99 0 0 0
+
+----------------------------------------------09.09.2019 18:30:48--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:31:01--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:31:35--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:31:37--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:32:29--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:32:36--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:32:52--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:32:56--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:33:59--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:34:04--------------------------------------
+612; Błąd, Nie masz więcej wolnych slotów do wysłania floty |1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:38:05--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|1 80 0 0 0
+
+----------------------------------------------09.09.2019 18:38:05--------------------------------------
+600; Wysyłanie 20 Sonda szpiegowska na 8:391:7...|2 60 0 0 0

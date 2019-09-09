@@ -36,6 +36,7 @@ namespace OgameSkaner.RestClient.InterWar
             request.AddHeader("user-agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36");
             request.AddHeader("X-Requested-With", "XMLHttpRequest");
+            request.AddHeader("pmenu", "off");
 
             request.AddCookie("__utmc", "184655217");
             request.AddCookie("__utmz", "184655217.1567709575.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=(not%20provided)");
@@ -43,6 +44,8 @@ namespace OgameSkaner.RestClient.InterWar
 
             request.AddQueryParameter("page", "fleetajax");
             request.AddQueryParameter("ajax", "1");
+
+            request.AddCookie("2Moons_1036681298", "05jmaap5qsna2sdcemmrib4vo4");
             
             var token = new Token(GameType.IWgame).GetToken();
             request.AddCookie("2Moons_1036681297", token);

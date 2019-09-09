@@ -128,22 +128,25 @@ namespace OgameSkaner.RestClient.InterWar
         }
 
 
-        public void SpyPlanet(UserPlanet userPlanet,PlanetType planetType)
+        public void SpyPlanet(UserPlanet userPlanet, PlanetType planetType)
         {
             var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
-            request.Resource = "http://www.inter-war.com.pl/";
+
             request.AddParameter("mission", "6");
-            request.AddParameter("galaxy", userPlanet.Galaxy);
-            request.AddParameter("system", userPlanet.SolarSystem);
-            request.AddParameter("planet", userPlanet.Position);
-            int planetTypeNumber =(int) planetType;
+            request.AddParameter("galaxy", userPlanet.Galaxy.ToString());
+            request.AddParameter("system", userPlanet.SolarSystem.ToString());
+            request.AddParameter("planet", userPlanet.Position.ToString());
+            int planetTypeNumber = (int)planetType;
             request.AddParameter("planettype", planetTypeNumber.ToString());
-            request.AddParameter("ships", "1");
+            request.AddParameter("ships", "50");
 
             var response = _client.Execute(request);
             SaveIntoLogFile(response.Content);
-            if (IsSpyResponseCorrect(response)) return;
-
+            if (IsSpyResponseCorrect(response) || (planetType == PlanetType.MOON))
+            {
+                return;
+            }
+            
             throw new RestException("There was an error during Spy request");
         }
 
@@ -191,15 +194,22 @@ namespace OgameSkaner.RestClient.InterWar
                 var test = response.Headers.First(x => x.Name.ToLower() == "content-length").ToString();
                 test = Regex.Match(test, @"\d+").Value;
                 var contentLength = int.Parse(test);
-                if (contentLength < 300 && contentLength > 60)
-                    if (response.Content.Contains("Sonda Szpiegowska"))
+                if (contentLength < 300 && contentLength > 50)
+                {
+                    if (response.Content.Contains("Sonda szpiegowska"))
+                    {
                         return true;
-                return false;
+                    }
+
+
+                }
             }
             catch (Exception)
             {
                 return false;
             }
+
+            return false;
         }
 
         private string SecureStringToString(SecureString value)
