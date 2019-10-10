@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Xml.Serialization;
 
 namespace OgameSkaner.Model
 {
@@ -11,9 +12,10 @@ namespace OgameSkaner.Model
         public string CurrentPlanet { set; get; }
         public string BaseUri { set; get; }
 
+        [XmlIgnore]
         public string ConfigurationName
         {
-            get { return GameType.ToString() + " " + Universum; }
+            get { return GameType.ToString() + " Universum " + Universum; }
             private set { } 
         }
     }

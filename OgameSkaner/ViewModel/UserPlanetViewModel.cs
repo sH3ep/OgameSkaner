@@ -17,10 +17,10 @@ namespace OgameSkaner.ViewModel
 
         public UserPlanetViewModel()
         {
+            
             LoadFromXmlFileCommand = new DelegateCommand(SaveDataIntoTxtFile);
             ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
             GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization);
-            GetOverviewPageCommand = new DelegateCommand(GetOverviewPage, canExecuteFilter);
             AddTenUserPlanetViewsCommand = new DelegateCommand(AddPlanetsOnScrolling);
             _filteredUsersPlanets = new ObservableCollection<UserPlanet>();
             _usersPlanetsDetailsView = new ObservableCollection<UserPlanetDetailedView>();
@@ -40,7 +40,7 @@ namespace OgameSkaner.ViewModel
         #endregion
 
         #region private_fields
-
+        private IGameRestClient GameRestClient;
         private ObservableCollection<UserPlanet> _filteredUsersPlanets;
         private string _filteredName;
         private readonly UserPlanetDataManager _dataManager;
@@ -78,9 +78,9 @@ namespace OgameSkaner.ViewModel
 
         private void GetOverviewPage()
         {
-            var sgameClient = new SgameRestClient();
+           // var sgameClient = new SgameRestClient();
 
-            var temp = sgameClient.GetMainPage();
+            var temp = GameRestClient.GetMainPage();
 
             var temp2 = temp;
         }

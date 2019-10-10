@@ -61,7 +61,7 @@ namespace OgameSkaner.Model
             return configurationsNames;
         }
 
-        public async Task SaveConfigurationAsync(GameConfiguration gameConfig)
+        public async Task AddConfigurationAsync(GameConfiguration gameConfig)
         {
             _gamesConfiguration.RemoveAll((x) =>
                 x.GameType == gameConfig.GameType && x.Universum == gameConfig.Universum);
@@ -69,7 +69,7 @@ namespace OgameSkaner.Model
             await SaveConfigurationsIntoXmlAsync();
         }
 
-        public void SaveConfiguration(GameConfiguration gameConfig)
+        public void AddConfiguration(GameConfiguration gameConfig)
         {
             _gamesConfiguration.RemoveAll((x) =>
                 x.GameType == gameConfig.GameType && x.Universum == gameConfig.Universum);
