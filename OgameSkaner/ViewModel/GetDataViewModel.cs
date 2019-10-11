@@ -16,8 +16,9 @@ namespace OgameSkaner.ViewModel
 {
     public class GetDataViewModel : NotifyPropertyChanged
     {
-        public GetDataViewModel()
+        public GetDataViewModel(IGameRestClient gameRestClient)
         {
+            _gameRestClient = gameRestClient;
             usersPlanets = new ObservableCollection<UserPlanet>();
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystemAsync(); }, CanExecute);
             LogInCommand = new DelegateCommand(async () => { await LogIn(); }, CanExecute);
@@ -45,9 +46,9 @@ namespace OgameSkaner.ViewModel
 
         #region fields
 
-        private GameType _gameType = GameType.IWgame;
         private string _actualPositionReaded;
         private string _token;
+        private IGameRestClient _gameRestClient;
 
         #endregion
 
@@ -93,8 +94,7 @@ namespace OgameSkaner.ViewModel
             {
                 try
                 {
-                    var sGameClient = new IWgameRestClient();
-                    sGameClient.LoginToSgame(Login, SecurePassword);
+                    _gameRestClient.LoginToSgame(Login, SecurePassword);
                     SaveLogin();
                 }
                 catch (RestException e)
@@ -117,7 +117,6 @@ namespace OgameSkaner.ViewModel
                 await Task.Run(async () =>
                 {
                     var sGameFileReader = new IWgameFileReader();
-                    var sGameClient = new SgameRestClient();
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     string solarSysteFile;
                     try
@@ -125,16 +124,16 @@ namespace OgameSkaner.ViewModel
                         for (var actualGalaxy = SkanRange.StartGalaxy;
                             actualGalaxy <= SkanRange.EndGalaxy;
                             actualGalaxy++)
-                        for (var actualSolarSystem = SkanRange.StartSystem;
-                            actualSolarSystem <= SkanRange.EndSystem;
-                            actualSolarSystem++)
-                        {
-                            solarSysteFile = sGameClient.GetSolarSystem(actualGalaxy, actualSolarSystem);
-                            await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
-                            ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
-                        }
+                            for (var actualSolarSystem = SkanRange.StartSystem;
+                                actualSolarSystem <= SkanRange.EndSystem;
+                                actualSolarSystem++)
+                            {
+                                solarSysteFile = _gameRestClient.GetSolarSystem(actualGalaxy, actualSolarSystem);
+                                await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
+                                ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
+                            }
 
-                        dataManager.SaveIntoXmlFile("DatabaseFromApi");
+                        dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
                         MessageBox.Show("Saving data finished");
                     }
                     catch (RestException e)
@@ -159,7 +158,6 @@ namespace OgameSkaner.ViewModel
                 await Task.Run(async () =>
                 {
                     var sGameFileReader = new IWgameFileReader();
-                    var sGameClient = new IWgameRestClient();
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     var getSolarSystemTasks = new List<Task<string>>();
                     try
@@ -167,13 +165,19 @@ namespace OgameSkaner.ViewModel
                         for (var actualGalaxy = SkanRange.StartGalaxy;
                             actualGalaxy <= SkanRange.EndGalaxy;
                             actualGalaxy++)
-                        for (var actualSolarSystem = SkanRange.StartSystem;
-                            actualSolarSystem <= SkanRange.EndSystem;
-                            actualSolarSystem++)
-                        {
-                            getSolarSystemTasks.Add(
-                                sGameClient.GetSolarSystemAsync(actualGalaxy, actualSolarSystem, PbData));
-                            ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
+                            for (var actualSolarSystem = SkanRange.StartSystem;
+                                actualSolarSystem <= SkanRange.EndSystem;
+                                actualSolarSystem++)
+                            {
+                                try
+                                {
+                                    getSolarSystemTasks.Add(_gameRestClient.GetSolarSystemAsync(actualGalaxy, actualSolarSystem, PbData));
+                                    ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
+                                }catch(Exception e){
+                                    MessageBox.Show(e.Message + " at positioin " + ActualPositionReaded);
+                                }
+
+
                         }
 
                         var solarSystemFiles = await Task.WhenAll(getSolarSystemTasks);
@@ -185,7 +189,7 @@ namespace OgameSkaner.ViewModel
 
                         }
 
-                        dataManager.SaveIntoXmlFile("DatabaseFromApi");
+                        dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
                         MessageBox.Show("Saving data finished");
                     }
                     catch (RestException e)
@@ -206,7 +210,7 @@ namespace OgameSkaner.ViewModel
 
         private void SaveToken()
         {
-            var token = new Token(_gameType);
+            var token = new Token(_gameRestClient.GetGameType(), _gameRestClient.GetUniversum());
             token.SaveToken(Token);
             Token = "";
         }
@@ -229,7 +233,7 @@ namespace OgameSkaner.ViewModel
 
         private void LogOut()
         {
-            var token = new Token(_gameType);
+            var token = new Token(_gameRestClient.GetGameType(), _gameRestClient.GetUniversum());
             token.Delete();
             MessageBox.Show("Logged out");
         }

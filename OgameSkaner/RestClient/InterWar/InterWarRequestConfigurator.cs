@@ -5,8 +5,14 @@ namespace OgameSkaner.RestClient.InterWar
 {
     public class InterWarRequestConfigurator
     {
+        private int _universum;
+        public InterWarRequestConfigurator(int universum)
+        {
+            _universum = universum;
+        }
         public RestRequest Configure(RequestType requestType)
         {
+
             switch (requestType)
             {
                 case RequestType.GetSolarSystem:
@@ -24,7 +30,7 @@ namespace OgameSkaner.RestClient.InterWar
         {
             var request = new RestRequest("game.php", Method.POST);
             request.AddHeader("accept",
-                "*/*"); 
+                "*/*");
             request.AddHeader("accept-encoding", "gzip, deflate");
             request.AddHeader("accept-language", "pl-PL,pl;q=0.9,en-US;q=0.8,en;q=0.7");
             request.AddHeader("Connection", "keep-alive");
@@ -46,8 +52,8 @@ namespace OgameSkaner.RestClient.InterWar
             request.AddQueryParameter("ajax", "1");
 
             request.AddCookie("2Moons_1036681298", "05jmaap5qsna2sdcemmrib4vo4");
-            
-            var token = new Token(GameType.IWgame).GetToken();
+
+            var token = new Token(GameType.IWgame, _universum).GetToken();
             request.AddCookie("2Moons_1036681297", token);
 
             return request;
@@ -78,7 +84,7 @@ namespace OgameSkaner.RestClient.InterWar
 
 
 
-            var token = new Token(GameType.IWgame);
+            var token = new Token(GameType.IWgame,_universum);
             var temp = token.GetToken();
             request.AddCookie("2Moons_1036681297", token.GetToken());
 
@@ -111,11 +117,11 @@ namespace OgameSkaner.RestClient.InterWar
 
 
 
-            var token = new Token(GameType.IWgame);
+            var token = new Token(GameType.IWgame, _universum);
             token.SaveToken(token.GenerateToken());
 
             request.AddCookie("2Moons_1036681297", token.GetToken());
-            
+
 
 
             request.AddQueryParameter("page", "login");
@@ -147,7 +153,7 @@ namespace OgameSkaner.RestClient.InterWar
 
             request.AddCookie("lang", "pl");
             request.AddCookie("scroll", "0");
-            var token = new Token(GameType.IWgame).GetToken();
+            var token = new Token(GameType.IWgame,_universum).GetToken();
             request.AddCookie("2Moons_1036681297", token);
 
             return request;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using OgameSkaner.Model.Shared;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -6,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OgameSkaner.Model.Sgame
 {
-    public class SgameFileReader
+    public class SgameFileReader: IGameFileReader
     {
 
         #region Properties

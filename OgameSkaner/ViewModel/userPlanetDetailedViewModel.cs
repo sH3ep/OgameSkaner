@@ -15,10 +15,13 @@ namespace OgameSkaner.ViewModel
         private UserPlanet _userPlanet;
         private GameType gameType = GameType.IWgame;
 
-        public UserPlanetDetailedViewModel()
+        public UserPlanetDetailedViewModel(IGameRestClient gameRestClient)
         {
+            _gameRestClient = gameRestClient; 
             SpyPlanetCommand = new DelegateCommand(SpyPlanet, CanExecuteSpy);
         }
+
+        private IGameRestClient _gameRestClient;
 
         public DelegateCommand SpyPlanetCommand { set; get; }
 
@@ -63,14 +66,13 @@ namespace OgameSkaner.ViewModel
 
         private void SpyPlanet()
         {
-            var client = new IWgameRestClient();
             try
             {
-                client.SpyPlanet(_userPlanet,PlanetType.PLANET);
+                _gameRestClient.SpyPlanet(_userPlanet,PlanetType.PLANET);
                 
                 SpySuccededRectangleColor = "green";
                 SpySuccededRectangleToolTip = "Spy succeeded";
-                client.SpyPlanet(_userPlanet, PlanetType.MOON);
+                _gameRestClient.SpyPlanet(_userPlanet, PlanetType.MOON);
             }
             catch (Exception)
             {

@@ -9,10 +9,12 @@ namespace OgameSkaner.Model
     {
         private string _token;
         private GameType _gameType;
+        private int _universum;
 
-        public Token(GameType gameType)
+        public Token(GameType gameType,int universum)
         {
             _gameType = gameType;
+            _universum = universum;
         }
 
         public string GenerateToken()
@@ -36,7 +38,7 @@ namespace OgameSkaner.Model
             return ch;
         }
 
-        public void SaveToken(string token)
+        public void SaveToken_old(string token)
         {
             var test = _gameType.ToString() + "token";
             var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
@@ -48,11 +50,19 @@ namespace OgameSkaner.Model
             ConfigurationManager.RefreshSection("appSettings");
         }
 
+        public void SaveToken(string token)
+        {
+            var gameConfigSerializer = new GamesConfigurationSerializer();
+            var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameType, _universum);
+            gameConfiguration.Token = token;
+            gameConfigSerializer.AddConfiguration(gameConfiguration);
+        }
+
         public string GetToken()
         {
-            var encryptedToken = ConfigurationManager.AppSettings.Get((_gameType.ToString()+"token"));
-            var token = EncryptionHelper.Decrypt(encryptedToken);
-            return token;
+            var gameConfigSerializer = new GamesConfigurationSerializer();
+            var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameType, _universum);
+            return gameConfiguration.Token;
         }
 
         public void Delete()

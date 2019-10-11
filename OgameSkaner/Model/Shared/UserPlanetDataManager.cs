@@ -42,6 +42,7 @@ namespace OgameSkaner.Model
 
         public ObservableCollection<UserPlanet> LoadFromXml(string fileName = "DatabaseFromApi.xml")
         {
+            fileName += ".xml";
             if (File.Exists(fileName))
             {
                 var serializer = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
@@ -57,6 +58,7 @@ namespace OgameSkaner.Model
 
         public ObservableCollection<UserPlanet> FilterDataByUserName(string userName)
         {
+
             var filteredList = new ObservableCollection<UserPlanet>();
             if (userName != null && userName.Length > 1)
             {
@@ -75,10 +77,11 @@ namespace OgameSkaner.Model
 
         public void SaveIntoXmlFile(string fileName)
         {
+            fileName += ".xml";
             try
             {
                 // Check if file exists with its full path    
-                if (File.Exists(Path.Combine(fileName + ".xml"))) File.Delete(Path.Combine(fileName + ".xml"));
+                if (File.Exists(Path.Combine(fileName))) File.Delete(Path.Combine(fileName));
             }
             catch (IOException)
             {
@@ -87,7 +90,7 @@ namespace OgameSkaner.Model
 
             var sortedPlanet = _userPlanets.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ToList();
             var serialiser = new XmlSerializer(typeof(List<UserPlanet>));
-            TextWriter filestream = new StreamWriter(fileName + ".xml");
+            TextWriter filestream = new StreamWriter(fileName);
             serialiser.Serialize(filestream, sortedPlanet);
             filestream.Close();
         }

@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using OgameSkaner.RestClient;
 using OgameSkaner.ViewModel;
 
 namespace OgameSkaner.View
@@ -9,10 +10,10 @@ namespace OgameSkaner.View
     /// </summary>
     public partial class GetDataView : UserControl
     {
-        public GetDataView()
+        public GetDataView(IGameRestClient gameRestClient)
         {
             InitializeComponent();
-            DataContext = new GetDataViewModel();
+            DataContext = new GetDataViewModel(gameRestClient);
         }
 
         private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)

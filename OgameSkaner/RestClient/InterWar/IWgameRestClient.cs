@@ -14,14 +14,15 @@ namespace OgameSkaner.RestClient.InterWar
 {
     public class IWgameRestClient : IGameRestClient
     {
-        public IWgameRestClient()
+        public IWgameRestClient(int universum)
         {
-            _client = new RestSharp.RestClient("http://www.inter-war.com.pl");
-            _requestConfigurator = new InterWarRequestConfigurator();
+            _client = new RestSharp.RestClient(SetBaseUri(universum));
+            _requestConfigurator = new InterWarRequestConfigurator(universum);
+            _universum = universum;
         }
 
         #region fields
-
+        private int _universum;
         private readonly RestSharp.RestClient _client;
         private readonly InterWarRequestConfigurator _requestConfigurator;
 
@@ -29,6 +30,14 @@ namespace OgameSkaner.RestClient.InterWar
 
         #region PublicMethods
 
+        public GameType GetGameType()
+        {
+            return GameType.IWgame;
+        }
+        public int GetUniversum()
+        {
+            return _universum;
+        }
         public string GetMainPage()
         {
             var request = _requestConfigurator.Configure(RequestType.StartPage);
@@ -154,6 +163,18 @@ namespace OgameSkaner.RestClient.InterWar
 
         #region PrivateMethods
 
+        private string SetBaseUri(int universum)
+        {
+            if (universum == 1)
+            {
+                return "http://www.inter-war.com.pl";
+            }
+            else
+            {
+                return "http://www.inter-war.com.pl/uni" + universum;
+            }
+
+        }
 
         private bool IsClientLoggedIn(IRestResponse response)
         {
@@ -260,6 +281,10 @@ namespace OgameSkaner.RestClient.InterWar
         {
             throw new NotImplementedException();
         }
+
+
+
+
 
         #endregion
     }

@@ -11,6 +11,7 @@ using GalaSoft.MvvmLight;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient;
 using OgameSkaner.RestClient.InterWar;
+using OgameSkaner.RestClient.Shared;
 using Prism.Commands;
 using GetDataView = OgameSkaner.View.GetDataView;
 using UserPlanetView = OgameSkaner.View.UserPlanetView;
@@ -27,21 +28,55 @@ namespace OgameScaner.ViewModel
             temp.AddConfiguration(new GameConfiguration() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2 });
 
 
-                }
+        }
 
         #region fields
         private System.Windows.Controls.UserControl _currentView;
         private string _loginRectangleCollor;
         private string _loginStatus;
-        private IGameRestClient _restClient =new IWgameRestClient();
-        private GameConfiguration _gameConfiguration;
-
+        private IGameRestClient _restClient;
+        private GameConfiguration _actualGameConfiguration;
+        private string _selectedGameConfigurationName;
+        private ObservableCollection<string> _gameConfigurationNames;
         #endregion
 
         #region Properties
+        public GameConfiguration ActualGameConfiguration
+        {
+            set
+            {
+                _actualGameConfiguration = value;
+                RaisePropertyChanged("ActualGameConfiguration");
+                
+            }
+            get { return _actualGameConfiguration; }
+        }
+        public string SelectedGameConfigurationName
+        {
+            set
+            {
+                _selectedGameConfigurationName = value;
+                RaisePropertyChanged("SelectedGameConfigurationName");//todo  add refresh
+                UpdateActualGameConfiguration(value);
+            }
+            get { return _selectedGameConfigurationName; }
+        }
 
-        public string SelectedGameConfigurationName { set; get; }
-        public ObservableCollection<string> GameConfigurationNames { set; get; }
+        private void UpdateActualGameConfiguration(string configurationName)
+        {
+            var gameConfigSerializer = new GamesConfigurationSerializer();
+            ActualGameConfiguration = gameConfigSerializer.GetConfiguration(configurationName);
+        }
+
+        public ObservableCollection<string> GameConfigurationNames
+        {
+            set
+            {
+                _gameConfigurationNames = value;
+                RaisePropertyChanged("GameConfigurationNames");
+            }
+            get { return _gameConfigurationNames; }
+        }
 
         public string LoginRectangleCollor
         {
@@ -102,13 +137,23 @@ namespace OgameScaner.ViewModel
         }
         private void ShowUserPlanetView()
         {
-            CurrentView = new UserPlanetView();
+            var restClientFactory = new GameRestClientFactory();
+            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfiguration.GameType, _actualGameConfiguration.Universum);
+            CurrentView = new UserPlanetView(gameRestClient);
         }
 
         private void ShowGetData()
         {
-            CurrentView = new GetDataView();
+            var restClientFactory = new GameRestClientFactory();
+            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfiguration.GameType, _actualGameConfiguration.Universum);
+            CurrentView = new GetDataView(gameRestClient);
 
+        }
+
+        private GameConfiguration GetGameConfiguration(string gameConfigurationName)
+        {
+            var serializer = new GamesConfigurationSerializer();
+            return serializer.GetConfiguration(gameConfigurationName);
         }
 
         #endregion
@@ -124,13 +169,14 @@ namespace OgameScaner.ViewModel
 
         public MainViewModel()
         {
-           // CreateConfigurationFile();
+           //CreateConfigurationFile();
             LoginRectangleCollor = "red";
-            CurrentView = new UserPlanetView();
             ShowGetDataCommand = new DelegateCommand(ShowGetData, CanExecuteButtons);
             ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView, CanExecuteButtons);
             BackgroundPath = Directory.GetCurrentDirectory() + "/Images/bg_sgame.jpg";
             GetAvailableGamesConfigurations();
+            _actualGameConfiguration = GetGameConfiguration(GameConfigurationNames[0]);
+            SelectedGameConfigurationName = _actualGameConfiguration.ConfigurationName;
             CheckLogInStatus();
         }
 

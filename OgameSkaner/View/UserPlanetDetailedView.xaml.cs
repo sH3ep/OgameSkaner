@@ -1,5 +1,6 @@
 ﻿using System.Windows.Controls;
 using OgameSkaner.Model;
+using OgameSkaner.RestClient;
 using OgameSkaner.ViewModel;
 
 namespace OgameSkaner.View
@@ -9,9 +10,9 @@ namespace OgameSkaner.View
     /// </summary>
     public partial class UserPlanetDetailedView : UserControl
     {
-        public UserPlanetDetailedView(UserPlanet userPlanetData)
+        public UserPlanetDetailedView(UserPlanet userPlanetData,IGameRestClient gameRestClient)
         {
-            DataContext = new UserPlanetDetailedViewModel();
+            DataContext = new UserPlanetDetailedViewModel(gameRestClient);
             ((UserPlanetDetailedViewModel) DataContext).UserPlanetData = userPlanetData;
             InitializeComponent();
         }

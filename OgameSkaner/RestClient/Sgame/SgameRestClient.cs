@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
+using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.Utils;
 using RestSharp;
 
@@ -16,20 +17,30 @@ namespace OgameSkaner.RestClient
 
     public class SgameRestClient : IGameRestClient
     {
-        public SgameRestClient()
+        public SgameRestClient(int universum)
         {
             _client = new RestSharp.RestClient("https://uni2.sgame.pl");
-            _requestConfigurator = new RequestConfigurator();
+            _requestConfigurator = new RequestConfigurator(universum);
+            _universum = universum;
         }
 
         #region fields
-
+        private int _universum;
         private readonly RestSharp.RestClient _client;
         private readonly RequestConfigurator _requestConfigurator;
 
         #endregion
 
         #region PublicMethods
+
+        public GameType GetGameType()
+        {
+            return GameType.Sgame;
+        }
+        public int GetUniversum()
+        {
+            return _universum;
+        }
 
         public string GetMainPage()
         {
@@ -124,6 +135,20 @@ namespace OgameSkaner.RestClient
 
 
         public void SpyPlanet(UserPlanet userPlanet)
+        {
+            var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
+            request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" +
+                               userPlanet.PlanetId;
+            AddSpecialSpyParameters(request, userPlanet);
+
+            var response = _client.Execute(request);
+            SaveIntoLogFile(response.Content);
+            if (IsSpyResponseCorrect(response)) return;
+
+            throw new RestException("There was an error during Spy request");
+        }
+
+        public void SpyPlanet(UserPlanet userPlanet,PlanetType planetType)
         {
             var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
             request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" +
