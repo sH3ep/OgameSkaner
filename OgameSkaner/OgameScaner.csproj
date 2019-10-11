@@ -114,6 +114,7 @@
     </ApplicationDefinition>
     <Compile Include="Model\Sgame\SgameFileReader.cs" />
     <Compile Include="Model\Shared\GameConfiguration.cs" />
+    <Compile Include="Model\Shared\GameDataReaderFactory.cs" />
     <Compile Include="Model\Shared\IGameFileReader.cs" />
     <Compile Include="RestClient\Shared\GameRestClientFactory.cs" />
     <Compile Include="Model\Shared\GamesConfigurationSerializer.cs" />

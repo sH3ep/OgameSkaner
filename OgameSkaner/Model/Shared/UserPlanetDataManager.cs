@@ -120,25 +120,6 @@ namespace OgameSkaner.Model
                 sw.Close();
             }
         }
-
-        public async Task LoadFromPhpFile(string folderLocalization)
-        {
-            var reader = new IWgameFileReader();
-            var d = new DirectoryInfo(folderLocalization); //Assuming Test is your Folder
-            var files = d.GetFiles("*.txt"); //Getting Text files
-            string fileName;
-            foreach (var file in files)
-            {
-                fileName = file.Name;
-                var sr = File.OpenText(Path.Combine(folderLocalization, fileName));
-                var fileText = File.ReadAllText(Path.Combine(folderLocalization, fileName));
-                var fileCreationDate = file.CreationTime;
-                await reader.AddPlayersFromFile(fileText, _userPlanets, fileCreationDate);
-            }
-
-            DeleteMarkedSolarSystems();
-        }
-
         #endregion
     }
 }

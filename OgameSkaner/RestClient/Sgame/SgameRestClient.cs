@@ -19,7 +19,7 @@ namespace OgameSkaner.RestClient
     {
         public SgameRestClient(int universum)
         {
-            _client = new RestSharp.RestClient("https://uni2.sgame.pl");
+            _client = new RestSharp.RestClient("https://uni"+universum+".sgame.pl");
             _requestConfigurator = new RequestConfigurator(universum);
             _universum = universum;
         }

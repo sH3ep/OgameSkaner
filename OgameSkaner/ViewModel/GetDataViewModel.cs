@@ -6,6 +6,7 @@ using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
+using OgameSkaner.Model.Shared;
 using OgameSkaner.RestClient;
 using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.Utils;
@@ -116,7 +117,8 @@ namespace OgameSkaner.ViewModel
             if (SkanRange.IsValid())
                 await Task.Run(async () =>
                 {
-                    var sGameFileReader = new IWgameFileReader();
+                    var fileReaderFactory = new GameDataReaderFactory();
+                    var gameFileReader = fileReaderFactory.CreateFileReader(_gameRestClient.GetGameType());
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     string solarSysteFile;
                     try
@@ -129,7 +131,7 @@ namespace OgameSkaner.ViewModel
                                 actualSolarSystem++)
                             {
                                 solarSysteFile = _gameRestClient.GetSolarSystem(actualGalaxy, actualSolarSystem);
-                                await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
+                                await gameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
                                 ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
                             }
 
@@ -157,7 +159,8 @@ namespace OgameSkaner.ViewModel
                 PbData.MaxValue = CountElementsToDownload();
                 await Task.Run(async () =>
                 {
-                    var sGameFileReader = new IWgameFileReader();
+                    var fileReaderFactory = new GameDataReaderFactory();
+                    var gameFileReader = fileReaderFactory.CreateFileReader(_gameRestClient.GetGameType());
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     var getSolarSystemTasks = new List<Task<string>>();
                     try
@@ -184,7 +187,7 @@ namespace OgameSkaner.ViewModel
                         PbData.ActualValue = 0;
                         foreach (var item in solarSystemFiles)
                         {
-                            await sGameFileReader.AddPlayersFromFile(item, usersPlanets, DateTime.Now);
+                            await gameFileReader.AddPlayersFromFile(item, usersPlanets, DateTime.Now);
                             PbData.ActualValue++;
 
                         }

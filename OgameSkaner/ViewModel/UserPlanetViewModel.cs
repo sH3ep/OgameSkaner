@@ -85,23 +85,11 @@ namespace OgameSkaner.ViewModel
                     FolderLocalization = dialog.SelectedPath;
             }
         }
-       // [Obsolete("Application don't ")]
-        private async void LoadDataFromFiles()
-        {
-            await _dataManager.LoadFromPhpFile(FolderLocalization);
-            SaveDataIntoTxtFile();
-            SaveDataIntoXmlFile();
-            ShowFilteredData();
-        }
+
 
         private void SaveDataIntoTxtFile()
         {
             _dataManager.SaveIntoTxtFile("UkladGraczyWGalaktykach");
-        }
-
-        private void SaveDataIntoXmlFile()
-        {
-            _dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
         }
 
         private void ShowFilteredData()

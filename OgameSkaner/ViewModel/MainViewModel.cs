@@ -26,8 +26,6 @@ namespace OgameScaner.ViewModel
             GamesConfigurationSerializer temp = new GamesConfigurationSerializer();
             temp.AddConfiguration(new GameConfiguration() { BaseUri = "test", CurrentPlanet = "1", GameType = GameType.IWgame, SpyProbeAmount = 1, Universum = 1 });
             temp.AddConfiguration(new GameConfiguration() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2 });
-
-
         }
 
         #region fields
@@ -35,6 +33,7 @@ namespace OgameScaner.ViewModel
         private string _loginRectangleCollor;
         private string _loginStatus;
         private IGameRestClient _restClient;
+        private bool restClientChanged = false;
         private GameConfiguration _actualGameConfiguration;
         private string _selectedGameConfigurationName;
         private ObservableCollection<string> _gameConfigurationNames;
@@ -47,7 +46,7 @@ namespace OgameScaner.ViewModel
             {
                 _actualGameConfiguration = value;
                 RaisePropertyChanged("ActualGameConfiguration");
-                
+
             }
             get { return _actualGameConfiguration; }
         }
@@ -58,6 +57,8 @@ namespace OgameScaner.ViewModel
                 _selectedGameConfigurationName = value;
                 RaisePropertyChanged("SelectedGameConfigurationName");//todo  add refresh
                 UpdateActualGameConfiguration(value);
+                CurrentView = null;
+                restClientChanged = true;
             }
             get { return _selectedGameConfigurationName; }
         }
@@ -132,8 +133,8 @@ namespace OgameScaner.ViewModel
             {
                 MessageBox.Show("error during loading configuration");
             }
-            
-          
+
+
         }
         private void ShowUserPlanetView()
         {
@@ -169,7 +170,7 @@ namespace OgameScaner.ViewModel
 
         public MainViewModel()
         {
-           //CreateConfigurationFile();
+            //CreateConfigurationFile();
             LoginRectangleCollor = "red";
             ShowGetDataCommand = new DelegateCommand(ShowGetData, CanExecuteButtons);
             ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView, CanExecuteButtons);
@@ -186,10 +187,16 @@ namespace OgameScaner.ViewModel
             {
                 try
                 {
-                    
+
                     LoginStatus status = OgameSkaner.RestClient.LoginStatus.LoggedOut;
                     while (true)
                     {
+                        if (restClientChanged)
+                        {
+                            restClientChanged = false;
+                            var restClientFactory = new GameRestClientFactory();
+                            _restClient = restClientFactory.CreateRestClient(_actualGameConfiguration.GameType, _actualGameConfiguration.Universum);
+                        }
 
                         status = _restClient.CheckLogInStatus();
                         if (status == OgameSkaner.RestClient.LoginStatus.LoggedIn)
