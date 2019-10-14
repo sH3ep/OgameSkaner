@@ -46,7 +46,6 @@ C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameS
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameScaner.csproj.CopyComplete
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.exe
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.pdb
-C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameScaner.csprojAssemblyReference.cache
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\bin\Debug\OgameSkaner.exe.config
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\bin\Debug\OgameSkaner.exe.manifest
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\bin\Debug\OgameSkaner.application
@@ -96,3 +95,5 @@ C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.applic
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameScaner.csproj.CopyComplete
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.exe
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.pdb
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.g.cs
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.baml

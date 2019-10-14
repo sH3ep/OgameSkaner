@@ -4,17 +4,17 @@
 winexe
 C#
 .cs
-C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\
 OgameSkaner
 none
 false
 DEBUG;TRACE
-C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\App.xaml
-51560867723
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\App.xaml
+61304698738
 
-49137836448
-79-809688688
-MainWindow.xaml;View\GetDataView.xaml;View\GetTokenGifView.xaml;View\UserPlanetDetailedView.xaml;View\UserPlanetView.xaml;
+51977352006
+7964668519
+MainWindow.xaml;View\ManageConfigurationView.xaml;View\GetDataView.xaml;View\GetTokenGifView.xaml;View\UserPlanetDetailedView.xaml;View\UserPlanetView.xaml;
 
-False
+True
 

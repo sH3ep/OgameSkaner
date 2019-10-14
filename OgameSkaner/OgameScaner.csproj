@@ -113,11 +113,11 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\Sgame\SgameFileReader.cs" />
-    <Compile Include="Model\Shared\GameConfiguration.cs" />
+    <Compile Include="Model\GameConfiguration\GameConfigurationModel.cs" />
     <Compile Include="Model\Shared\GameDataReaderFactory.cs" />
     <Compile Include="Model\Shared\IGameFileReader.cs" />
     <Compile Include="RestClient\Shared\GameRestClientFactory.cs" />
-    <Compile Include="Model\Shared\GamesConfigurationSerializer.cs" />
+    <Compile Include="Model\GameConfiguration\GamesConfigurationSerializer.cs" />
     <Compile Include="Model\Shared\GameType.cs" />
     <Compile Include="RestClient\InterWar\InterWarRequestConfigurator.cs" />
     <Compile Include="RestClient\InterWar\IWgameRestClient.cs" />
@@ -139,10 +139,14 @@
     <Compile Include="RestClient\Sgame\SgameApiData.cs" />
     <Compile Include="RestClient\Sgame\SgameRestClient.cs" />
     <Compile Include="Utils\ProgresBarData.cs" />
+    <Compile Include="ViewModel\ManageConfigurationViewModel.cs" />
     <Compile Include="ViewModel\GetDataViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
     <Compile Include="ViewModel\UserPlanetDetailedViewModel.cs" />
     <Compile Include="ViewModel\UserPlanetViewModel.cs" />
+    <Compile Include="View\ManageConfigurationView.xaml.cs">
+      <DependentUpon>ManageConfigurationView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\GetDataView.xaml.cs">
       <DependentUpon>GetDataView.xaml</DependentUpon>
     </Compile>
@@ -171,6 +175,10 @@
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Page Include="View\ManageConfigurationView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="View\GetDataView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -229,8 +237,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Model\GameConfiguration\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

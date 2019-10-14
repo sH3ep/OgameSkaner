@@ -9,9 +9,11 @@ using System.Web.UI;
 using System.Windows;
 using GalaSoft.MvvmLight;
 using OgameSkaner.Model;
+using OgameSkaner.Model.GameConfiguration;
 using OgameSkaner.RestClient;
 using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.RestClient.Shared;
+using OgameSkaner.View;
 using Prism.Commands;
 using GetDataView = OgameSkaner.View.GetDataView;
 using UserPlanetView = OgameSkaner.View.UserPlanetView;
@@ -24,8 +26,8 @@ namespace OgameScaner.ViewModel
         private void CreateConfigurationFile()
         {
             GamesConfigurationSerializer temp = new GamesConfigurationSerializer();
-            temp.AddConfiguration(new GameConfiguration() { BaseUri = "test", CurrentPlanet = "1", GameType = GameType.IWgame, SpyProbeAmount = 1, Universum = 1 });
-            temp.AddConfiguration(new GameConfiguration() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2 });
+            temp.AddConfiguration(new GameConfigurationModel() { BaseUri = "test", CurrentPlanet = "1", GameType = GameType.IWgame, SpyProbeAmount = 1, Universum = 1 });
+            temp.AddConfiguration(new GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2 });
         }
 
         #region fields
@@ -34,21 +36,21 @@ namespace OgameScaner.ViewModel
         private string _loginStatus;
         private IGameRestClient _restClient;
         private bool restClientChanged = false;
-        private GameConfiguration _actualGameConfiguration;
+        private GameConfigurationModel _actualGameConfigurationModel;
         private string _selectedGameConfigurationName;
         private ObservableCollection<string> _gameConfigurationNames;
         #endregion
 
         #region Properties
-        public GameConfiguration ActualGameConfiguration
+        public GameConfigurationModel ActualGameConfigurationModel
         {
             set
             {
-                _actualGameConfiguration = value;
-                RaisePropertyChanged("ActualGameConfiguration");
+                _actualGameConfigurationModel = value;
+                RaisePropertyChanged("ActualGameConfigurationModel");
 
             }
-            get { return _actualGameConfiguration; }
+            get { return _actualGameConfigurationModel; }
         }
         public string SelectedGameConfigurationName
         {
@@ -66,7 +68,7 @@ namespace OgameScaner.ViewModel
         private void UpdateActualGameConfiguration(string configurationName)
         {
             var gameConfigSerializer = new GamesConfigurationSerializer();
-            ActualGameConfiguration = gameConfigSerializer.GetConfiguration(configurationName);
+            ActualGameConfigurationModel = gameConfigSerializer.GetConfiguration(configurationName);
         }
 
         public ObservableCollection<string> GameConfigurationNames
@@ -117,10 +119,17 @@ namespace OgameScaner.ViewModel
 
         public DelegateCommand ShowUserPlanetViewCommand { set; get; }
         public DelegateCommand ShowGetDataCommand { set; get; }
+        public DelegateCommand ManageConfigurationCommand { set; get; }
 
         #endregion
 
         #region private_Methods
+
+        private void ManageConfiguration()
+        {
+            var manageGameConfigurationView = new ManageConfigurationView();
+            manageGameConfigurationView.Show();
+        }
 
         private void GetAvailableGamesConfigurations()
         {
@@ -139,19 +148,19 @@ namespace OgameScaner.ViewModel
         private void ShowUserPlanetView()
         {
             var restClientFactory = new GameRestClientFactory();
-            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfiguration.GameType, _actualGameConfiguration.Universum);
+            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
             CurrentView = new UserPlanetView(gameRestClient);
         }
 
         private void ShowGetData()
         {
             var restClientFactory = new GameRestClientFactory();
-            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfiguration.GameType, _actualGameConfiguration.Universum);
+            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
             CurrentView = new GetDataView(gameRestClient);
 
         }
 
-        private GameConfiguration GetGameConfiguration(string gameConfigurationName)
+        private GameConfigurationModel GetGameConfiguration(string gameConfigurationName)
         {
             var serializer = new GamesConfigurationSerializer();
             return serializer.GetConfiguration(gameConfigurationName);
@@ -172,14 +181,24 @@ namespace OgameScaner.ViewModel
         {
             //CreateConfigurationFile();
             LoginRectangleCollor = "red";
-            ShowGetDataCommand = new DelegateCommand(ShowGetData, CanExecuteButtons);
-            ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView, CanExecuteButtons);
+
+            DeclareCommand();
             BackgroundPath = Directory.GetCurrentDirectory() + "/Images/bg_sgame.jpg";
             GetAvailableGamesConfigurations();
-            _actualGameConfiguration = GetGameConfiguration(GameConfigurationNames[0]);
-            SelectedGameConfigurationName = _actualGameConfiguration.ConfigurationName;
+            _actualGameConfigurationModel = GetGameConfiguration(GameConfigurationNames[0]);
+            SelectedGameConfigurationName = _actualGameConfigurationModel.ConfigurationName;
+            
             CheckLogInStatus();
         }
+
+        private void DeclareCommand()
+        {
+            ShowGetDataCommand = new DelegateCommand(ShowGetData, CanExecuteButtons);
+            ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView, CanExecuteButtons);
+            ManageConfigurationCommand = new DelegateCommand(ManageConfiguration,CanExecuteButtons);
+        }
+
+
 
         private async Task CheckLogInStatus()
         {
@@ -195,7 +214,7 @@ namespace OgameScaner.ViewModel
                         {
                             restClientChanged = false;
                             var restClientFactory = new GameRestClientFactory();
-                            _restClient = restClientFactory.CreateRestClient(_actualGameConfiguration.GameType, _actualGameConfiguration.Universum);
+                            _restClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
                         }
 
                         status = _restClient.CheckLogInStatus();

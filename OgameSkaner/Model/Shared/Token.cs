@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Configuration;
 using System.Threading;
+using OgameSkaner.Model.GameConfiguration;
 using OgameSkaner.Utils;
 
 namespace OgameSkaner.Model

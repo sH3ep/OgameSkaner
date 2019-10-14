@@ -6,6 +6,7 @@ using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
+using OgameSkaner.Model.GameConfiguration;
 using OgameSkaner.Model.Shared;
 using OgameSkaner.RestClient;
 using OgameSkaner.RestClient.InterWar;
@@ -176,12 +177,14 @@ namespace OgameSkaner.ViewModel
                                 {
                                     getSolarSystemTasks.Add(_gameRestClient.GetSolarSystemAsync(actualGalaxy, actualSolarSystem, PbData));
                                     ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
-                                }catch(Exception e){
+                                }
+                                catch (Exception e)
+                                {
                                     MessageBox.Show(e.Message + " at positioin " + ActualPositionReaded);
                                 }
 
 
-                        }
+                            }
 
                         var solarSystemFiles = await Task.WhenAll(getSolarSystemTasks);
                         PbData.ActualValue = 0;
@@ -222,10 +225,11 @@ namespace OgameSkaner.ViewModel
         {
             try
             {
-                var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                config.AppSettings.Settings["SgameLogin"].Value = Login;
-                config.Save(ConfigurationSaveMode.Modified);
-                ConfigurationManager.RefreshSection("appSettings");
+                var gameConfigSerializer = new GamesConfigurationSerializer();
+                var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameRestClient.GetGameType(),
+                        _gameRestClient.GetUniversum());
+                gameConfiguration.Login = Login;
+                gameConfigSerializer.AddConfiguration(gameConfiguration);
             }
             catch (Exception)
             {
@@ -243,7 +247,10 @@ namespace OgameSkaner.ViewModel
 
         private void ReadSavedLogin()
         {
-            Login = ConfigurationManager.AppSettings.Get("SgameLogin");
+            var gamesConfigSerialiser = new GamesConfigurationSerializer();
+            var gameConfiguration =
+                gamesConfigSerialiser.GetConfiguration(_gameRestClient.GetGameType(), _gameRestClient.GetUniversum());
+            Login = gameConfiguration.Login;
         }
 
         private void ShowGetTokenHelp()
