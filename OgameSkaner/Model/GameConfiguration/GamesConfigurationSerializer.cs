@@ -160,6 +160,11 @@ namespace OgameSkaner.Model.GameConfiguration
                 TextReader fileStream = new StreamReader(ConfigFileName);
                 _gamesConfiguration = (List<Model.GameConfiguration.GameConfigurationModel>)serializer.Deserialize(fileStream);
                 fileStream.Close();
+                if (!_gamesConfiguration.Any())
+                {
+                    CreateDefaultConfiguration();
+                    LoadConfigurationsFromXML();
+                }
             }
             else
             {
@@ -168,7 +173,6 @@ namespace OgameSkaner.Model.GameConfiguration
                TextReader fileStream = new StreamReader(ConfigFileName);
                _gamesConfiguration = (List<Model.GameConfiguration.GameConfigurationModel>)serializer.Deserialize(fileStream);
                fileStream.Close();
-
             }
         }
 

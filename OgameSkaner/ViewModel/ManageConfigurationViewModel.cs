@@ -113,10 +113,19 @@ namespace OgameSkaner.ViewModel
 
         private void RefreshGameConfigurationData()
         {
+            if (SelectedGameConfuguration != null)
+            {
             Login = _selectedGameConfiguration.Login;
             SpyProbeAmount = _selectedGameConfiguration.SpyProbeAmount;
             Universum = _selectedGameConfiguration.Universum;
             SelectedGameType = _selectedGameConfiguration.GameType;
+            }
+            else
+            {
+                SelectedGameConfuguration=new GameConfigurationModel();
+                RefreshGameConfigurationData();
+            }
+
         }
 
         private void LoadGamesConfigrations()
