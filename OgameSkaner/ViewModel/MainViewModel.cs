@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Web.UI;
 using System.Windows;
 using GalaSoft.MvvmLight;
+using OgameSkaner;
 using OgameSkaner.Model;
 using OgameSkaner.Model.GameConfiguration;
 using OgameSkaner.RestClient;
@@ -128,7 +130,14 @@ namespace OgameScaner.ViewModel
         private void ManageConfiguration()
         {
             var manageGameConfigurationView = new ManageConfigurationView();
-            manageGameConfigurationView.Show();
+            manageGameConfigurationView.Closed += ManageGameConfigurationView_Closed;
+            manageGameConfigurationView.ShowDialog();
+           
+        }
+
+        private void ManageGameConfigurationView_Closed(object sender, EventArgs e)
+        {
+            GetAvailableGamesConfigurations();
         }
 
         private void GetAvailableGamesConfigurations()
@@ -179,9 +188,7 @@ namespace OgameScaner.ViewModel
 
         public MainViewModel()
         {
-            //CreateConfigurationFile();
             LoginRectangleCollor = "red";
-
             DeclareCommand();
             BackgroundPath = Directory.GetCurrentDirectory() + "/Images/bg_sgame.jpg";
             GetAvailableGamesConfigurations();

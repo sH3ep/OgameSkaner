@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OgameSkaner.Model
 {
-    public class IWgameFileReader: IGameFileReader
+    public class IWgameFileReader : IGameFileReader
     {
         #region Properties
 
@@ -105,7 +105,7 @@ namespace OgameSkaner.Model
         private string GetLineWithPosition(StringReader stringReader, string previousLine)
         {
             if (_actualLine != null && _actualLine.Contains("\t<td><a href=\"?page=fleet&amp;galaxy="))
-            {                                                    
+            {
 
                 var lineWithPosition = _actualLine;
 
@@ -157,7 +157,7 @@ namespace OgameSkaner.Model
                 }
                 else
                 {
-                    if (c== '&')
+                    if (c == '&')
                     {
                         try
                         {
@@ -167,7 +167,7 @@ namespace OgameSkaner.Model
                         {
                             return 999;
                         }
-                        
+
                     }
                     planetPosition = planetPosition + c;
                 }
@@ -233,47 +233,47 @@ namespace OgameSkaner.Model
             }
 
             return "Wrong user name";
-       
+
         }
 
-    private async Task DeleteOldSolarSystems(UserPlanet tempUserPlanet,
-        ObservableCollection<UserPlanet> playersPlanets)
-    {
-        lock (playersPlanets)
+        private async Task DeleteOldSolarSystems(UserPlanet tempUserPlanet,
+            ObservableCollection<UserPlanet> playersPlanets)
         {
-            var solarSystemsToRemove = playersPlanets.Where(x =>
-                x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).ToList();
+            lock (playersPlanets)
+            {
+                var solarSystemsToRemove = playersPlanets.Where(x =>
+                    x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).ToList();
 
-            foreach (var item in solarSystemsToRemove) playersPlanets.Remove(item);
+                foreach (var item in solarSystemsToRemove) playersPlanets.Remove(item);
+            }
         }
+
+        private DateTime GetSolarSystemCreationDate(UserPlanet tempUserPlanet,
+            ObservableCollection<UserPlanet> playersPlanets)
+        {
+            try
+            {
+                var solarSystemCreationDate = playersPlanets.First(x =>
+                    x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).CreationDate;
+                return solarSystemCreationDate;
+            }
+            catch (ArgumentNullException)
+            {
+                return new DateTime(5, 1, 1, 1, 1, 1);
+            }
+            catch (InvalidOperationException)
+            {
+                return new DateTime(5, 1, 1, 1, 1, 1);
+            }
+        }
+
+        #endregion
+
+        #region Fields
+
+        private bool _startToReadUserData;
+        private string _actualLine = "";
+
+        #endregion
     }
-
-    private DateTime GetSolarSystemCreationDate(UserPlanet tempUserPlanet,
-        ObservableCollection<UserPlanet> playersPlanets)
-    {
-        try
-        {
-            var solarSystemCreationDate = playersPlanets.First(x =>
-                x.Galaxy == tempUserPlanet.Galaxy && x.SolarSystem == tempUserPlanet.SolarSystem).CreationDate;
-            return solarSystemCreationDate;
-        }
-        catch (ArgumentNullException)
-        {
-            return new DateTime(5, 1, 1, 1, 1, 1);
-        }
-        catch (InvalidOperationException)
-        {
-            return new DateTime(5, 1, 1, 1, 1, 1);
-        }
-    }
-
-    #endregion
-
-    #region Fields
-
-    private bool _startToReadUserData;
-    private string _actualLine = "";
-
-    #endregion
-}
 }

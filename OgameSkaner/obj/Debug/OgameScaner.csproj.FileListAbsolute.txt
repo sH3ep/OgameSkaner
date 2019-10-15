@@ -99,3 +99,5 @@ C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\M
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.baml
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.g.cs
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.baml
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameScaner.csprojAssemblyReference.cache
+C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\bin\Debug\Microsoft.Expression.Interactions.dll

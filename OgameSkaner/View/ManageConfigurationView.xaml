@@ -3,11 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:OgameSkaner.View"
         xmlns:viewModel="clr-namespace:OgameSkaner.ViewModel"
         xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:ei="http://schemas.microsoft.com/expression/2010/interactions"
         d:DataContext="{d:DesignInstance viewModel:ManageConfigurationViewModel, IsDesignTimeCreatable=True}"
         mc:Ignorable="d"
+        
       
         Title="ManageConfigurationView" Height="328.253" Width="499.298">
     <!-- Topmost="True" -->
@@ -15,25 +16,42 @@
         <Grid.Background>
             <ImageBrush ImageSource="{Binding BackgroundPath}" />
         </Grid.Background>
-        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,40,0,0" TextWrapping="Wrap" Text="{Binding Universum}" VerticalAlignment="Top" Width="146"/>
-        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,84,0,0" TextWrapping="Wrap" Text="{Binding Login}" VerticalAlignment="Top" Width="146"/>
-        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,128,0,0" TextWrapping="Wrap" Text="{Binding SpyProbeAmount}" VerticalAlignment="Top" Width="146"/>
+
+
+        <TextBox 
+            ToolTip="Numbers Only" HorizontalAlignment="Left" Height="34" Margin="180,45,0,0" TextWrapping="Wrap" Text="{Binding Universum,Mode=TwoWay}" VerticalAlignment="Top" Width="65" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+           
+        </TextBox>
+
+
+
+        <TextBox HorizontalAlignment="Left" Height="32" Margin="137,91,0,0" TextWrapping="Wrap" Text="{Binding Login,Mode=TwoWay}" VerticalAlignment="Top" Width="146" FontSize="17" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+        <TextBox ToolTip="Numbers Only" HorizontalAlignment="Left" Height="34" Margin="180,137,0,0" TextWrapping="Wrap" Text="{Binding SpyProbeAmount,Mode=TwoWay}" VerticalAlignment="Top" Width="65" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
         <ComboBox ItemsSource="{Binding GameTypes,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding SelectedGameType,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="137,10,0,0" VerticalAlignment="Top" Width="146"/>
-        <Button Content="Save/Add" HorizontalAlignment="Left" Margin="320,40,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
-        <Button Content="Delete" HorizontalAlignment="Left" Margin="320,84,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
+        <Button  Command="{Binding AddOrEditConfigurationCommand}" Content="Save/Add" HorizontalAlignment="Left" Margin="320,40,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
+        <Button  Command="{Binding DeleteConfigurationCommand}" Content="Delete" HorizontalAlignment="Left" Margin="320,84,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
         <ComboBox
-            DisplayMemberPath="ConfigurationName"  ItemsSource="{Binding GamesConfugurations}" SelectedItem="{Binding SelectedGameConfuguration,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"  HorizontalAlignment="Left" Margin="320,10,0,0" VerticalAlignment="Top" Width="146" >
-                
+            DisplayMemberPath="ConfigurationName" ItemsSource="{Binding GamesConfugurations}" SelectedItem="{Binding SelectedGameConfuguration,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" IsSynchronizedWithCurrentItem="True" HorizontalAlignment="Left" Margin="320,10,0,0" VerticalAlignment="Top" Width="146" >
             <i:Interaction.Triggers>
-                <i:EventTrigger EventName="MouseLeftButtonDown">
-                    <i:InvokeCommandAction Command="{Binding RefreshGameConfigurationsCommand}"/>
-                </i:EventTrigger>
                 <i:EventTrigger EventName="DropDownClosed">
                     <i:InvokeCommandAction Command="{Binding RefreshGameConfigurationsCommand}"/>
                 </i:EventTrigger>
             </i:Interaction.Triggers>
+
         </ComboBox>
-        <Button Content="Cancel" HorizontalAlignment="Left" Margin="320,128,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
+        <Button Content="Cancel" HorizontalAlignment="Left" Margin="320,128,0,0" VerticalAlignment="Top" Width="75" Height="39">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="Click">
+                    <ei:CallMethodAction MethodName="Close"
+                                         TargetObject="{Binding RelativeSource={RelativeSource
+                                                  Mode=FindAncestor,
+                                                  AncestorType=Window}}" />
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+        </Button>
+        <Label Content="Universum" HorizontalAlignment="Left" Margin="106,47,0,0" VerticalAlignment="Top" Width="69" Height="27" Background="AliceBlue" Opacity="0.7"/>
+        <Label Content="Login" HorizontalAlignment="Left" Margin="92,93,0,0" VerticalAlignment="Top" Width="40" Height="30" Background="AliceBlue" Opacity="0.7"/>
+        <Label Content="Spy probe Amount" HorizontalAlignment="Left" Margin="63,137,0,0" VerticalAlignment="Top" Width="112" Height="30" Background="AliceBlue" Opacity="0.7"/>
 
     </Grid>
 </Window>

@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 
 namespace OgameSkaner.ViewModel
@@ -63,7 +64,7 @@ namespace OgameSkaner.ViewModel
             {
                 _selectedGameConfiguration = value;
                 RaisePropertyChanged("SelectedGameConfuguration");
-               
+
             }
             get { return _selectedGameConfiguration; }
         }
@@ -84,7 +85,7 @@ namespace OgameSkaner.ViewModel
             set
             {
                 _selectedGametype = value;
-                RaisePropertyChanged("SelectedGamaType");
+                RaisePropertyChanged("SelectedGameType");
             }
         }
 
@@ -103,38 +104,81 @@ namespace OgameSkaner.ViewModel
         #region Commands
 
         public ICommand RefreshGameConfigurationsCommand { set; get; }
+        public ICommand AddOrEditConfigurationCommand { set; get; }
+        public ICommand DeleteConfigurationCommand { set; get; }
 
         #endregion
 
         #region private_methods
 
-        private void RefreshGamesConfigurations()
+        private void RefreshGameConfigurationData()
+        {
+            Login = _selectedGameConfiguration.Login;
+            SpyProbeAmount = _selectedGameConfiguration.SpyProbeAmount;
+            Universum = _selectedGameConfiguration.Universum;
+            SelectedGameType = _selectedGameConfiguration.GameType;
+        }
+
+        private void LoadGamesConfigrations()
         {
             var configSerializer = new GamesConfigurationSerializer();
             GamesConfugurations = configSerializer.GetConfigurations();
             SelectedGameConfuguration = GamesConfugurations.FirstOrDefault();
-            Login = SelectedGameConfuguration.Login;
-            SpyProbeAmount = SelectedGameConfuguration.SpyProbeAmount;
-            Universum = SelectedGameConfuguration.Universum;
-            SelectedGameType = SelectedGameConfuguration.GameType;
+            GameTypes = Enum.GetValues(typeof(GameType)).Cast<GameType>().ToList();
+        }
+
+        private void AddOrEditConfiguration()
+        {
+            var messageBoxResult = MessageBox.Show("Are you sure you want to add/save the "+ SelectedGameType + " Uniwersum " + Universum + " configuration?",
+                "Change configuration", MessageBoxButton.YesNo);
+
+            if (messageBoxResult == MessageBoxResult.Yes)
+            {
+                var gameConfiguration = new GameConfigurationModel();
+                gameConfiguration.GameType = SelectedGameType;
+                gameConfiguration.Login = Login;
+                gameConfiguration.BaseUri = "whatever";
+                gameConfiguration.Universum = Universum;
+                gameConfiguration.SpyProbeAmount = SpyProbeAmount;
+                gameConfiguration.CurrentPlanet = "1";
+                gameConfiguration.Token = "token";
+
+                var configSerializer = new GamesConfigurationSerializer();
+                configSerializer.AddConfiguration(gameConfiguration);
+                LoadGamesConfigrations();
+            }
+           
+        }
+
+        private void DeleteConfiguration()
+        {
+            var messageBoxResult = MessageBox.Show("Are you sure you want to delete the" + SelectedGameType + " Uniwersum " + Universum +" configuration?",
+                "Change configuration", MessageBoxButton.YesNo);
+
+            if (messageBoxResult == MessageBoxResult.Yes)
+            {
+                var configSerializer = new GamesConfigurationSerializer();
+                configSerializer.DeleteConfiguration(SelectedGameConfuguration);
+                LoadGamesConfigrations();
+            }
         }
 
         #endregion
 
         public ManageConfigurationViewModel()
         {
-            GameTypes = Enum.GetValues(typeof(GameType)).Cast<GameType>().ToList();
-            RefreshGamesConfigurations();
+            CreateCommands();
+            LoadGamesConfigrations();
+            RefreshGameConfigurationData();
             BackgroundPath = Directory.GetCurrentDirectory() + "/Images/bg_sgame.jpg";
         }
 
         private void CreateCommands()
         {
-            RefreshGameConfigurationsCommand = new DelegateCommand(RefreshGamesConfigurations); //todo don't work auto refresh on configuration change
+            RefreshGameConfigurationsCommand = new DelegateCommand(RefreshGameConfigurationData);
+            AddOrEditConfigurationCommand = new DelegateCommand(AddOrEditConfiguration);
+            DeleteConfigurationCommand = new DelegateCommand(DeleteConfiguration);
         }
-        
-
-
 
 
     }

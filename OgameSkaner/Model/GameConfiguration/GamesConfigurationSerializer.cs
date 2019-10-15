@@ -33,10 +33,17 @@ namespace OgameSkaner.Model.GameConfiguration
         #endregion
 
         #region PublicMethods
-        
+
+        public void DeleteConfiguration(GameConfigurationModel gameConfiguration)
+        {
+            _gamesConfiguration = _gamesConfiguration.Where(x =>
+                x.GameType != gameConfiguration.GameType || x.Universum != gameConfiguration.Universum).ToList();
+            SaveConfigurationsIntoXml();
+        }
+
         public List<GameConfigurationModel> GetConfigurations()
         {
-            return _gamesConfiguration;
+            return _gamesConfiguration.OrderBy(x=>x.ConfigurationName).ToList();
         }
         public Model.GameConfiguration.GameConfigurationModel GetConfiguration(GameType gameType, int universum)
         {
@@ -60,6 +67,7 @@ namespace OgameSkaner.Model.GameConfiguration
                 configurationsNames.Add(item.ConfigurationName);
             }
 
+            configurationsNames.Sort();
             return configurationsNames;
         }
 
