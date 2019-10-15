@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +17,7 @@ namespace OgameSkaner.Model.GameConfiguration
 
         #endregion
         
-        #region MyRegion
+        #region Constructor
 
         public GamesConfigurationSerializer()
         {
@@ -33,7 +34,10 @@ namespace OgameSkaner.Model.GameConfiguration
 
         #region PublicMethods
         
-
+        public List<GameConfigurationModel> GetConfigurations()
+        {
+            return _gamesConfiguration;
+        }
         public Model.GameConfiguration.GameConfigurationModel GetConfiguration(GameType gameType, int universum)
         {
             var configuration =
@@ -48,7 +52,7 @@ namespace OgameSkaner.Model.GameConfiguration
             return configuration;
         }
 
-        public List<string> GetConfigurationsNames()
+        public IEnumerable<string> GetConfigurationsNames()
         {
             var configurationsNames = new List<string>();
             foreach (var item in _gamesConfiguration)
@@ -61,7 +65,8 @@ namespace OgameSkaner.Model.GameConfiguration
 
         public async Task AddConfigurationAsync(Model.GameConfiguration.GameConfigurationModel gameConfig)
         {
-            _gamesConfiguration.RemoveAll((x) =>
+
+           _gamesConfiguration.RemoveAll((x) =>
                 x.GameType == gameConfig.GameType && x.Universum == gameConfig.Universum);
             _gamesConfiguration.Add(gameConfig);
             await SaveConfigurationsIntoXmlAsync();
@@ -161,7 +166,7 @@ namespace OgameSkaner.Model.GameConfiguration
 
         private void CreateDefaultConfiguration()
         {
-            AddConfiguration(new Model.GameConfiguration.GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2,Login = "Login"});
+            AddConfiguration(new Model.GameConfiguration.GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2,Login = "Login",Token="token"});
         }
         
         #endregion

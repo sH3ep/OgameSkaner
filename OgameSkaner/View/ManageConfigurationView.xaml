@@ -5,18 +5,34 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:OgameSkaner.View"
         xmlns:viewModel="clr-namespace:OgameSkaner.ViewModel"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
         d:DataContext="{d:DesignInstance viewModel:ManageConfigurationViewModel, IsDesignTimeCreatable=True}"
         mc:Ignorable="d"
       
-        Title="ManageConfigurationView" Height="328.253" Width="499.298"> <!-- Topmost="True" -->
+        Title="ManageConfigurationView" Height="328.253" Width="499.298">
+    <!-- Topmost="True" -->
     <Grid Margin="0,0,2,0">
-        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,40,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="146"/>
-        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,84,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="146"/>
-        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,128,0,0" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="146"/>
-        <ComboBox HorizontalAlignment="Left" Margin="137,10,0,0" VerticalAlignment="Top" Width="146"/>
+        <Grid.Background>
+            <ImageBrush ImageSource="{Binding BackgroundPath}" />
+        </Grid.Background>
+        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,40,0,0" TextWrapping="Wrap" Text="{Binding Universum}" VerticalAlignment="Top" Width="146"/>
+        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,84,0,0" TextWrapping="Wrap" Text="{Binding Login}" VerticalAlignment="Top" Width="146"/>
+        <TextBox HorizontalAlignment="Left" Height="39" Margin="137,128,0,0" TextWrapping="Wrap" Text="{Binding SpyProbeAmount}" VerticalAlignment="Top" Width="146"/>
+        <ComboBox ItemsSource="{Binding GameTypes,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding SelectedGameType,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="137,10,0,0" VerticalAlignment="Top" Width="146"/>
         <Button Content="Save/Add" HorizontalAlignment="Left" Margin="320,40,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
         <Button Content="Delete" HorizontalAlignment="Left" Margin="320,84,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
-        <ComboBox HorizontalAlignment="Left" Margin="320,10,0,0" VerticalAlignment="Top" Width="146"/>
+        <ComboBox
+            DisplayMemberPath="ConfigurationName"  ItemsSource="{Binding GamesConfugurations}" SelectedItem="{Binding SelectedGameConfuguration,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"  HorizontalAlignment="Left" Margin="320,10,0,0" VerticalAlignment="Top" Width="146" >
+                
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="MouseLeftButtonDown">
+                    <i:InvokeCommandAction Command="{Binding RefreshGameConfigurationsCommand}"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="DropDownClosed">
+                    <i:InvokeCommandAction Command="{Binding RefreshGameConfigurationsCommand}"/>
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+        </ComboBox>
         <Button Content="Cancel" HorizontalAlignment="Left" Margin="320,128,0,0" VerticalAlignment="Top" Width="75" Height="39"/>
 
     </Grid>

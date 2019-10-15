@@ -90,14 +90,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="OgameSkaner.exe" size="100832">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="OgameSkaner.exe" size="104416">
       <assemblyIdentity name="OgameSkaner" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>y9syAxBOUAD6VSIM2dHQyGHxvnYdlwCvCucK8flwqGQ=</dsig:DigestValue>
+        <dsig:DigestValue>PdfB81JbzNc9mj27NFkAqHDFlFGYG2A2DTvezu+GFek=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>

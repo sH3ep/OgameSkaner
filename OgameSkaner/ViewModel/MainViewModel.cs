@@ -198,8 +198,6 @@ namespace OgameScaner.ViewModel
             ManageConfigurationCommand = new DelegateCommand(ManageConfiguration,CanExecuteButtons);
         }
 
-
-
         private async Task CheckLogInStatus()
         {
             await Task.Run(async () =>

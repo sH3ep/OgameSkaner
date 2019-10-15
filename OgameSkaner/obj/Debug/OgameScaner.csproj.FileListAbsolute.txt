@@ -97,3 +97,5 @@ C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.exe
 C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\OgameSkaner.pdb
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.g.cs
 C:\Users\Karol\source\repos\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.baml
+C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.g.cs
+C:\Users\Queris\OgameSkaner\OgameSkaner\OgameSkaner\obj\Debug\View\ManageConfigurationView.baml
