@@ -32,7 +32,7 @@ namespace OgameSkaner.ViewModel
 
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
-            usersPlanets = dataManager.LoadFromXml();
+            usersPlanets = dataManager.LoadFromXml("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
 
             SkanRange = new GalaxySkanRange();
         }
