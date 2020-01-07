@@ -25,13 +25,6 @@ namespace OgameScaner.ViewModel
     public class MainViewModel : ViewModelBase
     {
 
-        private void CreateConfigurationFile()
-        {
-            GamesConfigurationSerializer temp = new GamesConfigurationSerializer();
-            temp.AddConfiguration(new GameConfigurationModel() { BaseUri = "test", CurrentPlanet = "1", GameType = GameType.IWgame, SpyProbeAmount = 1, Universum = 1 });
-            temp.AddConfiguration(new GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2 });
-        }
-
         #region fields
         private System.Windows.Controls.UserControl _currentView;
         private string _loginRectangleCollor;
