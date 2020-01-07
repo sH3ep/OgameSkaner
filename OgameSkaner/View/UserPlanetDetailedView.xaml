@@ -1,27 +1,31 @@
 ﻿<UserControl x:Class="OgameSkaner.View.UserPlanetDetailedView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:OgameScaner.ViewModel"
              xmlns:viewModel="clr-namespace:OgameSkaner.ViewModel"
              d:DataContext="{d:DesignInstance viewModel:UserPlanetDetailedViewModel, IsDesignTimeCreatable=True}"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="30.115" d:DesignWidth="537">
     <Border BorderBrush="Black" BorderThickness="1" Margin="0,0,10,0">
         <Grid Margin="0,0,9,0">
-            <Button Content="Spy" Command="{Binding SpyPlanetCommand}" HorizontalAlignment="Left" ToolTip="If is inactive that means, you need to get this data again" Margin="416,4,0,4" Width="74"/>
-            <Label Content="{Binding UserPlanetData.UserName}" HorizontalAlignment="Left" VerticalAlignment="Top" Width="121" Height="28"/>
-            <Label Content="{Binding UserPlanetData.Localization}" HorizontalAlignment="Left" VerticalAlignment="Top" Width="121" Margin="126,1,0,0" Height="27"/>
-            <Rectangle ToolTip="{Binding SpySuccededRectangleToolTip}"  Opacity="0.7" HorizontalAlignment="Left" Height="28" Margin="373,0,0,0" Stroke="Black" VerticalAlignment="Top" Width="30">
+            <Button Content="Spy" Command="{Binding SpyPlanetCommand}" HorizontalAlignment="Left"
+                    ToolTip="If is inactive that means, you need to get this data again" Margin="416,4,0,4" Width="74" />
+            <Label Content="{Binding UserPlanetData.UserName}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Width="121" Height="28" />
+            <Label Content="{Binding UserPlanetData.Localization}" HorizontalAlignment="Left" VerticalAlignment="Top"
+                   Width="121" Margin="126,1,0,0" Height="27" />
+            <Rectangle ToolTip="{Binding SpySuccededRectangleToolTip}" Opacity="0.7" HorizontalAlignment="Left"
+                       Height="28" Margin="373,0,0,0" Stroke="Black" VerticalAlignment="Top" Width="30">
                 <Rectangle.Style>
                     <Style>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding SpySuccededRectangleColor}" Value="red">
-                                <Setter Property="Rectangle.Fill" Value="Red"/>
+                                <Setter Property="Rectangle.Fill" Value="Red" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding SpySuccededRectangleColor}" Value="green">
-                                <Setter Property="Rectangle.Fill" Value="Green"/>
+                                <Setter Property="Rectangle.Fill" Value="Green" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

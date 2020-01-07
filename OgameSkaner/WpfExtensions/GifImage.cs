@@ -1,6 +1,6 @@
 ﻿namespace OgameSkaner.WpfExtensions
 {
-    class GifImage
+    internal class GifImage
     {
     }
 }

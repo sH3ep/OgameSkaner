@@ -1,62 +1,84 @@
 ﻿<UserControl x:Class="OgameSkaner.View.GetDataView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:OgameScaner.ViewModel"
              xmlns:viewModel="clr-namespace:OgameSkaner.ViewModel"
              d:DataContext="{d:DesignInstance viewModel:GetDataViewModel, IsDesignTimeCreatable=True}"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="451" d:DesignWidth="805">
     <Grid HorizontalAlignment="Right" Width="805" Margin="0,0,10,0" Height="451" VerticalAlignment="Bottom">
         <Grid Margin="497,0,10,182" Height="225" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="AliceBlue" Opacity="0.7" />
             </Grid.Background>
-            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding Login, Mode=TwoWay}" VerticalAlignment="Top" Width="150" HorizontalAlignment="Center" Margin="70,30,68,0"/>
-            <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="70,88,68,113" VerticalAlignment="Center" HorizontalAlignment="Center" Width="150" Height="24"/>
-            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="75,130,0,0" VerticalAlignment="Top" Width="150" Height="39"/>
-            <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284"/>
-            <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.363,-0.284" Height="24"/>
-            <Button Command="{Binding LogOutCommand}" Content="Log Out" Margin="100,184,99,0" VerticalAlignment="Top" Height="31"/>
+            <TextBox Height="23" TextWrapping="Wrap" Text="{Binding Login, Mode=TwoWay}" VerticalAlignment="Top"
+                     Width="150" HorizontalAlignment="Center" Margin="70,30,68,0" />
+            <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="70,88,68,113" VerticalAlignment="Center"
+                         HorizontalAlignment="Center" Width="150" Height="24" />
+            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="75,130,0,0"
+                    VerticalAlignment="Top" Width="150" Height="39" />
+            <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top"
+                   RenderTransformOrigin="-0.363,-0.284" />
+            <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top"
+                   RenderTransformOrigin="-0.363,-0.284" Height="24" />
+            <Button Command="{Binding LogOutCommand}" Content="Log Out" Margin="100,184,99,0" VerticalAlignment="Top"
+                    Height="31" />
         </Grid>
         <Grid Margin="497,0,10,55" Height="122" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="Bisque" Opacity="0.7" />
             </Grid.Background>
-            <TextBox HorizontalAlignment="Left" Height="26" Margin="68,10,0,0" TextWrapping="Wrap" Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187"/>
-            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="68,56,116,23"/>
-            <Label Content="Token:" ToolTip="Coping token from browser cookies allows to use this app and browser game simultaneously" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58"/>
-            <Button Content="Token Helper" Command="{Binding ShowGetTokenHelpCommand}" HorizontalAlignment="Left" Margin="187,62,0,0" VerticalAlignment="Top" Width="101" Height="31"/>
+            <TextBox HorizontalAlignment="Left" Height="26" Margin="68,10,0,0" TextWrapping="Wrap"
+                     Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187" />
+            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="68,56,116,23" />
+            <Label Content="Token:"
+                   ToolTip="Coping token from browser cookies allows to use this app and browser game simultaneously"
+                   HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58" />
+            <Button Content="Token Helper" Command="{Binding ShowGetTokenHelpCommand}" HorizontalAlignment="Left"
+                    Margin="187,62,0,0" VerticalAlignment="Top" Width="101" Height="31" />
         </Grid>
         <Grid Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="LightGreen" Opacity="0.7" />
             </Grid.Background>
-            <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="66" VerticalAlignment="Top" Width="301"/>
-            <Button Content="Get data" Command="{Binding GetSolarSystemsDataCommand}" Margin="76,163,103,0" VerticalAlignment="Top" Height="44"/>
-            <Label Content="{Binding ActualPositionReaded,UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Left" Margin="76,232,0,0" VerticalAlignment="Top" Height="45" Width="122" FontSize="23" RenderTransformOrigin="0.5,0.5">
+            <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="66"
+                    VerticalAlignment="Top" Width="301" />
+            <Button Content="Get data" Command="{Binding GetSolarSystemsDataCommand}" Margin="76,163,103,0"
+                    VerticalAlignment="Top" Height="44" />
+            <Label Content="{Binding ActualPositionReaded,UpdateSourceTrigger=PropertyChanged}"
+                   HorizontalAlignment="Left" Margin="76,232,0,0" VerticalAlignment="Top" Height="45" Width="122"
+                   FontSize="23" RenderTransformOrigin="0.5,0.5">
                 <Label.RenderTransform>
                     <TransformGroup>
-                        <ScaleTransform/>
-                        <SkewTransform/>
-                        <RotateTransform Angle="0.061"/>
-                        <TranslateTransform/>
+                        <ScaleTransform />
+                        <SkewTransform />
+                        <RotateTransform Angle="0.061" />
+                        <TranslateTransform />
                     </TransformGroup>
                 </Label.RenderTransform>
             </Label>
-            <TextBox HorizontalAlignment="Left" Height="23" Margin="53,33,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.StartGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
-            <TextBox HorizontalAlignment="Left" Height="23" Margin="161,33,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.StartSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
-            <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="6,29,0,0" VerticalAlignment="Top" Height="27"  />
-            <Label Content="Start At" HorizontalAlignment="Left" Margin="103,2,0,0" VerticalAlignment="Top" Width="95"/>
-            <Label Content="System:" HorizontalAlignment="Left" Margin="111,29,0,0" VerticalAlignment="Top" Height="27"  />
-            <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="67" Margin="0,71,0,0" VerticalAlignment="Top" Width="301"/>
-            <Label Content="Finish At" HorizontalAlignment="Left" Margin="103,71,0,0" VerticalAlignment="Top" Width="95"/>
-            <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="10,102,0,0" VerticalAlignment="Top" Height="27"  />
-            <TextBox HorizontalAlignment="Left" Height="23" Margin="53,106,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.EndGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
-            <Label Content="System:" HorizontalAlignment="Left" Margin="111,102,0,0" VerticalAlignment="Top" Height="27"  />
-            <TextBox HorizontalAlignment="Left" Height="23" Margin="161,106,0,0" TextWrapping="Wrap" Text="{Binding SkanRange.EndSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48"/>
-            <ProgressBar Height="26"  Maximum="{Binding PbData.MaxValue}"  Value="{Binding PbData.ActualValue}" Foreground="DarkGreen" Margin="6,0,10,42" VerticalAlignment="Bottom"/>
+            <TextBox HorizontalAlignment="Left" Height="23" Margin="53,33,0,0" TextWrapping="Wrap"
+                     Text="{Binding SkanRange.StartGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48" />
+            <TextBox HorizontalAlignment="Left" Height="23" Margin="161,33,0,0" TextWrapping="Wrap"
+                     Text="{Binding SkanRange.StartSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48" />
+            <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="6,29,0,0" VerticalAlignment="Top" Height="27" />
+            <Label Content="Start At" HorizontalAlignment="Left" Margin="103,2,0,0" VerticalAlignment="Top" Width="95" />
+            <Label Content="System:" HorizontalAlignment="Left" Margin="111,29,0,0" VerticalAlignment="Top" Height="27" />
+            <Border BorderBrush="DarkGray" BorderThickness="2" HorizontalAlignment="Left" Height="67" Margin="0,71,0,0"
+                    VerticalAlignment="Top" Width="301" />
+            <Label Content="Finish At" HorizontalAlignment="Left" Margin="103,71,0,0" VerticalAlignment="Top"
+                   Width="95" />
+            <Label Content="Galaxy:" HorizontalAlignment="Left" Margin="10,102,0,0" VerticalAlignment="Top" Height="27" />
+            <TextBox HorizontalAlignment="Left" Height="23" Margin="53,106,0,0" TextWrapping="Wrap"
+                     Text="{Binding SkanRange.EndGalaxy, Mode=TwoWay}" VerticalAlignment="Top" Width="48" />
+            <Label Content="System:" HorizontalAlignment="Left" Margin="111,102,0,0" VerticalAlignment="Top"
+                   Height="27" />
+            <TextBox HorizontalAlignment="Left" Height="23" Margin="161,106,0,0" TextWrapping="Wrap"
+                     Text="{Binding SkanRange.EndSystem, Mode=TwoWay}" VerticalAlignment="Top" Width="48" />
+            <ProgressBar Height="26" Maximum="{Binding PbData.MaxValue}" Value="{Binding PbData.ActualValue}"
+                         Foreground="DarkGreen" Margin="6,0,10,42" VerticalAlignment="Bottom" />
 
         </Grid>
 

@@ -6,7 +6,10 @@ using System.Security;
 using System.Threading.Tasks;
 using System.Windows;
 using OgameSkaner.Model;
+using OgameSkaner.Model.GameConfiguration;
+using OgameSkaner.Model.Shared;
 using OgameSkaner.RestClient;
+using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.Utils;
 using OgameSkaner.View;
 using Prism.Commands;
@@ -15,10 +18,10 @@ namespace OgameSkaner.ViewModel
 {
     public class GetDataViewModel : NotifyPropertyChanged
     {
-        public GetDataViewModel()
+        public GetDataViewModel(IGameRestClient gameRestClient)
         {
+            _gameRestClient = gameRestClient;
             usersPlanets = new ObservableCollection<UserPlanet>();
-            //GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystems(); }, CanExecute);GetSolarSystemAsync
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystemAsync(); }, CanExecute);
             LogInCommand = new DelegateCommand(async () => { await LogIn(); }, CanExecute);
             SaveTokenCommand = new DelegateCommand(SaveToken, CanExecute);
@@ -29,7 +32,7 @@ namespace OgameSkaner.ViewModel
 
             var dataManager = new UserPlanetDataManager(usersPlanets);
 
-            usersPlanets = dataManager.LoadFromXml();
+            usersPlanets = dataManager.LoadFromXml("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
 
             SkanRange = new GalaxySkanRange();
         }
@@ -47,6 +50,7 @@ namespace OgameSkaner.ViewModel
 
         private string _actualPositionReaded;
         private string _token;
+        private IGameRestClient _gameRestClient;
 
         #endregion
 
@@ -92,8 +96,7 @@ namespace OgameSkaner.ViewModel
             {
                 try
                 {
-                    var sGameClient = new SgameRestClient();
-                    sGameClient.LoginToSgame(Login, SecurePassword);
+                    _gameRestClient.LoginToSgame(Login, SecurePassword);
                     SaveLogin();
                 }
                 catch (RestException e)
@@ -105,8 +108,8 @@ namespace OgameSkaner.ViewModel
 
         private int CountElementsToDownload()
         {
-            var galaxyAmount = (SkanRange.EndGalaxy - SkanRange.StartGalaxy)+1;
-            var solarSystemAmount = (SkanRange.EndSystem - SkanRange.StartSystem)+1;
+            var galaxyAmount = SkanRange.EndGalaxy - SkanRange.StartGalaxy + 1;
+            var solarSystemAmount = SkanRange.EndSystem - SkanRange.StartSystem + 1;
             return galaxyAmount * solarSystemAmount;
         }
 
@@ -115,28 +118,25 @@ namespace OgameSkaner.ViewModel
             if (SkanRange.IsValid())
                 await Task.Run(async () =>
                 {
-                    var sGameFileReader = new OgameFileReader();
-                    var sGameClient = new SgameRestClient();
+                    var fileReaderFactory = new GameDataReaderFactory();
+                    var gameFileReader = fileReaderFactory.CreateFileReader(_gameRestClient.GetGameType());
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     string solarSysteFile;
                     try
                     {
-                        
                         for (var actualGalaxy = SkanRange.StartGalaxy;
                             actualGalaxy <= SkanRange.EndGalaxy;
                             actualGalaxy++)
-                        {
                             for (var actualSolarSystem = SkanRange.StartSystem;
                                 actualSolarSystem <= SkanRange.EndSystem;
                                 actualSolarSystem++)
                             {
-                                solarSysteFile = sGameClient.GetSolarSystem(actualGalaxy, actualSolarSystem);
-                                await sGameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
+                                solarSysteFile = _gameRestClient.GetSolarSystem(actualGalaxy, actualSolarSystem);
+                                await gameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now);
                                 ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
                             }
-                        }
 
-                        dataManager.SaveIntoXmlFile("DatabaseFromApi");
+                        dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
                         MessageBox.Show("Saving data finished");
                     }
                     catch (RestException e)
@@ -152,7 +152,7 @@ namespace OgameSkaner.ViewModel
                 MessageBox.Show("Wrong data");
         }
 
-        private async Task GetSolarSystemAsync()  //todo this need refactor
+        private async Task GetSolarSystemAsync() //todo this need refactor
         {
             if (SkanRange.IsValid())
             {
@@ -160,8 +160,8 @@ namespace OgameSkaner.ViewModel
                 PbData.MaxValue = CountElementsToDownload();
                 await Task.Run(async () =>
                 {
-                    var sGameFileReader = new OgameFileReader();
-                    var sGameClient = new SgameRestClient();
+                    var fileReaderFactory = new GameDataReaderFactory();
+                    var gameFileReader = fileReaderFactory.CreateFileReader(_gameRestClient.GetGameType());
                     var dataManager = new UserPlanetDataManager(usersPlanets);
                     var getSolarSystemTasks = new List<Task<string>>();
                     try
@@ -169,26 +169,33 @@ namespace OgameSkaner.ViewModel
                         for (var actualGalaxy = SkanRange.StartGalaxy;
                             actualGalaxy <= SkanRange.EndGalaxy;
                             actualGalaxy++)
-                        {
                             for (var actualSolarSystem = SkanRange.StartSystem;
                                 actualSolarSystem <= SkanRange.EndSystem;
                                 actualSolarSystem++)
                             {
-                                getSolarSystemTasks.Add(
-                                    sGameClient.GetSolarSystemAsync(actualGalaxy, actualSolarSystem,PbData));
-                                ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
+                                try
+                                {
+                                    getSolarSystemTasks.Add(_gameRestClient.GetSolarSystemAsync(actualGalaxy, actualSolarSystem, PbData));
+                                    ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
+                                }
+                                catch (Exception e)
+                                {
+                                    MessageBox.Show(e.Message + " at positioin " + ActualPositionReaded);
+                                }
+
+
                             }
-                        }
 
                         var solarSystemFiles = await Task.WhenAll(getSolarSystemTasks);
                         PbData.ActualValue = 0;
                         foreach (var item in solarSystemFiles)
                         {
-                            await sGameFileReader.AddPlayersFromFile(item, usersPlanets, DateTime.Now);
+                            await gameFileReader.AddPlayersFromFile(item, usersPlanets, DateTime.Now);
                             PbData.ActualValue++;
+
                         }
-                  
-                        dataManager.SaveIntoXmlFile("DatabaseFromApi");
+
+                        dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
                         MessageBox.Show("Saving data finished");
                     }
                     catch (RestException e)
@@ -202,12 +209,14 @@ namespace OgameSkaner.ViewModel
                 });
             }
             else
+            {
                 MessageBox.Show("Wrong data");
+            }
         }
 
         private void SaveToken()
         {
-            var token = new Token();
+            var token = new Token(_gameRestClient.GetGameType(), _gameRestClient.GetUniversum());
             token.SaveToken(Token);
             Token = "";
         }
@@ -216,28 +225,32 @@ namespace OgameSkaner.ViewModel
         {
             try
             {
-                var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-                config.AppSettings.Settings["SgameLogin"].Value = Login;
-                config.Save(ConfigurationSaveMode.Modified);
-                ConfigurationManager.RefreshSection("appSettings");
+                var gameConfigSerializer = new GamesConfigurationSerializer();
+                var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameRestClient.GetGameType(),
+                        _gameRestClient.GetUniversum());
+                gameConfiguration.Login = Login;
+                gameConfigSerializer.AddConfiguration(gameConfiguration);
             }
             catch (Exception)
             {
                 var logger = new ApplicationLogger(LogFileType.errorLog);
                 logger.AddLog("saving login failed");
             }
-
         }
 
         private void LogOut()
         {
-            var token = new Token();
+            var token = new Token(_gameRestClient.GetGameType(), _gameRestClient.GetUniversum());
             token.Delete();
+            MessageBox.Show("Logged out");
         }
 
         private void ReadSavedLogin()
         {
-            Login = ConfigurationManager.AppSettings.Get("SgameLogin");
+            var gamesConfigSerialiser = new GamesConfigurationSerializer();
+            var gameConfiguration =
+                gamesConfigSerialiser.GetConfiguration(_gameRestClient.GetGameType(), _gameRestClient.GetUniversum());
+            Login = gameConfiguration.Login;
         }
 
         private void ShowGetTokenHelp()

@@ -15,30 +15,18 @@ namespace OgameSkaner.ViewModel
     {
         #region Constructor
 
-        public UserPlanetViewModel()
+        public UserPlanetViewModel(IGameRestClient gameRestClient)
         {
-           
+            _gameRestClient = gameRestClient;
             LoadFromXmlFileCommand = new DelegateCommand(SaveDataIntoTxtFile);
             ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
             GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization);
-            GetOverviewPageCommand = new DelegateCommand(GetOverviewPage, canExecuteFilter);
             AddTenUserPlanetViewsCommand = new DelegateCommand(AddPlanetsOnScrolling);
             _filteredUsersPlanets = new ObservableCollection<UserPlanet>();
             _usersPlanetsDetailsView = new ObservableCollection<UserPlanetDetailedView>();
             _dataManager = new UserPlanetDataManager(PlayersPlanets);
             LoadFromXmlFile();
         }
-
-        #endregion
-
-        #region private_fields
-
-        private ObservableCollection<UserPlanet> _filteredUsersPlanets;
-        private string _filteredName;
-        private readonly UserPlanetDataManager _dataManager;
-        private string _folderLocalization = string.Concat((object) Directory.GetCurrentDirectory(), "\\Data");
-        private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetailsView;
-        private readonly int _maxShowedPlayer = 50; //todo require setter in view
 
         #endregion
 
@@ -51,20 +39,29 @@ namespace OgameSkaner.ViewModel
 
         #endregion
 
+        #region private_fields
+        private ObservableCollection<UserPlanet> _filteredUsersPlanets;
+        private string _filteredName;
+        private readonly UserPlanetDataManager _dataManager;
+        private string _folderLocalization = string.Concat((object) Directory.GetCurrentDirectory(), "\\Data");
+        private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetailsView;
+        private readonly int _maxShowedPlayer = 50; //todo require setter in view
+        private IGameRestClient _gameRestClient;
+
+        #endregion
+
         #region private methods
 
         private void RefreshUsersPlanetsDetails()
         {
-          
             UsersPlanetsDetailsView.Clear();
             var playerLoadedCounter = 0;
             foreach (var item in FilteredUsersPlanets)
             {
-                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(item));
+                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(item,_gameRestClient));
                 playerLoadedCounter++;
                 if (playerLoadedCounter > _maxShowedPlayer) break;
             }
-         
         }
 
         private void AddPlanetsOnScrolling()
@@ -74,18 +71,9 @@ namespace OgameSkaner.ViewModel
             for (var i = actualAmountOfViews; i < FilteredUsersPlanets.Count; i++)
             {
                 quantityOfAddedUserPlanet++;
-                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(FilteredUsersPlanets[i]));
+                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(FilteredUsersPlanets[i],_gameRestClient));
                 if (quantityOfAddedUserPlanet > 4) break;
             }
-        }
-
-        private void GetOverviewPage()
-        {
-            var sgameClient = new SgameRestClient();
-
-            var temp = sgameClient.GetMainPage();
-
-            var temp2 = temp;
         }
 
         private void GetFolderLocalization()
@@ -98,22 +86,10 @@ namespace OgameSkaner.ViewModel
             }
         }
 
-        private async void LoadDataFromFiles()
-        {
-            await _dataManager.LoadFromPhpFile(FolderLocalization);
-            SaveDataIntoTxtFile();
-            SaveDataIntoXmlFile();
-            ShowFilteredData();
-        }
 
         private void SaveDataIntoTxtFile()
         {
             _dataManager.SaveIntoTxtFile("UkladGraczyWGalaktykach");
-        }
-
-        private void SaveDataIntoXmlFile()
-        {
-            _dataManager.SaveIntoXmlFile("GalaxyDatabase");
         }
 
         private void ShowFilteredData()
@@ -125,9 +101,10 @@ namespace OgameSkaner.ViewModel
         private void LoadFromXmlFile()
         {
             Directory.CreateDirectory(string.Concat((object) Directory.GetCurrentDirectory(), "\\Data"));
-            if (File.Exists("DatabaseFromApi.xml"))
+            string databaseFileName = "Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum();
+            if (File.Exists(databaseFileName+".xml"))
             {
-                _dataManager.LoadFromXml("DatabaseFromApi.xml");
+                _dataManager.LoadFromXml(databaseFileName);
                 ShowFilteredData();
                 RefreshUsersPlanetsDetails();
             }
@@ -183,7 +160,7 @@ namespace OgameSkaner.ViewModel
         #endregion
 
         #region Commands
-        
+
         public DelegateCommand LoadFromXmlFileCommand { set; get; }
         public DelegateCommand ShowFilteredDataCommand { set; get; }
         public DelegateCommand GetFolderLocalizationCommand { set; get; }
