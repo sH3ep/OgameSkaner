@@ -20,7 +20,7 @@ namespace OgameSkaner.ViewModel
     {
         public GetDataViewModel(IGameRestClient gameRestClient)
         {
-            _gameRestClient = gameRestClient;//cxcxcxcxzxcvxzcvzxdsdsd
+            _gameRestClient = gameRestClient;//cxcxcxcxzxcvxzcvzxdsdsddsdsdsd
             usersPlanets = new ObservableCollection<UserPlanet>();
             GetSolarSystemsDataCommand = new DelegateCommand(async () => { await GetSolarSystemAsync(); }, CanExecute);
             LogInCommand = new DelegateCommand(async () => { await LogIn(); }, CanExecute);
