@@ -9,35 +9,38 @@
              mc:Ignorable="d"
              d:DesignHeight="451" d:DesignWidth="805">
     <Grid HorizontalAlignment="Right" Width="805" Margin="0,0,10,0" Height="451" VerticalAlignment="Bottom">
-        <Grid Margin="497,0,10,182" Height="225" VerticalAlignment="Bottom">
+        <Grid Margin="497,0,10,231" Height="176" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="AliceBlue" Opacity="0.7" />
             </Grid.Background>
             <TextBox Height="23" TextWrapping="Wrap" Text="{Binding Login, Mode=TwoWay}" VerticalAlignment="Top"
-                     Width="150" HorizontalAlignment="Center" Margin="70,30,68,0" />
-            <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="70,88,68,113" VerticalAlignment="Center"
+                     Width="150" HorizontalAlignment="Center" Margin="0,13,0,0" />
+            <PasswordBox PasswordChanged="PasswordBox_PasswordChanged" Margin="0,41,0,0" VerticalAlignment="Top"
                          HorizontalAlignment="Center" Width="150" Height="24" />
-            <Button Content="Log In" HorizontalAlignment="Left" Command="{Binding LogInCommand}" Margin="75,130,0,0"
-                    VerticalAlignment="Top" Width="150" Height="39" />
-            <Label Content="Login:" HorizontalAlignment="Left" Margin="26,27,0,0" VerticalAlignment="Top"
+            <Button Content="Log In" HorizontalAlignment="Center" Command="{Binding LogInCommand}" Margin="0,74,0,0"
+                    VerticalAlignment="Top" Width="150" Height="38" />
+            <Label Content="Login:" HorizontalAlignment="Left" Margin="28,10,0,0" VerticalAlignment="Top"
                    RenderTransformOrigin="-0.363,-0.284" />
-            <Label Content="Password:" HorizontalAlignment="Left" Margin="10,88,0,0" VerticalAlignment="Top"
+            <Label Content="Password:" HorizontalAlignment="Left" Margin="18,41,0,0" VerticalAlignment="Top"
                    RenderTransformOrigin="-0.363,-0.284" Height="24" />
-            <Button Command="{Binding LogOutCommand}" Content="Log Out" Margin="100,184,99,0" VerticalAlignment="Top"
+            <Button Command="{Binding LogOutCommand}" Content="Log Out" Margin="100,117,100,0" VerticalAlignment="Top"
                     Height="31" />
         </Grid>
-        <Grid Margin="497,0,10,55" Height="122" VerticalAlignment="Bottom">
+        <Grid Margin="497,0,10,55" Height="170" VerticalAlignment="Bottom">
             <Grid.Background>
                 <SolidColorBrush Color="Bisque" Opacity="0.7" />
             </Grid.Background>
             <TextBox HorizontalAlignment="Left" Height="26" Margin="68,10,0,0" TextWrapping="Wrap"
                      Text="{Binding Token, Mode=TwoWay}" VerticalAlignment="Top" Width="187" />
-            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="68,56,116,23" />
+            <Button Content="Save Token" Command="{Binding SaveTokenCommand}" Margin="48,131,136,10" />
             <Label Content="Token:"
                    ToolTip="Coping token from browser cookies allows to use this app and browser game simultaneously"
                    HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="58" />
             <Button Content="Token Helper" Command="{Binding ShowGetTokenHelpCommand}" HorizontalAlignment="Left"
-                    Margin="187,62,0,0" VerticalAlignment="Top" Width="101" Height="31" />
+                    Margin="167,131,0,0" VerticalAlignment="Top" Width="101" Height="29" />
+            <Label Content="SessionId:" HorizontalAlignment="Left" Margin="10,59,0,0" VerticalAlignment="Top" RenderTransformOrigin="-0.263,0.346"/>
+            <TextBox HorizontalAlignment="Left" Height="26" Margin="68,59,0,0" TextWrapping="Wrap"
+                Text="{Binding SessionId, Mode=TwoWay}" VerticalAlignment="Top" Width="187" />
         </Grid>
         <Grid Margin="191,0,0,55" HorizontalAlignment="Left" Width="301" Height="352" VerticalAlignment="Bottom">
             <Grid.Background>

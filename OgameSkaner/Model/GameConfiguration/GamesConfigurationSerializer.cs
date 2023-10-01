@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +15,7 @@ namespace OgameSkaner.Model.GameConfiguration
         private const string ConfigFileName = "GamesConfiguration.xml";
 
         #endregion
-        
+
         #region Constructor
 
         public GamesConfigurationSerializer()
@@ -43,9 +42,9 @@ namespace OgameSkaner.Model.GameConfiguration
 
         public List<GameConfigurationModel> GetConfigurations()
         {
-            return _gamesConfiguration.OrderBy(x=>x.ConfigurationName).ToList();
+            return _gamesConfiguration.OrderBy(x => x.ConfigurationName).ToList();
         }
-        public Model.GameConfiguration.GameConfigurationModel GetConfiguration(GameType gameType, int universum)
+        public Model.GameConfiguration.GameConfigurationModel GetConfiguration(GameType gameType, string universum)
         {
             var configuration =
                 _gamesConfiguration.FirstOrDefault(x => x.GameType == gameType && x.Universum == universum);
@@ -74,8 +73,8 @@ namespace OgameSkaner.Model.GameConfiguration
         public async Task AddConfigurationAsync(Model.GameConfiguration.GameConfigurationModel gameConfig)
         {
 
-           _gamesConfiguration.RemoveAll((x) =>
-                x.GameType == gameConfig.GameType && x.Universum == gameConfig.Universum);
+            _gamesConfiguration.RemoveAll((x) =>
+                 x.GameType == gameConfig.GameType && x.Universum == gameConfig.Universum);
             _gamesConfiguration.Add(gameConfig);
             await SaveConfigurationsIntoXmlAsync();
         }
@@ -87,11 +86,11 @@ namespace OgameSkaner.Model.GameConfiguration
             _gamesConfiguration.Add(gameConfig);
             SaveConfigurationsIntoXml();
         }
-        
+
         #endregion
 
         #region privateMethods
-        
+
         private async Task SaveConfigurationsIntoXmlAsync()
         {
             await Task.Run(() =>
@@ -168,19 +167,19 @@ namespace OgameSkaner.Model.GameConfiguration
             }
             else
             {
-               CreateDefaultConfiguration();
-               var serializer = new XmlSerializer(typeof(List<Model.GameConfiguration.GameConfigurationModel>));
-               TextReader fileStream = new StreamReader(ConfigFileName);
-               _gamesConfiguration = (List<Model.GameConfiguration.GameConfigurationModel>)serializer.Deserialize(fileStream);
-               fileStream.Close();
+                CreateDefaultConfiguration();
+                var serializer = new XmlSerializer(typeof(List<Model.GameConfiguration.GameConfigurationModel>));
+                TextReader fileStream = new StreamReader(ConfigFileName);
+                _gamesConfiguration = (List<Model.GameConfiguration.GameConfigurationModel>)serializer.Deserialize(fileStream);
+                fileStream.Close();
             }
         }
 
         private void CreateDefaultConfiguration()
         {
-            AddConfiguration(new Model.GameConfiguration.GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2,Login = "Login",Token="token"});
+            AddConfiguration(new Model.GameConfiguration.GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2.ToString(), Login = "Login", Token = "token" });
         }
-        
+
         #endregion
 
     }

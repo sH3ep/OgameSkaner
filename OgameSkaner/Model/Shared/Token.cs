@@ -1,8 +1,8 @@
-﻿using System;
+﻿using OgameSkaner.Model.GameConfiguration;
+using OgameSkaner.Utils;
+using System;
 using System.Configuration;
 using System.Threading;
-using OgameSkaner.Model.GameConfiguration;
-using OgameSkaner.Utils;
 
 namespace OgameSkaner.Model
 {
@@ -10,17 +10,23 @@ namespace OgameSkaner.Model
     {
         private string _token;
         private GameType _gameType;
-        private int _universum;
+        private string _universum;
 
-        public Token(GameType gameType,int universum)
+        public Token(GameType gameType, string universum)
         {
             _gameType = gameType;
             _universum = universum;
         }
 
+        public Token(GameType gameType, int universum)
+        {
+            _gameType = gameType;
+            _universum = universum.ToString();
+        }
+
         public string GenerateToken()
         {
-          
+
             var token = "";
 
             for (var i = 1; i < 27; i++) token = token + GenerateRandomLetterOrNumber();
@@ -32,23 +38,11 @@ namespace OgameSkaner.Model
 
         private string GenerateRandomLetterOrNumber()
         {
-            var random = new Random((int) DateTime.Now.Ticks);
+            var random = new Random((int)DateTime.Now.Ticks);
             Thread.Sleep(2);
             var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZqwertyuioplkjhgfdsazxcvbnm";
             var ch = chars[random.Next(chars.Length)].ToString();
             return ch;
-        }
-
-        public void SaveToken_old(string token)
-        {
-            var test = _gameType.ToString() + "token";
-            var config = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
-            var encryptedToken = EncryptionHelper.Encrypt(token);
-            config.AppSettings.Settings[_gameType.ToString()+"token"].Value = encryptedToken;
-            config.Save(ConfigurationSaveMode.Modified);
-            config.Save();
-            
-            ConfigurationManager.RefreshSection("appSettings");
         }
 
         public void SaveToken(string token)
@@ -59,11 +53,26 @@ namespace OgameSkaner.Model
             gameConfigSerializer.AddConfiguration(gameConfiguration);
         }
 
+        public void SaveSessionId(string sessionId)
+        {
+            var gameConfigSerializer = new GamesConfigurationSerializer();
+            var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameType, _universum);
+            gameConfiguration.SessionId = sessionId;
+            gameConfigSerializer.AddConfiguration(gameConfiguration);
+        }
+
         public string GetToken()
         {
             var gameConfigSerializer = new GamesConfigurationSerializer();
             var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameType, _universum);
             return gameConfiguration.Token;
+        }
+
+        public string GetSessionId()
+        {
+            var gameConfigSerializer = new GamesConfigurationSerializer();
+            var gameConfiguration = gameConfigSerializer.GetConfiguration(_gameType, _universum);
+            return gameConfiguration.SessionId;
         }
 
         public void Delete()

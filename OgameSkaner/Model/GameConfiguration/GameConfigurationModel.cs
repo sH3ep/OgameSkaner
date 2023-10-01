@@ -8,12 +8,13 @@ namespace OgameSkaner.Model.GameConfiguration
     public class GameConfigurationModel
     {
         public GameType GameType { get; set; }
-        public int Universum { get; set; }
+        public string Universum { get; set; }
         public int SpyProbeAmount { set; get; }
         public string CurrentPlanet { set; get; }
         public string BaseUri { set; get; }
         public string Login { set; get; }
         public string EncryptedToken { set; get; }
+        public string SessionId { set; get; }
 
         [XmlIgnore]
         public string Token

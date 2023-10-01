@@ -4,6 +4,7 @@
     {
         Sgame,
         IWgame,
+        OgameX
 
     }
 }

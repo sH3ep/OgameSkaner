@@ -19,7 +19,7 @@ namespace OgameSkaner.Model.Sgame
         #region PublicMethods
 
         public async Task AddPlayersFromFile(string fileText, ObservableCollection<UserPlanet> playersPlanets,
-            DateTime fileCreationDate)
+            DateTime fileCreationDate, int galaxy, int solarSystem)
         {
             var planetLocalization = "0:0";
             var isGalaxyAndSystemReaded = false;

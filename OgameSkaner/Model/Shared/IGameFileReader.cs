@@ -10,6 +10,6 @@ namespace OgameSkaner.Model.Shared
     interface IGameFileReader
     {
         Task AddPlayersFromFile(string fileText, ObservableCollection<UserPlanet> playersPlanets,
-          DateTime fileCreationDate);
+          DateTime fileCreationDate, int galaxy, int solarSystem);
     }
 }

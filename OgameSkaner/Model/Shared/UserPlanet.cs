@@ -10,6 +10,16 @@ namespace OgameSkaner.Model
         public UserPlanet()
         {
         }
+        public UserPlanet(string userName, int galaxy, int solarSystem, int position, bool hasMoon)
+        {
+            _userName = userName;
+            _galaxy = galaxy;
+            _solarSystem = solarSystem;
+            _position = position;
+            _localization = galaxy + ":" + solarSystem + ":" + position;
+            _hasMoon = hasMoon;
+            _creationDate = DateTime.Now;
+        }
 
         public UserPlanet(string userName, string planetLocalization)
         {
@@ -47,6 +57,7 @@ namespace OgameSkaner.Model
         private int _solarSystem;
         private string _localization;
         private bool _toDelete;
+        private bool _hasMoon;
         private DateTime _creationDate;
         private int _position;
         private int _planetId;

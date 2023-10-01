@@ -10,13 +10,13 @@ namespace OgameSkaner.RestClient
     public interface IGameRestClient
     {
         string GetMainPage();
-        string LoginToSgame(string login, SecureString password);
+        string LoginToGame(string login, SecureString password);
         string GetSolarSystem(int galaxy, int solarSystem);
         Task<string> GetSolarSystemAsync(int galaxy, int solarSystem, ProgresBarData pBData);
         LoginStatus CheckLogInStatus();
         void SpyPlanet(UserPlanet userPlanet);
         void SpyPlanet(UserPlanet userPlanet,PlanetType planetType);
-        int GetUniversum();
+        string GetUniversum();
         GameType GetGameType();
     }
 

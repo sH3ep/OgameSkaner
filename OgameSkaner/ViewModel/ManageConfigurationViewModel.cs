@@ -21,7 +21,7 @@ namespace OgameSkaner.ViewModel
         private IEnumerable<GameConfigurationModel> _gamesConfugurations;
         private string _login;
         private int _spyProbeAmount;
-        private int _universum;
+        private string _universum;
 
         #endregion
 
@@ -47,7 +47,7 @@ namespace OgameSkaner.ViewModel
             get { return _spyProbeAmount; }
         }
 
-        public int Universum
+        public string Universum
         {
             set
             {

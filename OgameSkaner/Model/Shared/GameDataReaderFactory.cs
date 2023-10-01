@@ -21,6 +21,9 @@ namespace OgameSkaner.Model.Shared
                 case GameType.Sgame:
                     return new SgameFileReader();
 
+                case GameType.OgameX:
+                    return new OgamexFileReader();
+
                 default:
                     return new SgameFileReader();
             }

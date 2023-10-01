@@ -18,7 +18,7 @@ namespace OgameSkaner.Model
         #region PublicMethods
 
         public async Task AddPlayersFromFile(string fileText, ObservableCollection<UserPlanet> playersPlanets,
-            DateTime fileCreationDate)
+            DateTime fileCreationDate, int galaxy, int solarSystem)
         {
             var planetLocalization = "0:0";
             var isGalaxyAndSystemReaded = false;
@@ -36,7 +36,7 @@ namespace OgameSkaner.Model
                     isGalaxyAndSystemReaded = true;
                     var tempUserPlanet = new UserPlanet("temp", planetLocalization, fileCreationDate);
 
-                    await DeleteOldSolarSystems(tempUserPlanet, playersPlanets);
+                    DeleteOldSolarSystems(tempUserPlanet, playersPlanets);
                 }
 
                 if (isGalaxyAndSystemReaded) positionLine = GetLineWithPosition(stringReader, positionLine);
@@ -236,7 +236,7 @@ namespace OgameSkaner.Model
 
         }
 
-        private async Task DeleteOldSolarSystems(UserPlanet tempUserPlanet,
+        private void DeleteOldSolarSystems(UserPlanet tempUserPlanet,
             ObservableCollection<UserPlanet> playersPlanets)
         {
             lock (playersPlanets)

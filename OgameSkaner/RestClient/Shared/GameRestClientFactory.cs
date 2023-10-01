@@ -1,29 +1,28 @@
 ﻿using OgameSkaner.Model;
-using OgameSkaner.RestClient;
 using OgameSkaner.RestClient.InterWar;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace OgameSkaner.RestClient.Shared
 {
-   public class GameRestClientFactory
+    public class GameRestClientFactory
     {
-        public IGameRestClient CreateRestClient(GameType gameType, int universum)
+        public IGameRestClient CreateRestClient(GameType gameType, string universum)
         {
             switch (gameType)
             {
-                case GameType.IWgame:
-                    return new IWgameRestClient(universum);
-                    
+                //case GameType.IWgame:
+                //    return new IWgameRestClient(universum);
 
-                case GameType.Sgame:
-                    return new SgameRestClient(universum);
+
+                //case GameType.Sgame:
+                //    return new SgameRestClient(universum);
+
+
+                case GameType.OgameX:
+                    return new OgameXRestClient(universum);
 
                 default:
-                    return new SgameRestClient(1);
+                    throw new ArgumentException("Wrong game type");
             }
         }
     }
