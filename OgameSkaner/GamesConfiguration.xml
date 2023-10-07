@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfGameConfigurationModel xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <GameConfigurationModel>
+    <GameType>Sgame</GameType>
+    <Universum>2</Universum>
+    <SpyProbeAmount>1</SpyProbeAmount>
+    <CurrentPlanet>1</CurrentPlanet>
+    <BaseUri>test1</BaseUri>
+    <Login>Login</Login>
+    <EncryptedToken>xdYSHbC6r0nBMwWHwumQUg==</EncryptedToken>
+  </GameConfigurationModel>
+  <GameConfigurationModel>
+    <GameType>OgameX</GameType>
+    <Universum>orion</Universum>
+    <SpyProbeAmount>1</SpyProbeAmount>
+    <CurrentPlanet>1</CurrentPlanet>
+    <BaseUri>whatever</BaseUri>
+    <Login>JakisMail</Login>
+    <EncryptedToken>xdYSHbC6r0nBMwWHwumQUg==</EncryptedToken>
+  </GameConfigurationModel>
+  <GameConfigurationModel>
+    <GameType>OgameX</GameType>
+    <Universum>tron</Universum>
+    <SpyProbeAmount>1</SpyProbeAmount>
+    <CurrentPlanet>1</CurrentPlanet>
+    <BaseUri>whatever</BaseUri>
+    <Login>JakisMail</Login>
+    <EncryptedToken>zYB62t3hLYO91KCbilSgqWmJ+B1A2n+mOLgZZuEgVJcGGiWej5qGmRDjZGdDhJVsqyg0daG1DOzQWz/Jz42xrqiIxWkLnrmJwQF2ChWVjqmjr65ms5T7awnxP23WMgVmQHa9wbs8hp5KxGGh3htJ8sT8F8hhePY9cojFMdbRSFAbN0qk9u8QuaMtj6IhuQjczi0ELAbZcB45YrEL0QyRzIfR0yXIQ4ywU1LGvJjPiME6B6Mr1rYAc4vLrN+7Hzqtylg+SEwUnYkQPnPlNHlldKQ3dOPZWpcbHH6fD2sSTlvSuBbTnrikN0MPjAhXzMOc/jVt/SzOL2qaKlvI/52YCTf1Ju/GP6wLduMgeHenEv8gpyBSdyCGFm13tJ5ACeEPPxdTpoA3wl4sCrs9sHOM8VTnzX1NTwbPY4DVZwX6AALj6vtFXq8GNS+g3D9HlDtKF8x8XVplIe3x4WOAyS3gHxZmDWGctuCbls3G2PL5pgubxzSAdjyy749wtJPiPgk/KEDdenEYsa7oyXYR79+fcz6D0zlzEBcUp73ueP8stpj/8b+FAM1WHm2xkorT9qP04hK/37tlOVokkXB8t2TAPlDVYkJp+//MTC90zrNJjg2ddg95DhoONpVzUwQ4y9j4MK53gCCwULMJ/gq1VwuV8vlT0da8KspwDZpDAZ2SIHBH5fTYjMyRh606YA3bywOvNbvZCkElOKhtS5kWPyfcGLKofy9Akq3PfHhoCCj7dC0Eto0aCwRBm23re13l0L+LSIlSGfTbrUUFN7zZ6p4MnnfAnXDL6J0VJsBaLX3ugENvBp4VbBDze2SJrSworO3hHZk8AA52LkYWjtLwVXIYtA==</EncryptedToken>
+    <SessionId>vo0jbvraatp503zeb51ckalp</SessionId>
+  </GameConfigurationModel>
+</ArrayOfGameConfigurationModel>

@@ -11,24 +11,26 @@
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
     <Grid Margin="0,0,0,34">
-        <TextBox HorizontalAlignment="Left" Height="23" Margin="471,11,0,0" TextWrapping="Wrap"
+        <TextBox HorizontalAlignment="Left" Height="23" Margin="432,9,0,0" TextWrapping="Wrap"
                  Text="{Binding FilteredName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                  VerticalAlignment="Top" Width="146">
             <TextBox.InputBindings>
                 <KeyBinding Command="{Binding ShowFilteredDataCommand}" Key="Return" />
             </TextBox.InputBindings>
         </TextBox>
-        <TextBlock HorizontalAlignment="Left" Margin="253,11,0,0" TextWrapping="Wrap" Text="Search player by name: "
+        <TextBlock HorizontalAlignment="Left" Margin="220,9,0,0" TextWrapping="Wrap" Text="Search player by name: "
                    VerticalAlignment="Top" Height="23" Width="196">
             <TextBlock.Background>
                 <SolidColorBrush Color="Red" Opacity="0.5" />
             </TextBlock.Background>
         </TextBlock>
-        <Button Content="Filtruj" HorizontalAlignment="Left" Margin="645,10,0,0" VerticalAlignment="Top" Width="103"
+        <Button Content="Filtruj" HorizontalAlignment="Left" Margin="687,8,0,0" VerticalAlignment="Top" Width="103"
                 Height="24" Command="{Binding ShowFilteredDataCommand}" />
         <ListBox ItemsSource="{Binding UsersPlanetsDetailsView}"
                  wpfExtensions1:ListBoxExtensions.ScrollChangedCommand="{Binding AddTenUserPlanetViewsCommand}"
                  Opacity="0.8" Margin="220,39,10,10" />
+        <CheckBox Content="Exact"  Command="{Binding SetStrictSearchCommand}"
+          CommandParameter="{Binding IsChecked, RelativeSource={RelativeSource Self}}"  HorizontalAlignment="Left" Margin="593,13,0,0" VerticalAlignment="Top"/>
 
     </Grid>
 </UserControl>

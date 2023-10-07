@@ -1,5 +1,6 @@
 ﻿using OgameSkaner.Model;
 using OgameSkaner.RestClient.InterWar;
+using OgameSkaner.RestClient.OgameX;
 using OgameSkaner.Utils;
 using RestSharp;
 using System;
@@ -168,31 +169,15 @@ namespace OgameSkaner.RestClient
 
         public void SpyPlanet(UserPlanet userPlanet, PlanetType planetType)
         {
-            throw new NotImplementedException();
+            var body = new SpyPlanetRequest(userPlanet.Galaxy, userPlanet.SolarSystem, userPlanet.Position, planetType == PlanetType.MOON);
+            var request = _requestConfigurator.GetSpyReportReqestConfiguration(body);
 
-
-            //var request = _requestConfigurator.Configure(RequestType.SpyPlanet);
-            //request.Resource = "https://uni2.sgame.pl/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" +
-            //                   userPlanet.PlanetId;
-            //AddSpecialSpyParameters(request, userPlanet);
-
-            //var response = _client.Execute(request);
-            //SaveIntoLogFile(response.Content);
-            //if (IsSpyResponseCorrect(response)) return;
-
-            //throw new RestException("There was an error during Spy request");
+           var response = _client.Execute(request);
         }
 
         #endregion
 
         #region PrivateMethods
-
-        private void AddSpecialSpyParameters(RestRequest request, UserPlanet userPlanet)
-        {
-            request.AddHeader("path", "/game.php?page=fleetAjax&ajax=1&mission=6&planetID=" + userPlanet.PlanetId);
-
-            request.AddQueryParameter("PlanetId", userPlanet.PlanetId.ToString());
-        }
 
         private bool IsClientLoggedIn(RestResponse response)
         {

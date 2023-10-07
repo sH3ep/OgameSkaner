@@ -15,7 +15,10 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
-    <PublishUrl>publish\</PublishUrl>
+    <TargetFrameworkProfile />
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+    <PublishUrl>C:\Users\Karol\Desktop\OgameSkaner\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
     <UpdateEnabled>false</UpdateEnabled>
@@ -25,14 +28,11 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationRevision>2</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <TargetFrameworkProfile />
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -72,6 +72,9 @@
     <Reference Include="CommonServiceLocator, Version=2.0.4.0, Culture=neutral, PublicKeyToken=489b6accfaf20ef0, processorArchitecture=MSIL">
       <HintPath>..\packages\CommonServiceLocator.2.0.4\lib\net46\CommonServiceLocator.dll</HintPath>
     </Reference>
+    <Reference Include="CsvHelper, Version=30.0.0.0, Culture=neutral, PublicKeyToken=8c4959082be5c823, processorArchitecture=MSIL">
+      <HintPath>..\packages\CsvHelper.30.0.1\lib\net47\CsvHelper.dll</HintPath>
+    </Reference>
     <Reference Include="GalaSoft.MvvmLight, Version=5.4.1.0, Culture=neutral, PublicKeyToken=e7570ab207bcb616, processorArchitecture=MSIL">
       <HintPath>..\packages\MvvmLightLibs.5.4.1.1\lib\net45\GalaSoft.MvvmLight.dll</HintPath>
     </Reference>
@@ -83,6 +86,9 @@
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.7.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Bcl.HashCode, Version=1.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Bcl.HashCode.1.0.0\lib\net461\Microsoft.Bcl.HashCode.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Expression.Interactions, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\MicrosoftExpressionInteractions.3.0.40218.0\lib\net45\Microsoft.Expression.Interactions.dll</HintPath>
@@ -161,6 +167,7 @@
     <Compile Include="Model\Shared\IGameFileReader.cs" />
     <Compile Include="RestClient\OgameX\OgamexRequestConfigurator.cs" />
     <Compile Include="RestClient\OgameX\OgameXRestClient.cs" />
+    <Compile Include="RestClient\OgameX\SpyPlanetRequest.cs" />
     <Compile Include="RestClient\Shared\GameRestClientFactory.cs" />
     <Compile Include="Model\GameConfiguration\GamesConfigurationSerializer.cs" />
     <Compile Include="Model\Shared\GameType.cs" />
@@ -170,6 +177,7 @@
     <Compile Include="RestClient\Shared\IGameRestClient.cs" />
     <Compile Include="Utils\ApplicationLogger.cs" />
     <Compile Include="Utils\ColorToBrushConverter.cs" />
+    <Compile Include="Utils\CsvExporter.cs" />
     <Compile Include="Utils\EncryptionHelper.cs" />
     <Compile Include="Model\Shared\GalaxySkanRange.cs" />
     <Compile Include="Model\Shared\LogFileType.cs" />

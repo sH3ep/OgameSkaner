@@ -1,22 +1,17 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Drawing;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Threading.Tasks;
-using System.Web.UI;
-using System.Windows;
 using GalaSoft.MvvmLight;
-using OgameSkaner;
 using OgameSkaner.Model;
 using OgameSkaner.Model.GameConfiguration;
 using OgameSkaner.RestClient;
-using OgameSkaner.RestClient.InterWar;
 using OgameSkaner.RestClient.Shared;
+using OgameSkaner.Utils;
 using OgameSkaner.View;
 using Prism.Commands;
+using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
 using GetDataView = OgameSkaner.View.GetDataView;
 using UserPlanetView = OgameSkaner.View.UserPlanetView;
 
@@ -115,6 +110,8 @@ namespace OgameScaner.ViewModel
         public DelegateCommand ShowUserPlanetViewCommand { set; get; }
         public DelegateCommand ShowGetDataCommand { set; get; }
         public DelegateCommand ManageConfigurationCommand { set; get; }
+        public DelegateCommand ExportDataCommand { set; get; }
+
 
         #endregion
 
@@ -125,7 +122,19 @@ namespace OgameScaner.ViewModel
             var manageGameConfigurationView = new ManageConfigurationView();
             manageGameConfigurationView.Closed += ManageGameConfigurationView_Closed;
             manageGameConfigurationView.ShowDialog();
-           
+        }
+
+        private void ExportData()
+        {
+            var exporter = new CsvExporter();
+
+            string databaseFileName = "Database" + _actualGameConfigurationModel.GameType + _actualGameConfigurationModel.Universum;
+            if (File.Exists(databaseFileName + ".xml"))
+            {
+                var dataManager = new UserPlanetDataManager();
+                var players = dataManager.LoadFromXml(databaseFileName).ToList();
+                exporter.ExportPlayersToCsv(players.OrderBy(x => x.UserName));
+            }
         }
 
         private void ManageGameConfigurationView_Closed(object sender, EventArgs e)
@@ -187,7 +196,7 @@ namespace OgameScaner.ViewModel
             GetAvailableGamesConfigurations();
             _actualGameConfigurationModel = GetGameConfiguration(GameConfigurationNames[0]);
             SelectedGameConfigurationName = _actualGameConfigurationModel.ConfigurationName;
-            
+
             CheckLogInStatus();
         }
 
@@ -195,7 +204,8 @@ namespace OgameScaner.ViewModel
         {
             ShowGetDataCommand = new DelegateCommand(ShowGetData, CanExecuteButtons);
             ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView, CanExecuteButtons);
-            ManageConfigurationCommand = new DelegateCommand(ManageConfiguration,CanExecuteButtons);
+            ManageConfigurationCommand = new DelegateCommand(ManageConfiguration, CanExecuteButtons);
+            ExportDataCommand = new DelegateCommand(ExportData, CanExecuteButtons);
         }
 
         private async Task CheckLogInStatus()

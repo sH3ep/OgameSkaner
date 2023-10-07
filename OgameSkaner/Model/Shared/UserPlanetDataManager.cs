@@ -2,7 +2,6 @@
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Xml.Serialization;
 
@@ -12,12 +11,16 @@ namespace OgameSkaner.Model
     {
         private ObservableCollection<UserPlanet> _userPlanets;
 
-
         #region Constructors
 
         public UserPlanetDataManager(ObservableCollection<UserPlanet> userPlanets)
         {
             _userPlanets = userPlanets;
+        }
+
+        public UserPlanetDataManager()
+        {
+            _userPlanets = new ObservableCollection<UserPlanet>();
         }
 
         #endregion
@@ -48,7 +51,7 @@ namespace OgameSkaner.Model
                 var serializer = new XmlSerializer(typeof(ObservableCollection<UserPlanet>));
                 TextReader filestream = new StreamReader(fileName);
                 _userPlanets.Clear();
-                _userPlanets = (ObservableCollection<UserPlanet>) serializer.Deserialize(filestream);
+                _userPlanets = (ObservableCollection<UserPlanet>)serializer.Deserialize(filestream);
                 filestream.Close();
                 return _userPlanets;
             }
@@ -56,13 +59,25 @@ namespace OgameSkaner.Model
             return new ObservableCollection<UserPlanet>();
         }
 
-        public ObservableCollection<UserPlanet> FilterDataByUserName(string userName)
+        public ObservableCollection<UserPlanet> FilterDataByUserName(string userName, bool strictSearch)
         {
 
             var filteredList = new ObservableCollection<UserPlanet>();
             if (userName != null && userName.Length > 1)
             {
-                var tempList = _userPlanets.Where(x => x.UserName.ToLower().Contains(userName.ToLower()));
+                IEnumerable<UserPlanet> tempList;
+
+                if (strictSearch)
+                {
+                    tempList = _userPlanets.Where(x => x.UserName.ToLower() == userName.ToLower());
+                }
+                else
+                {
+                    tempList = _userPlanets.Where(x => x.UserName.ToLower().Contains(userName.ToLower()));
+                }
+
+
+
                 foreach (var item in tempList.OrderBy(x => x.Galaxy).ThenBy(x => x.SolarSystem).ToList())
                     filteredList.Add(item);
             }

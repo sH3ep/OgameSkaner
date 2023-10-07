@@ -7,25 +7,43 @@
              xmlns:viewModel="clr-namespace:OgameSkaner.ViewModel"
              d:DataContext="{d:DesignInstance viewModel:UserPlanetDetailedViewModel, IsDesignTimeCreatable=True}"
              mc:Ignorable="d"
-             d:DesignHeight="30.115" d:DesignWidth="537">
+             d:DesignHeight="30.115"
+             HorizontalContentAlignment="Stretch">
     <Border BorderBrush="Black" BorderThickness="1" Margin="0,0,10,0">
         <Grid Margin="0,0,9,0">
-            <Button Content="Spy" Command="{Binding SpyPlanetCommand}" HorizontalAlignment="Left"
-                    ToolTip="If is inactive that means, you need to get this data again" Margin="416,4,0,4" Width="74" />
+            <Button Content="SpyPlanet" Command="{Binding SpyPlanetCommand}" HorizontalAlignment="Left"
+                    ToolTip="If is inactive that means, you need to get this data again" Margin="425,4,0,4" Width="60" />
             <Label Content="{Binding UserPlanetData.UserName}" HorizontalAlignment="Left" VerticalAlignment="Top"
                    Width="121" Height="28" />
             <Label Content="{Binding UserPlanetData.Localization}" HorizontalAlignment="Left" VerticalAlignment="Top"
                    Width="121" Margin="126,1,0,0" Height="27" />
             <Rectangle ToolTip="{Binding SpySuccededRectangleToolTip}" Opacity="0.7" HorizontalAlignment="Left"
-                       Height="28" Margin="373,0,0,0" Stroke="Black" VerticalAlignment="Top" Width="30">
+                       Height="20" Margin="386,0,0,0" Stroke="Black" VerticalAlignment="Center" Width="21">
+                <Rectangle.Style>
+                    <Style>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding SpyMoonSuccededRectangleColor}" Value="red">
+                                <Setter Property="Rectangle.Fill" Value="Red" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding SpyMoonSuccededRectangleColor}" Value="green">
+                                <Setter Property="Rectangle.Fill" Value="Green" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Rectangle.Style>
+            </Rectangle>
+            <Button Content="SpyMoon" Command="{Binding SpyMoonCommand}" HorizontalAlignment="Left"
+                ToolTip="If is inactive that means, you need to get this data again" Margin="325,4,0,3" Width="61" />
+            <Rectangle ToolTip="{Binding SpySuccededRectangleToolTip}" Opacity="0.7" HorizontalAlignment="Left"
+                Height="20" Margin="485,0,0,0" Stroke="Black" VerticalAlignment="Center" Width="21">
                 <Rectangle.Style>
                     <Style>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding SpySuccededRectangleColor}" Value="red">
-                                <Setter Property="Rectangle.Fill" Value="Red" />
+                                <Setter Property="Shape.Fill" Value="Red" />
                             </DataTrigger>
                             <DataTrigger Binding="{Binding SpySuccededRectangleColor}" Value="green">
-                                <Setter Property="Rectangle.Fill" Value="Green" />
+                                <Setter Property="Shape.Fill" Value="Green" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

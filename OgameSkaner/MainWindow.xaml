@@ -42,6 +42,7 @@
         <ComboBox ItemsSource="{Binding GameConfigurationNames,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding SelectedGameConfigurationName, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
             HorizontalAlignment="Left" Margin="10,100,0,0" VerticalAlignment="Top" Width="196" Height="31"/>
         <Button Content="ManageConfigurations" Command="{Binding ManageConfigurationCommand}" HorizontalAlignment="Left" Margin="10,136,0,0" VerticalAlignment="Top" Width="133" Height="25"/>
+        <Button Content="Export Data" Command="{Binding ExportDataCommand}" HorizontalAlignment="Left" Margin="10,166,0,0" VerticalAlignment="Top" Width="133" Height="25"/>
     </Grid>
 
 

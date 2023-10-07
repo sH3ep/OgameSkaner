@@ -72,6 +72,12 @@ namespace OgameSkaner.Model
             get => _planetId;
         }
 
+        public bool HasMoon
+        {
+            set => _hasMoon = value;
+            get => _hasMoon;
+        }
+
         public DateTime CreationDate
         {
             get => _creationDate;

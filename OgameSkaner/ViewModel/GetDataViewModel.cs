@@ -234,6 +234,7 @@ namespace OgameSkaner.ViewModel
             token.SaveToken(Token);
             token.SaveSessionId(SessionId);
             Token = "";
+            SessionId = "";
         }
 
 

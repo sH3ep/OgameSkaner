@@ -1,19 +1,20 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
-using OgameSkaner.Model;
+﻿using OgameSkaner.Model;
 using OgameSkaner.RestClient;
 using OgameSkaner.Utils;
 using OgameSkaner.View;
 using OgameSkaner.WpfExtensions;
 using Prism.Commands;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Windows.Forms;
 
 namespace OgameSkaner.ViewModel
 {
     public class UserPlanetViewModel : NotifyPropertyChanged
     {
         #region Constructor
+        public DelegateCommand SetStrictSearchCommand { set; get; }
 
         public UserPlanetViewModel(IGameRestClient gameRestClient)
         {
@@ -22,6 +23,7 @@ namespace OgameSkaner.ViewModel
             ShowFilteredDataCommand = new DelegateCommand(ShowFilteredData, canExecuteFilter);
             GetFolderLocalizationCommand = new DelegateCommand(GetFolderLocalization);
             AddTenUserPlanetViewsCommand = new DelegateCommand(AddPlanetsOnScrolling);
+            SetStrictSearchCommand = new DelegateCommand(SetStrictSearch, () => true);
             _filteredUsersPlanets = new ObservableCollection<UserPlanet>();
             _usersPlanetsDetailsView = new ObservableCollection<UserPlanetDetailedView>();
             _dataManager = new UserPlanetDataManager(PlayersPlanets);
@@ -43,10 +45,11 @@ namespace OgameSkaner.ViewModel
         private ObservableCollection<UserPlanet> _filteredUsersPlanets;
         private string _filteredName;
         private readonly UserPlanetDataManager _dataManager;
-        private string _folderLocalization = string.Concat((object) Directory.GetCurrentDirectory(), "\\Data");
+        private string _folderLocalization = string.Concat((object)Directory.GetCurrentDirectory(), "\\Data");
         private ObservableCollection<UserPlanetDetailedView> _usersPlanetsDetailsView;
         private readonly int _maxShowedPlayer = 50; //todo require setter in view
         private IGameRestClient _gameRestClient;
+        private bool _isStrictMode;
 
         #endregion
 
@@ -58,7 +61,7 @@ namespace OgameSkaner.ViewModel
             var playerLoadedCounter = 0;
             foreach (var item in FilteredUsersPlanets)
             {
-                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(item,_gameRestClient));
+                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(item, _gameRestClient));
                 playerLoadedCounter++;
                 if (playerLoadedCounter > _maxShowedPlayer) break;
             }
@@ -71,7 +74,7 @@ namespace OgameSkaner.ViewModel
             for (var i = actualAmountOfViews; i < FilteredUsersPlanets.Count; i++)
             {
                 quantityOfAddedUserPlanet++;
-                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(FilteredUsersPlanets[i],_gameRestClient));
+                UsersPlanetsDetailsView.Add(new UserPlanetDetailedView(FilteredUsersPlanets[i], _gameRestClient));
                 if (quantityOfAddedUserPlanet > 4) break;
             }
         }
@@ -94,15 +97,15 @@ namespace OgameSkaner.ViewModel
 
         private void ShowFilteredData()
         {
-            FilteredUsersPlanets = _dataManager.FilterDataByUserName(FilteredName);
+            FilteredUsersPlanets = _dataManager.FilterDataByUserName(FilteredName, _isStrictMode);
             RefreshUsersPlanetsDetails();
         }
 
         private void LoadFromXmlFile()
         {
-            Directory.CreateDirectory(string.Concat((object) Directory.GetCurrentDirectory(), "\\Data"));
+            Directory.CreateDirectory(string.Concat((object)Directory.GetCurrentDirectory(), "\\Data"));
             string databaseFileName = "Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum();
-            if (File.Exists(databaseFileName+".xml"))
+            if (File.Exists(databaseFileName + ".xml"))
             {
                 _dataManager.LoadFromXml(databaseFileName);
                 ShowFilteredData();
@@ -168,5 +171,20 @@ namespace OgameSkaner.ViewModel
         public DelegateCommand AddTenUserPlanetViewsCommand { set; get; }
 
         #endregion
+
+        public bool IsStrictMode
+        {
+            set
+            {
+                _isStrictMode = value;
+                RaisePropertyChanged("IsStrictMode");
+            }
+            get => _isStrictMode;
+        }
+
+        private void SetStrictSearch()
+        {
+            IsStrictMode = !IsStrictMode;
+        }
     }
 }

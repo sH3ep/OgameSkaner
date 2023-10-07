@@ -1,4 +1,5 @@
 ﻿using OgameSkaner.Model;
+using OgameSkaner.RestClient.OgameX;
 using RestSharp;
 
 namespace OgameSkaner.RestClient
@@ -18,16 +19,20 @@ namespace OgameSkaner.RestClient
                     return GetSolarSystemRequestConfiguration();
                 case RequestType.Login:
                     return GetLoginRequestConfiguration();
-                case RequestType.SpyPlanet:
-                    return GetSpyReportReqestConfiguration();
+
                 default:
                     return GetStartPageRequestConfiguration();
             }
         }
 
-        private RestRequest GetSpyReportReqestConfiguration()
+        public RestRequest GetSpyReportReqestConfiguration(SpyPlanetRequest requestBody)
         {
-            return new RestRequest();
+            var request = new RestRequest("https://" + _universum + ".ogamex.net/galaxy/sendspy", Method.Post);
+
+            AddDefaultHeadersAndCookies(request, _universum);
+            request.AddOrUpdateHeader("referer", $"https://{_universum}.ogamex.net/galaxy?x={requestBody.X}&y={requestBody.Y}");
+            request.AddBody(requestBody);
+            return request;
         }
 
         private RestRequest GetStartPageRequestConfiguration()
@@ -46,10 +51,11 @@ namespace OgameSkaner.RestClient
 
             AddDefaultHeadersAndCookies(request, _universum);
 
+
             return request;
         }
 
-        private void AddDefaultHeadersAndCookies(RestRequest request,string universum)
+        private void AddDefaultHeadersAndCookies(RestRequest request, string universum)
         {
             request.AddHeader("authority", $"{universum}.ogamex.net");
             request.AddHeader("accept", "*/*");
