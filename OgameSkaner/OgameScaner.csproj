@@ -168,35 +168,25 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Model\OgameX\OgamexFileReader.cs" />
-    <Compile Include="Model\Sgame\SgameFileReader.cs" />
     <Compile Include="Model\GameConfiguration\GameConfigurationModel.cs" />
-    <Compile Include="Model\Shared\GameDataReaderFactory.cs" />
     <Compile Include="Model\Shared\IGameFileReader.cs" />
     <Compile Include="RestClient\OgameX\OgamexRequestConfigurator.cs" />
     <Compile Include="RestClient\OgameX\OgameXRestClient.cs" />
     <Compile Include="RestClient\OgameX\SpyPlanetRequest.cs" />
-    <Compile Include="RestClient\Shared\GameRestClientFactory.cs" />
     <Compile Include="Model\GameConfiguration\GamesConfigurationSerializer.cs" />
     <Compile Include="Model\Shared\GameType.cs" />
-    <Compile Include="RestClient\InterWar\InterWarRequestConfigurator.cs" />
-    <Compile Include="RestClient\InterWar\IWgameRestClient.cs" />
-    <Compile Include="RestClient\InterWar\PlanetType.cs" />
+    <Compile Include="RestClient\OgameX\PlanetType.cs" />
     <Compile Include="RestClient\Shared\IGameRestClient.cs" />
     <Compile Include="Utils\ApplicationLogger.cs" />
-    <Compile Include="Utils\ColorToBrushConverter.cs" />
     <Compile Include="Utils\CsvExporter.cs" />
     <Compile Include="Utils\EncryptionHelper.cs" />
     <Compile Include="Model\Shared\GalaxySkanRange.cs" />
     <Compile Include="Model\Shared\LogFileType.cs" />
     <Compile Include="Model\Shared\RestException.cs" />
     <Compile Include="Model\Shared\Token.cs" />
-    <Compile Include="RestClient\Shared\LoginStatus.cs" />
-    <Compile Include="RestClient\Sgame\RequestConfigurator.cs" />
     <Compile Include="RestClient\Shared\RequestType.cs" />
     <Compile Include="Model\Shared\UserPlanetDataManager.cs" />
     <Compile Include="Utils\NotifyPropertyChanged.cs" />
-    <Compile Include="Model\InterWar\IWgameFileReader.cs" />
-    <Compile Include="RestClient\Sgame\SgameRestClient.cs" />
     <Compile Include="Utils\ProgresBarData.cs" />
     <Compile Include="Utils\UserPlanetForExport.cs" />
     <Compile Include="ViewModel\UtilitiesViewModel.cs" />
@@ -223,7 +213,6 @@
     <Compile Include="View\UtilitiesView.xaml.cs">
       <DependentUpon>UtilitiesView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="WpfExtensions\GifImage.cs" />
     <Compile Include="WpfExtensions\ListBoxExtensions.cs" />
     <Compile Include="WpfExtensions\UIHelper.cs" />
     <Compile Include="WpfExtensions\WinFormsCompatibility.cs" />

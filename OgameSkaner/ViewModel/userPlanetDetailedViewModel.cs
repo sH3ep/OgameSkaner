@@ -1,6 +1,6 @@
 ﻿using OgameSkaner.Model;
 using OgameSkaner.RestClient;
-using OgameSkaner.RestClient.InterWar;
+using OgameSkaner.RestClient.OgameX;
 using OgameSkaner.Utils;
 using Prism.Commands;
 using System;
@@ -34,6 +34,7 @@ namespace OgameSkaner.ViewModel
                 _userPlanet = value;
                 RaisePropertyChanged("UserPlanetData");
                 SpyPlanetCommand.RaiseCanExecuteChanged();
+                SpyMoonCommand.RaiseCanExecuteChanged();
             }
         }
 
@@ -69,38 +70,19 @@ namespace OgameSkaner.ViewModel
 
         private bool CanExecuteSpy()
         {
-
-            if (_gameRestClient.GetGameType() == GameType.OgameX)
-            {
-                return true;
-            }
-
-            if (_userPlanet != null)
-                if (_userPlanet.PlanetId > 0)
-                    return true;
-            return false;
+            return _userPlanet != null;
         }
 
         private bool CanExecuteMoonSpy()
         {
-
-            if (_gameRestClient.GetGameType() == GameType.OgameX)
-            {
-
-                return _userPlanet.HasMoon;
-            }
-
-            if (_userPlanet != null)
-                if (_userPlanet.PlanetId > 0 && _userPlanet.HasMoon)
-                    return true;
-            return false;
+            return _userPlanet != null && _userPlanet.HasMoon;
         }
 
         private void SpyPlanet()
         {
             try
             {
-                _gameRestClient.SpyPlanet(_userPlanet, PlanetType.PLANET);
+                _gameRestClient.SpyPlanet(_userPlanet, PlanetType.Planet);
 
                 SpySuccededRectangleColor = "green";
                 SpySuccededRectangleToolTip = "Spy succeeded";
@@ -116,8 +98,8 @@ namespace OgameSkaner.ViewModel
         {
             try
             {
+                _gameRestClient.SpyPlanet(_userPlanet, PlanetType.Moon);
                 SpyMoonSuccededRectangleColor = "green";
-                _gameRestClient.SpyPlanet(_userPlanet, PlanetType.MOON);
             }
             catch (Exception)
             {

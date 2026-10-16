@@ -1,8 +1,7 @@
-using GalaSoft.MvvmLight;
+﻿using GalaSoft.MvvmLight;
 using OgameSkaner.Model;
 using OgameSkaner.Model.GameConfiguration;
 using OgameSkaner.RestClient;
-using OgameSkaner.RestClient.Shared;
 using OgameSkaner.Utils;
 using OgameSkaner.View;
 using Prism.Commands;
@@ -10,7 +9,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using GetDataView = OgameSkaner.View.GetDataView;
 using UserPlanetView = OgameSkaner.View.UserPlanetView;
@@ -22,10 +20,6 @@ namespace OgameScaner.ViewModel
 
         #region fields
         private System.Windows.Controls.UserControl _currentView;
-        private string _loginRectangleCollor;
-        private string _loginStatus;
-        private IGameRestClient _restClient;
-        private bool restClientChanged = false;
         private GameConfigurationModel _actualGameConfigurationModel;
         private string _selectedGameConfigurationName;
         private ObservableCollection<string> _gameConfigurationNames;
@@ -50,7 +44,6 @@ namespace OgameScaner.ViewModel
                 RaisePropertyChanged("SelectedGameConfigurationName");//todo  add refresh
                 UpdateActualGameConfiguration(value);
                 CurrentView = null;
-                restClientChanged = true;
             }
             get { return _selectedGameConfigurationName; }
         }
@@ -71,25 +64,7 @@ namespace OgameScaner.ViewModel
             get { return _gameConfigurationNames; }
         }
 
-        public string LoginRectangleCollor
-        {
-            set
-            {
-                _loginRectangleCollor = value;
-                RaisePropertyChanged("LoginRectangleCollor");
-            }
-            get { return _loginRectangleCollor; }
-        }
 
-        public string LoginStatus
-        {
-            get { return _loginStatus; }
-            set
-            {
-                _loginStatus = value;
-                RaisePropertyChanged("LoginStatus");
-            }
-        }
 
         public System.Windows.Controls.UserControl CurrentView
         {
@@ -160,22 +135,19 @@ namespace OgameScaner.ViewModel
         }
         private void ShowUserPlanetView()
         {
-            var restClientFactory = new GameRestClientFactory();
-            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
+            var gameRestClient = new OgameXRestClient(_actualGameConfigurationModel.Universum);
             CurrentView = new UserPlanetView(gameRestClient);
         }
 
         private void ShowUtilitiesView()
         {
-            var restClientFactory = new GameRestClientFactory();
-            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
+            var gameRestClient = new OgameXRestClient(_actualGameConfigurationModel.Universum);
             CurrentView = new UtilitiesView(gameRestClient);
         }
 
         private void ShowGetData()
         {
-            var restClientFactory = new GameRestClientFactory();
-            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
+            var gameRestClient = new OgameXRestClient(_actualGameConfigurationModel.Universum);
             CurrentView = new GetDataView(gameRestClient);
 
         }
@@ -199,14 +171,12 @@ namespace OgameScaner.ViewModel
 
         public MainViewModel()
         {
-            LoginRectangleCollor = "red";
             DeclareCommand();
             BackgroundPath = Directory.GetCurrentDirectory() + "/Images/bg_sgame.jpg";
             GetAvailableGamesConfigurations();
             _actualGameConfigurationModel = GetGameConfiguration(GameConfigurationNames[0]);
             SelectedGameConfigurationName = _actualGameConfigurationModel.ConfigurationName;
 
-            CheckLogInStatus();
         }
 
         private void DeclareCommand()
@@ -216,48 +186,6 @@ namespace OgameScaner.ViewModel
             ManageConfigurationCommand = new DelegateCommand(ManageConfiguration, CanExecuteButtons);
             ExportDataCommand = new DelegateCommand(ExportData, CanExecuteButtons);
             ShowUtilitiesViewCommand = new DelegateCommand(ShowUtilitiesView, CanExecuteButtons);
-        }
-
-        private async Task CheckLogInStatus()
-        {
-            await Task.Run(async () =>
-            {
-                try
-                {
-
-                    LoginStatus status = OgameSkaner.RestClient.LoginStatus.LoggedOut;
-                    while (true)
-                    {
-                        if (restClientChanged)
-                        {
-                            restClientChanged = false;
-                            var restClientFactory = new GameRestClientFactory();
-                            _restClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
-                        }
-
-                        status = _restClient.CheckLogInStatus();
-                        if (status == OgameSkaner.RestClient.LoginStatus.LoggedIn)
-                        {
-                            LoginStatus = "Logged In";
-                            LoginRectangleCollor = "green";
-                        }
-                        if (status == OgameSkaner.RestClient.LoginStatus.LoggedOut)
-                        {
-                            LoginStatus = "Logged Out";
-                            LoginRectangleCollor = "red";
-                        }
-
-                        await Task.Delay(10000);
-
-                    }
-
-                }
-                catch (RestException e)
-                {
-                    MessageBox.Show(e.Message);
-                }
-
-            });
         }
     }
 }

@@ -1,4 +1,13 @@
-﻿.vs
-OgameSkaner/bin
-OgameSkaner/obj
+.vs/
+bin/
+obj/
 packages/*
+*.user
+*.DotSettings.user
+
+# Local user data / secrets (never commit)
+GamesConfiguration.xml
+Database*.xml
+profiles.json
+sessions.json
+*.log

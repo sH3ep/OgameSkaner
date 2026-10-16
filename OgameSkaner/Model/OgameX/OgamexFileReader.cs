@@ -6,7 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace OgameSkaner.Model.Sgame
+namespace OgameSkaner.Model.OgameX
 {
     public class OgamexFileReader : IGameFileReader
     {

@@ -122,7 +122,7 @@ namespace OgameSkaner.ViewModel
             }
             else
             {
-                SelectedGameConfuguration=new GameConfigurationModel();
+                SelectedGameConfuguration = new GameConfigurationModel { GameType = GameType.OgameX };
                 RefreshGameConfigurationData();
             }
 
@@ -133,7 +133,7 @@ namespace OgameSkaner.ViewModel
             var configSerializer = new GamesConfigurationSerializer();
             GamesConfugurations = configSerializer.GetConfigurations();
             SelectedGameConfuguration = GamesConfugurations.FirstOrDefault();
-            GameTypes = Enum.GetValues(typeof(GameType)).Cast<GameType>().ToList();
+            GameTypes = new List<GameType> { GameType.OgameX };
         }
 
         private void AddOrEditConfiguration()

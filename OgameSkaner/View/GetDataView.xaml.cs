@@ -1,5 +1,4 @@
-﻿using System.Windows;
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 using OgameSkaner.RestClient;
 using OgameSkaner.ViewModel;
 
@@ -16,9 +15,5 @@ namespace OgameSkaner.View
             DataContext = new GetDataViewModel(gameRestClient);
         }
 
-        private void PasswordBox_PasswordChanged(object sender, RoutedEventArgs e)
-        {
-            if (DataContext != null) ((dynamic) DataContext).SecurePassword = ((PasswordBox) sender).SecurePassword;
-        }
     }
 }

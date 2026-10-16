@@ -42,7 +42,7 @@ namespace OgameSkaner.Model.GameConfiguration
 
         public List<GameConfigurationModel> GetConfigurations()
         {
-            return _gamesConfiguration.OrderBy(x => x.ConfigurationName).ToList();
+            return _gamesConfiguration.Where(x => x.GameType == GameType.OgameX).OrderBy(x => x.ConfigurationName).ToList();
         }
         public Model.GameConfiguration.GameConfigurationModel GetConfiguration(GameType gameType, string universum)
         {
@@ -61,7 +61,7 @@ namespace OgameSkaner.Model.GameConfiguration
         public IEnumerable<string> GetConfigurationsNames()
         {
             var configurationsNames = new List<string>();
-            foreach (var item in _gamesConfiguration)
+            foreach (var item in _gamesConfiguration.Where(x => x.GameType == GameType.OgameX))
             {
                 configurationsNames.Add(item.ConfigurationName);
             }
@@ -159,7 +159,7 @@ namespace OgameSkaner.Model.GameConfiguration
                 TextReader fileStream = new StreamReader(ConfigFileName);
                 _gamesConfiguration = (List<Model.GameConfiguration.GameConfigurationModel>)serializer.Deserialize(fileStream);
                 fileStream.Close();
-                if (!_gamesConfiguration.Any())
+                if (!_gamesConfiguration.Any(x => x.GameType == GameType.OgameX))
                 {
                     CreateDefaultConfiguration();
                     LoadConfigurationsFromXML();
@@ -177,7 +177,7 @@ namespace OgameSkaner.Model.GameConfiguration
 
         private void CreateDefaultConfiguration()
         {
-            AddConfiguration(new Model.GameConfiguration.GameConfigurationModel() { BaseUri = "test1", CurrentPlanet = "1", GameType = GameType.Sgame, SpyProbeAmount = 1, Universum = 2.ToString(), Login = "Login", Token = "token" });
+            AddConfiguration(new Model.GameConfiguration.GameConfigurationModel() { BaseUri = "whatever", CurrentPlanet = "1", GameType = GameType.OgameX, SpyProbeAmount = 1, Universum = "tron", Login = "Login", Token = "token" });
         }
 
         #endregion
