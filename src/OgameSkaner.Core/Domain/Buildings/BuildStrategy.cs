@@ -27,12 +27,3 @@ public sealed record BuildStrategy(int ReferenceLevel, IReadOnlyList<BuildingRul
     public static bool IsAutomatic(BuildingType building) =>
         building is BuildingType.SolarPlant or BuildingType.MetalStorage or BuildingType.CrystalStorage or BuildingType.DeuteriumTank;
 }
-
-public enum BuildAutomationMode
-{
-    /// <summary>Fill the free queue slots once; a planet stops at the first item the server refuses.</summary>
-    Single,
-
-    /// <summary>Keep adding affordable upgrades, round-robin over planets, until every planet is done.</summary>
-    Auto
-}

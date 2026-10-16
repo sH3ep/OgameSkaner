@@ -148,7 +148,8 @@ For every queue entry: **building**, **target level**, **started or waiting**. P
 - Findings ("Buildings under construction" box, captured with 9 items):
   - The running item: `div.container#firstConstruction[data-building-type="METAL_MINE"][data-tolevel="25"]`
     with progress `#building_percentage` (width %), remaining time `#firstConstructionRemainingTime` "05:18",
-    and a DM complete button.
+    and a DM complete button. The exact seconds are in the page script: `window.currentConstructionRemainingSeconds = 318;`
+    (read as `PlanetBuildState.RunningRemaining`).
   - Every waiting item: `a.construction-queue-item[data-building-type="CRYSTAL_MINE"][data-tolevel="24"]`, in queue order.
   - Empty queue: `a.empty-text` "There is no building under construction."
   - So: queue = `#firstConstruction` (Started = true) + all `.construction-queue-item` (Started = false).
@@ -261,6 +262,32 @@ Colony's Metal Mine and Deuterium Synthesizer, and by raising the Colony's Shipy
   aren't readable yet. Production and energy premiums are covered by the resource page's Premium row.
 - **Planet slots** (wiki `/Wiki/colonization`): temperature range and production bonus per slot – 1: crystal +34%,
   2: +32%, 3: +30%; 4–6: metal and crystal +15%; 7–9: metal +30%; 10–12: metal +15%, deuterium +10%; 13–15:
-  deuterium +20%. Overview (`/home`) shows the planet's own temperature ("Approximately 69°C to 74°C").
+  deuterium +20%. Overview (`/home?planet=<guid>`, switches the planet) shows the planet's own temperature in a
+  `div.planet-prop` (`span.prop-title` "Temperature", `span.prop-text` "Approximately 69°C to 74°C");
+  `OverviewPageParser` takes the prop with two °C values, so the language doesn't matter.
 - Research tables (`/research/researchinfo?ResearchType=MINERAL_TECHNOLOGY`): Mineral/Crystallization/Fuel
   Technology give 4, 9, 14, 19, 25, 31, 38, 45, 53, 61% total for levels 1–10; Energy Technology 2% per level.
+
+## Builder: Simulated mode (2026-10-16; the only mode since then)
+- Each check plans every selected planet with the optimizer from its **real state**: built levels, resources,
+  satellites (shipyard page), the queue (the running item's `currentConstructionRemainingSeconds`, waiting items paid
+  when they start), temperature (`/home`), slot (position in the coordinates) and the account's bonuses.
+- Targets come from the Builder strategy (mines; Robotics/Nanite/Shipyard rules are minimum levels). The search may add
+  the solar plant (≤ "Solar plant max level"), storages, Robotics (≤ max(10, current + 2)), Nanite (current + 2 when the
+  game offers it, i.e. not locked – it also needs Computer Technology 10, which the model can't see), Shipyard (≤ 8) and
+  satellites. The order is only done when energy covers the mines (`OptimizerSetup.CoverEnergy`): on genesis
+  construction time is the limit, so without it the fastest order leaves the mines unpowered.
+- Per-planet corrections make the model match the page: extra energy = the game's balance − the model's (e.g. a Fusion
+  Reactor), each mine's production × page ÷ model (ignored outside 0.5–2). On Home and Colony both were 1.000 / −5 and 0
+  energy (the model was calibrated there).
+- 2,000,000 simulated orders per plan took 0.2 s per planet on 21 threads (short remaining orders).
+- Energy for the real queue: when energy is short now or would be after any item already queued, the simulator orders
+  satellites at time 0 (the shipyard doesn't wait for the building queue), paid from what the waiting items don't need.
+  It's the plan's first step, so the runner sends it first. Before this, energy could only come after the whole queue
+  (Colony sat at −1749 with 0 satellites for ~24 minutes).
+- Storages: "Storage when full ≥ %" is a simulation rule. Before an item starts, a storage level goes first when the
+  item would leave its resource at that share of capacity or more. Queueing a storage when the page shows the fill
+  would be too late: it lands behind up to 14 waiting items. In the plan it sits where the fill is predicted.
+- What's pushed: the beginning of the order while resources cover it plus every waiting queue item (like the schema
+  runner), until the queue holds 15. The next check comes when the first item not pushed is due in the plan
+  (10 s – 5 min). Buildings the model doesn't know (Research Lab, …) are built by price after the simulated targets.

@@ -6,8 +6,9 @@ using OgameSkaner.Core.Domain.Schemas;
 namespace OgameSkaner.Core.Domain.Optimizer;
 
 /// <summary>
-/// What to optimize: reach these mine levels on a fresh planet as fast as possible. The solar plant, storages,
-/// Robotics/Nanite Factory, Shipyard and solar satellites are placed by the search within the limits below.
+/// What to optimize: reach these mine levels on a fresh planet (or from <see cref="Start"/>) as fast as possible. The
+/// solar plant, storages, Robotics/Nanite Factory, Shipyard and solar satellites are placed by the search within the
+/// limits below; the factory targets must be reached too.
 /// </summary>
 public sealed record OptimizerSetup
 {
@@ -41,18 +42,48 @@ public sealed record OptimizerSetup
 
     public int ShipyardMaxLevel { get; init; } = 8;
 
+    /// <summary>Factory levels the order must reach as well (0 = only a helper).</summary>
+    public int RoboticsTarget { get; init; }
+
+    public int NaniteTarget { get; init; }
+
+    public int ShipyardTarget { get; init; }
+
+    /// <summary>
+    /// The order is only done when energy covers the mines (satellites ordered count, the time includes building them),
+    /// unless the solar plant is at its maximum and satellites aren't allowed. Without it, a server where construction
+    /// time is the limit leaves the mines without power: energy wouldn't make the targets come sooner.
+    /// </summary>
+    public bool CoverEnergy { get; init; }
+
+    /// <summary>
+    /// Before an item starts, a storage level goes first when the item would leave its resource at this share of the
+    /// capacity or more, so production isn't lost while long constructions run (0 = only when a cost needs the room).
+    /// </summary>
+    public int StorageFillPercent { get; init; }
+
+    /// <summary>A real planet to start from; null = a fresh planet with <see cref="StartResources"/>.</summary>
+    [JsonIgnore]
+    public PlanetStart? Start { get; init; }
+
     /// <summary>
     /// Identifies the setup, the account's bonuses and the model version, so the best order is kept per setup and
     /// orders simulated with other bonuses aren't compared.
     /// </summary>
     public string Key => FormattableString.Invariant(
         $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer} | slot {PlanetSlot} {MinTemperature}..{MaxTemperature}°C | start {StartResources.Metal}/{StartResources.Crystal}/{StartResources.Deuterium} | solar≤{SolarMaxLevel} robotics≤{RoboticsMaxLevel} nanite≤{NaniteMaxLevel} ") +
-        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites") + " | " + Bonuses.Signature + " | " + GameModel.Version;
+        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites") + FactoryTargetsKey + " | " + Bonuses.Signature + " | " + GameModel.Version;
 
     /// <summary>The same setup without the bonuses: finds earlier results for it after the bonuses changed.</summary>
     public string TargetKey => FormattableString.Invariant(
         $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer} | slot {PlanetSlot} {MinTemperature}..{MaxTemperature}°C | start {StartResources.Metal}/{StartResources.Crystal}/{StartResources.Deuterium} | solar≤{SolarMaxLevel} robotics≤{RoboticsMaxLevel} nanite≤{NaniteMaxLevel} ") +
-        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites");
+        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites") + FactoryTargetsKey;
+
+    private string FactoryTargetsKey => (RoboticsTarget + NaniteTarget + ShipyardTarget == 0
+        ? string.Empty
+        : FormattableString.Invariant($" | robotics {RoboticsTarget} nanite {NaniteTarget} shipyard {ShipyardTarget}"))
+        + (CoverEnergy ? " | energy covered" : string.Empty)
+        + (StorageFillPercent > 0 ? FormattableString.Invariant($" | storage at {StorageFillPercent}%") : string.Empty);
 
     public string ShortName => $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer}";
 
@@ -61,6 +92,9 @@ public sealed record OptimizerSetup
         Gene.MetalMine => MetalMine,
         Gene.CrystalMine => CrystalMine,
         Gene.DeuteriumSynthesizer => DeuteriumSynthesizer,
+        Gene.RoboticsFactory => RoboticsTarget,
+        Gene.NaniteFactory => NaniteTarget,
+        Gene.Shipyard => ShipyardTarget,
         _ => 0
     };
 
@@ -69,9 +103,9 @@ public sealed record OptimizerSetup
     {
         Gene.MetalMine or Gene.CrystalMine or Gene.DeuteriumSynthesizer => TargetOf(gene),
         Gene.SolarPlant => SolarMaxLevel,
-        Gene.RoboticsFactory => RoboticsMaxLevel,
-        Gene.NaniteFactory => NaniteMaxLevel,
-        Gene.Shipyard => UseSatellites ? ShipyardMaxLevel : 0,
+        Gene.RoboticsFactory => Math.Max(RoboticsMaxLevel, RoboticsTarget),
+        Gene.NaniteFactory => Math.Max(NaniteMaxLevel, NaniteTarget),
+        Gene.Shipyard => Math.Max(UseSatellites ? ShipyardMaxLevel : 0, ShipyardTarget),
         _ => GameModel.MaxLevel
     });
 }
@@ -99,6 +133,10 @@ public sealed class OptimizedOrder
     public double TotalSeconds { get; set; }
 
     public List<OptimizedStep> Steps { get; set; } = [];
+
+    /// <summary>The order as the search found it (to continue from); not saved.</summary>
+    [JsonIgnore]
+    public Gene[] Genes { get; set; } = [];
 
     public int Runs { get; set; }
 

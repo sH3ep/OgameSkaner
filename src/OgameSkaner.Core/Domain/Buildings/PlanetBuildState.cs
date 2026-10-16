@@ -61,6 +61,9 @@ public sealed record PlanetBuildState(
     /// <summary>Free planet fields with the queue already counted; every new level takes one. Null when unknown.</summary>
     public int? FreeFields { get; init; }
 
+    /// <summary>Time left on the running queue item; null when the queue is empty or the page didn't say.</summary>
+    public TimeSpan? RunningRemaining { get; init; }
+
     /// <summary>The player is in vacation mode, which blocks building.</summary>
     public bool VacationMode { get; init; }
 

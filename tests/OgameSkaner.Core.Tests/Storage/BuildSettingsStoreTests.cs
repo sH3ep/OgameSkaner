@@ -27,7 +27,7 @@ public class BuildSettingsStoreTests : IDisposable
         var store = new JsonBuildSettingsStore(new AppPaths(_temp.Path));
         var settings = BuildSettings.CreateDefault();
         settings.ReferenceLevel = 17;
-        settings.Mode = BuildAutomationMode.Auto;
+        settings.SimulationsPerPlan = 500_000;
         settings.ExcludedPlanetIds = ["123", "456"];
         settings.Rules[1] = settings.Rules[1] with { Mode = RuleMode.Absolute, Value = 9 };
 
@@ -35,7 +35,7 @@ public class BuildSettingsStoreTests : IDisposable
         var loaded = new JsonBuildSettingsStore(new AppPaths(_temp.Path)).Load("tron");
 
         Assert.Equal(17, loaded.ReferenceLevel);
-        Assert.Equal(BuildAutomationMode.Auto, loaded.Mode);
+        Assert.Equal(500_000, loaded.SimulationsPerPlan);
         Assert.Equal(["123", "456"], loaded.ExcludedPlanetIds);
         Assert.Equal(settings.Rules, loaded.Rules);
         Assert.Equal(10, store.Load("other").ReferenceLevel);

@@ -147,6 +147,16 @@ internal sealed class OgamexClient : IOgamexClient
         return AccountBonusParser.Combine(production, officers, className, skills, _timeProvider.GetLocalNow());
     }
 
+    public async Task<(int Min, int Max)> GetPlanetTemperatureAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"home?planet={Uri.EscapeDataString(planet.Value)}", referer: "home");
+        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        var temperature = OverviewPageParser.ParseTemperature(html);
+        if (BuildingPageParser.TryReadPage(html, out var shown, out _) && shown != planet)
+            throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
+        return temperature;
+    }
+
     public Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default) =>
         GetBuildingPageAsync("building/resource", planet, cancellationToken);
 
@@ -181,6 +191,7 @@ internal sealed class OgamexClient : IOgamexClient
             ProductionPerHour = latest.ProductionPerHour,
             NextLevelDurations = buildings.Where(b => b.Duration is not null).ToDictionary(b => b.Building, b => b.Duration!.Value),
             FreeFields = pages.Select(p => p.FreeFields).LastOrDefault(f => f is not null),
+            RunningRemaining = latest.Queue.Count > 0 ? latest.RunningRemaining : null,
             VacationMode = latest.VacationMode
         };
     }

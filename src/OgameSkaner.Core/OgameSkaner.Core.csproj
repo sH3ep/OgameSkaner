@@ -3,6 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!--
+      The build order optimizer simulates millions of orders; unoptimized (Debug) code runs it about 6x slower, and the
+      app is usually started in Debug. Breakpoints still work; some locals may show as optimized away when debugging.
+    -->
+    <Optimize>true</Optimize>
   </PropertyGroup>
 
   <ItemGroup>

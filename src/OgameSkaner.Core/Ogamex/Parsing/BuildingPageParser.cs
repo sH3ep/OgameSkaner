@@ -17,6 +17,7 @@ public sealed record BuildingOnPage(BuildingType Building, int Level, ResourceSe
 /// <summary>Everything read from one building page.</summary>
 /// <param name="FreeFields">Free planet fields with the queue already counted; only on the resources page.</param>
 /// <param name="ProductionPerHour">Resource production per hour (the page script gives it per second).</param>
+/// <param name="RunningRemaining">Time left on the running queue item (<c>window.currentConstructionRemainingSeconds</c>).</param>
 public sealed record BuildingPage(
     PlanetId CurrentPlanet,
     IReadOnlyList<OwnPlanet> Planets,
@@ -28,7 +29,8 @@ public sealed record BuildingPage(
     IReadOnlyList<QueuedBuilding> Queue,
     int? FreeFields,
     bool VacationMode,
-    ResourceSet ProductionPerHour);
+    ResourceSet ProductionPerHour,
+    TimeSpan? RunningRemaining = null);
 
 /// <summary>
 /// Parses the building pages. Resources and energy come from the page's <c>var resources = {…}</c> script
@@ -62,7 +64,8 @@ public static partial class BuildingPageParser
             new ResourceSet(
                 (long)Math.Round(ReadNumber(script, "metalProduction") * 3600),
                 (long)Math.Round(ReadNumber(script, "crystalProduction") * 3600),
-                (long)Math.Round(ReadNumber(script, "deuteriumProduction") * 3600)));
+                (long)Math.Round(ReadNumber(script, "deuteriumProduction") * 3600)),
+            RemainingPattern().Match(html) is { Success: true } remaining ? TimeSpan.FromSeconds(Int(remaining.Groups[1].Value)) : null);
     }
 
     /// <summary>Reads the current planet id and the body of the <c>var resources</c> object present on every game page.</summary>
@@ -205,6 +208,9 @@ public static partial class BuildingPageParser
 
     [GeneratedRegex(@"remainingFieldsQueueIncluded\s*=\s*['`""]?(\d+)")]
     private static partial Regex FreeFieldsPattern();
+
+    [GeneratedRegex(@"window\.currentConstructionRemainingSeconds\s*=\s*(\d+)")]
+    private static partial Regex RemainingPattern();
 
     [GeneratedRegex(@"window\.isVacation\s*=\s*(true|false)")]
     private static partial Regex VacationPattern();

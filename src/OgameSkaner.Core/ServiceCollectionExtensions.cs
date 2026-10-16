@@ -35,8 +35,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FleetEscapeService>();
         services.AddSingleton<CsvExportService>();
         services.AddSingleton<OwnPlanetService>();
-        services.AddSingleton<BuildAutomationService>();
         services.AddSingleton<SchemaRunner>();
+        services.AddSingleton<SimulatedBuildRunner>();
         services.AddSingleton<BuildOrderOptimizer>();
 
         return services;

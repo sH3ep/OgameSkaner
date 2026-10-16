@@ -162,4 +162,11 @@ public class BuildingPageParserTests
     [InlineData("{\"IsSuccess\":false}")]
     public void Throws_session_expired_for_anything_else(string html) =>
         Assert.Throws<SessionExpiredException>(() => BuildingPageParser.Parse(html));
+
+    [Fact]
+    public void Reads_the_time_left_on_the_running_item()
+    {
+        Assert.Equal(TimeSpan.FromSeconds(318), Load("building_resource.html").RunningRemaining);
+        Assert.Null(Load("building_resource_empty_queue.html").RunningRemaining);
+    }
 }

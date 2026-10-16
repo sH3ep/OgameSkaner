@@ -1,4 +1,5 @@
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Services.Building;
 
 namespace OgameSkaner.Core.Storage;
 
@@ -14,7 +15,13 @@ public sealed class BuildSettings
 
     public List<BuildingRule> Rules { get; set; } = [];
 
-    public BuildAutomationMode Mode { get; set; } = BuildAutomationMode.Single;
+    /// <summary>Simulated mode: orders simulated per plan of one planet.</summary>
+    public int SimulationsPerPlan { get; set; } = SimulatedBuildOptions.DefaultSimulations;
+
+    /// <summary>Simulated mode: solar satellites may provide energy.</summary>
+    public bool UseSolarSatellites { get; set; } = true;
+
+    public SimulatedBuildOptions ToSimulatedOptions() => new(Math.Max(10_000, SimulationsPerPlan), UseSolarSatellites);
 
     /// <summary>
     /// Planets the user unticked. Storing the excluded ones (not the selected ones) means a new colony takes part

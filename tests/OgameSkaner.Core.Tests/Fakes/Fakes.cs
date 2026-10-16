@@ -97,6 +97,17 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public List<(PlanetId Planet, string ShipType, int Quantity)> OrderedShips { get; } = [];
 
+    public Dictionary<PlanetId, (int Min, int Max)> Temperatures { get; } = new();
+
+    public int TemperatureReads { get; private set; }
+
+    public Task<(int Min, int Max)> GetPlanetTemperatureAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        TemperatureReads++;
+        CurrentPlanet = planet;
+        return Task.FromResult(Temperatures.TryGetValue(planet, out var temperature) ? temperature : (28, 32));
+    }
+
     public Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default)
     {
         CurrentPlanet = planet;

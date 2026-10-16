@@ -37,6 +37,9 @@ public interface IOgamexClient : IDisposable
     /// </summary>
     Task<AccountBonuses> GetAccountBonusesAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>The planet's temperature range in °C (overview page). Selects the planet in the game.</summary>
+    Task<(int Min, int Max)> GetPlanetTemperatureAsync(PlanetId planet, CancellationToken cancellationToken = default);
+
     /// <summary>Makes <paramref name="planet"/> the current planet in the game (also for the browser).</summary>
     Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default);
 

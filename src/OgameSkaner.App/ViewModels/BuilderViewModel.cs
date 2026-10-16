@@ -14,7 +14,7 @@ namespace OgameSkaner.App.ViewModels;
 public sealed partial class BuilderViewModel : PageViewModel
 {
     private readonly IUniverseContext _context;
-    private readonly BuildAutomationService _automation;
+    private readonly SimulatedBuildRunner _simulated;
     private readonly OwnPlanetService _ownPlanets;
     private readonly IBuildSettingsStore _store;
     private readonly IDialogService _dialogs;
@@ -26,7 +26,7 @@ public sealed partial class BuilderViewModel : PageViewModel
 
     public BuilderViewModel(
         IUniverseContext context,
-        BuildAutomationService automation,
+        SimulatedBuildRunner simulated,
         OwnPlanetService ownPlanets,
         IBuildSettingsStore store,
         IDialogService dialogs,
@@ -34,7 +34,7 @@ public sealed partial class BuilderViewModel : PageViewModel
     {
         _activity = activity;
         _context = context;
-        _automation = automation;
+        _simulated = simulated;
         _ownPlanets = ownPlanets;
         _store = store;
         _dialogs = dialogs;
@@ -71,8 +71,13 @@ public sealed partial class BuilderViewModel : PageViewModel
     [ObservableProperty]
     private int _storageFillPercent;
 
+    /// <summary>Orders simulated per plan of one planet (Simulated mode).</summary>
     [ObservableProperty]
-    private BuildAutomationMode _mode;
+    private int _simulationsPerPlan;
+
+    [ObservableProperty]
+    private bool _useSolarSatellites;
+
 
     [ObservableProperty]
     private string? _planetsInfo;
@@ -105,7 +110,9 @@ public sealed partial class BuilderViewModel : PageViewModel
 
     partial void OnStorageFillPercentChanged(int value) => SaveSettings();
 
-    partial void OnModeChanged(BuildAutomationMode value) => SaveSettings();
+    partial void OnSimulationsPerPlanChanged(int value) => SaveSettings();
+
+    partial void OnUseSolarSatellitesChanged(bool value) => SaveSettings();
 
     partial void OnViewedPlanetChanged(PlanetSelectionItemViewModel? value)
     {
@@ -254,7 +261,8 @@ public sealed partial class BuilderViewModel : PageViewModel
             return;
         }
 
-        var request = new BuildRequest(Mode, CurrentSettings().ToStrategy(), selected.Select(p => p.Id).ToHashSet());
+        var settings = CurrentSettings();
+        var request = new BuildRequest(settings.ToStrategy(), selected.Select(p => p.Id).ToHashSet());
         var progress = new Progress<BuildProgress>(p =>
         {
             AddLog(p.Message);
@@ -270,8 +278,8 @@ public sealed partial class BuilderViewModel : PageViewModel
         BuildRunResult result;
         try
         {
-            AddLog($"{Mode} build started on {string.Join(", ", selected.Select(p => p.Name))}");
-            result = await _automation.RunAsync(client, request, progress, cancellationToken);
+            AddLog($"Build started on {string.Join(", ", selected.Select(p => p.Name))}");
+            result = await _simulated.RunAsync(client, request, settings.ToSimulatedOptions(), progress, cancellationToken);
         }
         finally
         {
@@ -305,7 +313,8 @@ public sealed partial class BuilderViewModel : PageViewModel
             ReferenceLevel = settings.ReferenceLevel;
             SolarMaxLevel = settings.SolarMaxLevel;
             StorageFillPercent = settings.StorageFillPercent;
-            Mode = settings.Mode;
+            SimulationsPerPlan = settings.SimulationsPerPlan;
+            UseSolarSatellites = settings.UseSolarSatellites;
             _excludedPlanetIds = settings.ExcludedPlanetIds.ToHashSet();
             ShowPlanets(_loadedUniverse is null ? OwnPlanetList.Empty : _ownPlanets.GetStored(_loadedUniverse));
 
@@ -366,7 +375,8 @@ public sealed partial class BuilderViewModel : PageViewModel
         SolarMaxLevel = SolarMaxLevel,
         StorageFillPercent = StorageFillPercent,
         Rules = Rules.Select(r => r.ToRule()).ToList(),
-        Mode = Mode,
+        SimulationsPerPlan = SimulationsPerPlan,
+        UseSolarSatellites = UseSolarSatellites,
         ExcludedPlanetIds = _excludedPlanetIds.Order(StringComparer.Ordinal).ToList()
     };
 

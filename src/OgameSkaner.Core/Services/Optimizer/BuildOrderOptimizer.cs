@@ -31,14 +31,19 @@ public sealed record OptimizerProgress(int RunsDone, int Runs, double BestSecond
 public sealed class BuildOrderOptimizer
 {
     /// <summary>Runs the search; when cancelled it returns the best order found so far (null when none finished).</summary>
+    /// <param name="initial">
+    /// An order to improve (e.g. the previous plan of the same planet): every second run starts from it instead of a
+    /// greedy order, when it reaches the targets.
+    /// </param>
     public Task<OptimizedOrder?> RunAsync(
         OptimizerSetup setup,
         OptimizerOptions options,
         IProgress<OptimizerProgress>? progress = null,
-        CancellationToken cancellationToken = default) =>
-        Task.Run(() => Run(setup, options, progress, cancellationToken), CancellationToken.None);
+        CancellationToken cancellationToken = default,
+        IReadOnlyList<Gene>? initial = null) =>
+        Task.Run(() => Run(setup, options, progress, cancellationToken, initial?.ToArray()), CancellationToken.None);
 
-    private static OptimizedOrder? Run(OptimizerSetup setup, OptimizerOptions options, IProgress<OptimizerProgress>? progress, CancellationToken cancellationToken)
+    private static OptimizedOrder? Run(OptimizerSetup setup, OptimizerOptions options, IProgress<OptimizerProgress>? progress, CancellationToken cancellationToken, Gene[]? initial)
     {
         var model = new GameModel(setup.Bonuses, setup.Planet);
         var watch = Stopwatch.StartNew();
@@ -57,7 +62,7 @@ public sealed class BuildOrderOptimizer
             while (!cancellationToken.IsCancellationRequested && (run = Interlocked.Increment(ref nextRun)) < options.Runs)
             {
                 var search = new RunSearch(new BuildSimulator(model, setup), new Random(unchecked(options.Seed * 1_000_003 + run * 7919)));
-                var (genes, seconds) = search.Run(options.IterationsPerRun, cancellationToken);
+                var (genes, seconds) = search.Run(options.IterationsPerRun, cancellationToken, run % 2 == 0 ? initial : null);
                 lock (sync)
                 {
                     evaluations += search.Evaluations;
@@ -86,6 +91,7 @@ public sealed class BuildOrderOptimizer
         var (total, steps) = new BuildSimulator(model, setup).Trace(best);
         return new OptimizedOrder
         {
+            Genes = best,
             Setup = setup,
             SetupKey = setup.Key,
             TotalSeconds = total,
@@ -105,12 +111,30 @@ public sealed class BuildOrderOptimizer
         private readonly GameModel _model = simulator.Model;
         private readonly Gene[] _helpers = HelpersOf(simulator.Setup);
 
+        /// <summary>Index of the first gene the last mutation changed (the genes before it are the same as before).</summary>
+        private int _changedAt;
+
         public long Evaluations { get; private set; }
 
-        public (Gene[] Genes, double Seconds) Run(int iterations, CancellationToken cancellationToken)
+        public (Gene[] Genes, double Seconds) Run(int iterations, CancellationToken cancellationToken, Gene[]? initial = null)
         {
+            // The current order's trace lets a candidate resume where the mutation changed it instead of from the start.
+            var currentTrace = new EvaluationTrace();
+            var candidateTrace = new EvaluationTrace();
             var current = Greedy();
-            var currentSeconds = Evaluate(current);
+            Evaluations++;
+            var currentSeconds = simulator.Evaluate(current, 0, candidateTrace, currentTrace);
+            if (initial is { Length: > 0 })
+            {
+                Evaluations++;
+                var initialSeconds = simulator.Evaluate(initial, 0, currentTrace, candidateTrace);
+                if (initialSeconds < currentSeconds)
+                {
+                    current = initial;
+                    currentSeconds = initialSeconds;
+                    (currentTrace, candidateTrace) = (candidateTrace, currentTrace);
+                }
+            }
             var best = current;
             var bestSeconds = currentSeconds;
             var startTemperature = double.IsPositiveInfinity(currentSeconds) ? 1 : currentSeconds * 0.003;
@@ -121,7 +145,11 @@ public sealed class BuildOrderOptimizer
                     break;
 
                 var candidate = Mutate(current);
-                var seconds = Evaluate(candidate);
+                if (ReferenceEquals(candidate, current))
+                    continue; // the mutation found nothing to change
+
+                Evaluations++;
+                var seconds = simulator.Evaluate(candidate, _changedAt, currentTrace, candidateTrace);
                 var progress = (double)i / iterations;
                 var temperature = startTemperature * (1 - progress) * (1 - progress);
                 if (seconds <= currentSeconds
@@ -129,6 +157,7 @@ public sealed class BuildOrderOptimizer
                 {
                     current = candidate;
                     currentSeconds = seconds;
+                    (currentTrace, candidateTrace) = (candidateTrace, currentTrace);
                     if (seconds < bestSeconds || (seconds == bestSeconds && candidate.Length < best.Length))
                     {
                         best = candidate;
@@ -137,12 +166,6 @@ public sealed class BuildOrderOptimizer
                 }
             }
             return (best, bestSeconds);
-        }
-
-        private double Evaluate(Gene[] genes)
-        {
-            Evaluations++;
-            return simulator.Evaluate(genes);
         }
 
         /// <summary>
@@ -164,7 +187,7 @@ public sealed class BuildOrderOptimizer
                 simulator.Apply(gene, [Gene.MetalMine, Gene.CrystalMine, Gene.DeuteriumSynthesizer]);
             }
 
-            for (var guard = 0; guard < 2000 && !simulator.TargetsReached; guard++)
+            for (var guard = 0; guard < 2000 && !simulator.TargetsReached && MinesLeft(); guard++)
             {
                 var mine = PickMine(noise);
                 if (FactoryPaysBack(Gene.NaniteFactory, factoryThreshold))
@@ -203,7 +226,43 @@ public sealed class BuildOrderOptimizer
                 }
                 Add(mine);
             }
+
+            // Factory targets the mines didn't need.
+            foreach (var factory in (ReadOnlySpan<Gene>)[Gene.RoboticsFactory, Gene.NaniteFactory, Gene.Shipyard])
+            {
+                for (var guard = 0; guard < GameModel.MaxLevel && simulator.LevelOf(factory) < _setup.TargetOf(factory) && Reachable(factory); guard++)
+                    Add(factory);
+            }
+
+            // Energy for the mines as they end up (CoverEnergy), when the mines' own energy steps fell short.
+            for (var guard = 0; guard < 100 && !simulator.TargetsReached; guard++)
+            {
+                var solarAllowed = simulator.CanBuild(Gene.SolarPlant);
+                if ((preferSatellites || !solarAllowed) && simulator.CanOrderSatellites)
+                {
+                    genes.Add(Gene.SolarSatellites);
+                    simulator.Apply(Gene.SolarSatellites, []);
+                }
+                else if ((preferSatellites || !solarAllowed) && _setup.UseSatellites && simulator.LevelOf(Gene.RoboticsFactory) < GameModel.SatelliteRoboticsLevel && Reachable(Gene.RoboticsFactory))
+                    Add(Gene.RoboticsFactory);
+                else if ((preferSatellites || !solarAllowed) && _setup.UseSatellites && simulator.LevelOf(Gene.Shipyard) < GameModel.SatelliteShipyardLevel && Reachable(Gene.Shipyard))
+                    Add(Gene.Shipyard);
+                else if (solarAllowed)
+                    Add(Gene.SolarPlant);
+                else
+                    break;
+            }
             return [.. genes];
+        }
+
+        private bool MinesLeft()
+        {
+            foreach (var mine in Mines)
+            {
+                if (simulator.LevelOf(mine) < _setup.TargetOf(mine))
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>Allowed now and payable some day (factories need deuterium, which a fresh planet doesn't have yet).</summary>
@@ -250,8 +309,14 @@ public sealed class BuildOrderOptimizer
         private Gene[] Mutate(Gene[] genes)
         {
             var roll = random.NextDouble();
+            if (genes.Length == 0)
+                roll = 0; // nothing to move or remove (e.g. the planet already has its targets)
             if (roll < 0.15 && _helpers.Length > 0)
-                return Insert(genes, _helpers[random.Next(_helpers.Length)], random.Next(genes.Length + 1));
+            {
+                var index = random.Next(genes.Length + 1);
+                _changedAt = index;
+                return Insert(genes, _helpers[random.Next(_helpers.Length)], index);
+            }
             if (roll < 0.30)
                 return RemoveHelper(genes) ?? Move(genes);
             if (roll < 0.55)
@@ -270,6 +335,7 @@ public sealed class BuildOrderOptimizer
             if (to == from)
                 return genes;
 
+            _changedAt = Math.Min(from, to);
             var result = (Gene[])genes.Clone();
             var gene = result[from];
             if (from < to)
@@ -287,6 +353,7 @@ public sealed class BuildOrderOptimizer
             var i = random.Next(genes.Length - 1);
             if (genes[i] == genes[i + 1])
                 return Move(genes);
+            _changedAt = i;
             var result = (Gene[])genes.Clone();
             (result[i], result[i + 1]) = (result[i + 1], result[i]);
             return result;
@@ -304,11 +371,14 @@ public sealed class BuildOrderOptimizer
         private Gene[]? RemoveHelper(Gene[] genes)
         {
             // A few random probes are enough; mines are never removed (the order must keep its targets).
+            if (genes.Length == 0)
+                return null;
             for (var attempt = 0; attempt < 8; attempt++)
             {
                 var index = random.Next(genes.Length);
                 if (genes[index] > Gene.DeuteriumSynthesizer)
                 {
+                    _changedAt = index;
                     var result = new Gene[genes.Length - 1];
                     Array.Copy(genes, result, index);
                     Array.Copy(genes, index + 1, result, index, genes.Length - index - 1);
@@ -323,12 +393,14 @@ public sealed class BuildOrderOptimizer
             var helpers = new List<Gene> { Gene.MetalStorage, Gene.CrystalStorage, Gene.DeuteriumTank };
             if (setup.SolarMaxLevel > 0)
                 helpers.AddRange([Gene.SolarPlant, Gene.SolarPlant]);
-            if (setup.RoboticsMaxLevel > 0)
+            if (setup.MaxLevelOf(Gene.RoboticsFactory) > 0)
                 helpers.AddRange([Gene.RoboticsFactory, Gene.RoboticsFactory]);
-            if (setup.NaniteMaxLevel > 0)
+            if (setup.MaxLevelOf(Gene.NaniteFactory) > 0)
                 helpers.Add(Gene.NaniteFactory);
             if (setup.UseSatellites)
                 helpers.AddRange([Gene.Shipyard, Gene.SolarSatellites, Gene.SolarSatellites]);
+            else if (setup.ShipyardTarget > 0)
+                helpers.Add(Gene.Shipyard);
             return [.. helpers];
         }
     }

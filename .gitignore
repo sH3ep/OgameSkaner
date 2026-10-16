@@ -11,3 +11,6 @@ Database*.xml
 profiles.json
 sessions.json
 *.log
+
+# Temporary project files of the WPF markup compiler
+*_wpftmp.csproj

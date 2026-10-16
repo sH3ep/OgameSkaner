@@ -135,4 +135,20 @@ public class BuildOrderOptimizerTests
 
         return Fill(0);
     }
+
+    [Fact]
+    public async Task A_planet_that_has_its_targets_gets_an_empty_order()
+    {
+        var setup = new OptimizerSetup
+        {
+            MetalMine = 3, CrystalMine = 0, DeuteriumSynthesizer = 0,
+            Start = new PlanetStart { Levels = new Dictionary<Gene, int> { [Gene.MetalMine] = 5 } }
+        };
+
+        var order = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 4, IterationsPerRun: 2_000, Threads: 2));
+
+        Assert.NotNull(order);
+        Assert.Empty(order.Steps);
+        Assert.Equal(0, order.TotalSeconds);
+    }
 }
