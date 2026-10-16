@@ -1,4 +1,5 @@
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Buildings;
 
 namespace OgameSkaner.Core.Ogamex;
 
@@ -19,6 +20,25 @@ public interface IOgamexClient : IDisposable
 
     /// <summary>Returns true when the stored session cookies are accepted by the server.</summary>
     Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The player's own planets (moons excluded) and the planet currently selected in the game.</summary>
+    Task<OwnPlanetsSnapshot> GetOwnPlanetsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Makes <paramref name="planet"/> the current planet in the game (also for the browser).</summary>
+    Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Building levels, resources, energy and build queue of one of the player's planets. Makes it the current
+    /// planet in the game (planet selection is server-side state, also for the browser).
+    /// </summary>
+    /// <param name="includeFacilities">Also read the facilities page (one more request).</param>
+    Task<PlanetBuildState> GetPlanetBuildStateAsync(PlanetId planet, bool includeFacilities = true, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Adds the next level of <paramref name="building"/> to the planet's build queue. The server answers
+    /// "success" even when it ignores an unaffordable item, so callers verify with the next state read.
+    /// </summary>
+    Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default);
 }
 
 public interface IOgamexClientFactory

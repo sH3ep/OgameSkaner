@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services;
+using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
 
@@ -20,6 +21,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IProfileStore, JsonProfileStore>();
         services.AddSingleton<ISessionStore, JsonSessionStore>();
         services.AddSingleton<IPlanetRepository, JsonPlanetRepository>();
+        services.AddSingleton<IBuildSettingsStore, JsonBuildSettingsStore>();
+        services.AddSingleton<IOwnPlanetStore, JsonOwnPlanetStore>();
         services.AddSingleton<LegacyImporter>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
@@ -27,6 +30,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<GalaxyScanService>();
         services.AddSingleton<FleetEscapeService>();
         services.AddSingleton<CsvExportService>();
+        services.AddSingleton<OwnPlanetService>();
+        services.AddSingleton<BuildAutomationService>();
 
         return services;
     }

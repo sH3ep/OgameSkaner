@@ -1,4 +1,5 @@
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 
@@ -61,9 +62,73 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
 
+    public List<OwnPlanet> OwnPlanets { get; } = [];
+
+    /// <summary>Current state per planet; queued items are appended (unstarted) by <see cref="EnqueueBuildingAsync"/>.</summary>
+    public Dictionary<PlanetId, PlanetBuildState> BuildStates { get; } = new();
+
+    /// <summary>Overrides the server answer; null means "behave like the server".</summary>
+    public Func<PlanetId, BuildingType, EnqueueOutcome?> EnqueueAnswer { get; set; } = (_, _) => null;
+
+    public List<(PlanetId Planet, BuildingType Building)> EnqueuedBuildings { get; } = [];
+
+    public List<(PlanetId Planet, bool IncludeFacilities)> StateRequests { get; } = [];
+
+    /// <summary>The planet selected in the game; reading a planet's state selects it, like on the server.</summary>
+    public PlanetId? CurrentPlanet { get; set; }
+
+    public List<PlanetId> SelectedPlanets { get; } = [];
+
+    public Task<OwnPlanetsSnapshot> GetOwnPlanetsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult(new OwnPlanetsSnapshot(OwnPlanets.ToList(), CurrentPlanet ?? OwnPlanets.FirstOrDefault()?.Id ?? default));
+
+    public Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        SelectedPlanets.Add(planet);
+        CurrentPlanet = planet;
+        return Task.CompletedTask;
+    }
+
+    public Task<PlanetBuildState> GetPlanetBuildStateAsync(PlanetId planet, bool includeFacilities = true, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        StateRequests.Add((planet, includeFacilities));
+        CurrentPlanet = planet;
+        return Task.FromResult(BuildStates[planet]);
+    }
+
+    public Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default)
+    {
+        if (EnqueueAnswer(planet, building) is { } answer)
+            return Task.FromResult(answer);
+
+        // Like the server: checked against the actual resources (paid only when the item starts), and an
+        // unaffordable item is silently ignored while the answer still says success.
+        var state = BuildStates[planet];
+        var level = state.Queue.Where(q => q.Building == building).Select(q => q.Level).DefaultIfEmpty(state.LevelOf(building)).Max() + 1;
+        if (state.Queue.Count >= 15)
+            return Task.FromResult(new EnqueueOutcome(EnqueueResult.QueueFull, "Construction queue is full."));
+        if (!state.Resources.CanAfford(BuildingCatalog.CostOf(building, level)))
+            return Task.FromResult(EnqueueOutcome.Queued);
+
+        BuildStates[planet] = state with { Queue = [.. state.Queue, new QueuedBuilding(building, level, Started: false)] };
+        EnqueuedBuildings.Add((planet, building));
+        return Task.FromResult(EnqueueOutcome.Queued);
+    }
+
     public void Dispose()
     {
     }
+}
+
+/// <summary>In-memory planet list store.</summary>
+public sealed class FakeOwnPlanetStore : IOwnPlanetStore
+{
+    public Dictionary<string, OwnPlanetList> Saved { get; } = new();
+
+    public OwnPlanetList Load(string universe) => Saved.GetValueOrDefault(universe) ?? OwnPlanetList.Empty;
+
+    public void Save(string universe, OwnPlanetList planets) => Saved[universe] = planets;
 }
 
 /// <summary>In-memory repository that counts saves.</summary>

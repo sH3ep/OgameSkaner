@@ -1,0 +1,1682 @@
+
+
+
+<!DOCTYPE html>
+
+<html x-ms-format-detection="none" lang="pl">
+<head>
+    <meta name="viewport" content="width=device-width" />
+    
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <meta name="format-detection" content="telephone=none" />
+    <meta name="format-detection" content="address=no">
+    <meta http-equiv="content-language" content="pl">
+    
+
+    <title>Genesis | OgameX</title>
+
+    <link rel="shortcut icon" href="/assets/images/favicon.ico" />
+    <link rel="stylesheet" href="/assets/other/fonts/fa-pro/css/pro.min.css" />
+
+    <link rel="stylesheet" href="/assets/styles/V2/default.css?v=4355">
+    <link rel="stylesheet" href="/assets/styles/V2/app.css?v=4355">
+
+    
+
+
+    <script>
+
+
+        window.localization = {};
+        window.localization.dayMark = 'd';
+        window.localization.Yes = 'Yes';
+        window.localization.No = 'No';
+        window.localization.Warning = 'Warning';
+        window.localization.BATTLE_REPORT = 'Battle Report';
+
+        window.timeoffset_cookie_name = 'timeZoneOffset';
+        window.currentPlayerName = 'Test Player';
+        window.currentPlayerId = '22222222-2222-2222-2222-222222222222';
+        window.currentPlanetId = '11111111-1111-1111-1111-111111111111';
+        window.isVacation = false;
+        window.allianceId = '';
+
+        window.currentPlayerClass = null;
+
+        
+        window.currentPlayerClass = 'MINER';
+        
+
+
+        var resources = {
+            initialMetal:35756870.633894140787482703193,
+            initialCrystal:21815592.056904919432973051148,
+            initialDeuterium:6526949.9206875652566666666667,
+            metal: 35756870.633894140787482703193,
+            crystal: 21815592.056904919432973051148,
+            deuterium: 6526949.9206875652566666666667,
+            energy: 13594.761677904000000,
+            energyConsumption: 4942.173893700872618897863140,
+            darkmatter: 353830,
+            metalProduction: 39325.433376472368267900245592,
+            crystalProduction: 29686.312069609187151773165231,
+            deuteriumProduction: 1299.3785144280966666666666667,
+            metalStorageCapacity: 45125000,
+            crystalStorageCapacity: 35906250,
+            deuteriumStorageCapacity: 28375000
+        };
+
+        var initialServerTime = 1792157996000;
+        var currentServerTime = 1792157996000;
+
+        var lang = 'pl';
+
+    </script>
+    <script src="/assets/js/default.js?v=4355"></script>
+    <script src="/assets/js/app/tooltip.js?v=4355"></script>
+    <script src="/assets/js/libs/autonumeric.min.js"></script>
+
+    
+
+    <script>
+        function configureNumberInputFormat(containerElementId) {
+            const autoNumericOptions = {
+                allowDecimalPadding: false,
+                alwaysAllowDecimalCharacter: false,
+                digitGroupSeparator: '.',
+                decimalCharacter: ',',
+                decimalCharacterAlternatif: '.',
+                currencySymbol: '',
+                // overrideMinMaxLimits: 'ignore',
+                // emptyInputBehavior: 'zero',
+                maximumValue: '99999999999999999999999999999',
+                minimumValue: '0',
+                //historySize:0,
+                selectOnFocus: false,
+                modifyValueOnWheel: false,
+                formatOnPageLoad: true,
+                watchExternalChanges: true,
+                decimalPlaces: 0
+            };
+
+            if (containerElementId == undefined || containerElementId == null || containerElementId == "") {
+                containerElementId = "";
+            }
+            else {
+                containerElementId = "#" + containerElementId;
+            }
+            new AutoNumeric.multiple(containerElementId + ' .numberFormatInput', autoNumericOptions);
+
+
+            $(containerElementId + ' .numberFormatInput').focusin(function () {
+                var val = $(this).val();
+                if (val === '0' || val === 0 || val == '0' || val == 0) {
+                    //  this.value = '';
+                    $(this).val('');
+                }
+            }).focusout(function () {
+
+                var val = $(this).val();
+                if (val === '' || val === ' ' || val == '' || val == ' ') {
+
+                    $(this).val(0);
+                }
+            }).on("input", function (e) {
+                var value = 0;
+                if (/\D/g.test(this.value)) {
+                    // Filter non-digits from input value.
+                    value = this.value.replace(/\D/g, '');
+                }
+                else {
+                    value = this.value;
+                }
+
+                var intVal = parseInt(value);
+                if (!isNaN(intVal)) {
+                    if ($(this).attr('min-value') != undefined) {
+                        var minVal = parseInt($(this).attr('min-value'));
+
+                        if (isNaN(minVal)) {
+                            minVal = 0;
+                        }
+                        else if (minVal < 0) {
+                            minVal = 0;
+                        }
+                        if (intVal < minVal) {
+                            this.value = 0;
+                        }
+                    }
+
+                    if ($(this).attr('max-value') != undefined) {
+                        var maxVal = parseInt($(this).attr('max-value'));
+
+                        if (!isNaN(maxVal) && maxVal > 0) {
+                            if (intVal > maxVal) {
+                                this.value = maxVal;
+                            }
+                        }
+                    }
+                }
+            }).keyup(function () {
+                $(this).trigger('input');
+            });
+        }
+        $(function () {
+            configureNumberInputFormat();
+        });
+
+    </script>
+
+    
+
+
+    
+
+</head>
+<body>
+    <div id="tooltip-container"></div>
+    <div id="tooltip-sticky-container"></div>
+    <div id="tooltip-static-container"></div>
+
+    <div id="game-bg">
+        <div id="game-container">
+            <div id="header" style="background:url(../assets/images/V2/header_v3.png) no-repeat center;background-position-y:40px;">
+                <div class="top-nav">
+                    <div class="left-side">
+                        <a href="/statistics" class="nav-link fa fa-signal tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Statistics</h3>"></a>
+                        <a href="/halloffame" class="nav-link fa fa-trophy tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Hall of fame</h3>"></a>
+                        <a href="/records" class="nav-link fa fa-award tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Records</h3>"></a>
+                        <a href="/chat/universal" class="nav-link fa fa-comments tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Universal Chat</h3>"></a>
+                        <a href="https://discord.gg/N4ckzJwRtJ" target="_blank" class="nav-link fab fa-discord tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Discord channel</h3>"></a>
+                        <a href="/SupportTicket/SupportTicketList" class="nav-link fa fa-headset tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Support</h3>"></a>
+                        <a href="/home/eventCalendar" class="nav-link fas fa-calendar-alt tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Event Calendar</h3>"></a>
+                    </div>
+                    <div class="center-side">
+
+                        
+
+                        <a href="/"><img class="logo" src="../../assets/images/V2/logo.png" /></a>
+
+                        
+                    </div>
+                    <div class="right-side">
+                        
+                        <a href="https://ogamex.net/home/rules" class="nav-link fas fa-book tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Rules</h3>"></a>
+                        <a href="/friendsenemies" class="nav-link fa fa-users tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Friends &amp; Enemies</h3>"></a>
+                        <a href="#" class="nav-link fa fa-search tooltip" data-ajax-modal data-modal-title="" data-modal-url="/home/search" data-modal-size="large" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Search</h3>"></a>
+                        <a href="/bannedplayers" class="nav-link fa fa-user-slash tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Banned players</h3>"></a>
+                        
+                        <a href="/settings" class="nav-link fa fa-tools tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Settings</h3>"></a>
+                        <a href="/home/logout" class="nav-link fa fa-sign-out-alt tooltip" data-tooltip-position="bottom" data-tooltip-content="<h3 style='font-size:11px;padding:3px 10px;'>Log out</h3>"></a>
+                    </div>
+                </div>
+                <div class="resources-section">
+                    <div class="resources-content">
+                        <a href="/resource" class="resource-item resource-item-metal tooltip" data-tooltip-position="bottom" data-tooltip-content="<div class='player-level-info-tooltip'><table style='max-width:320px;'><tr><td colspan='2' style='font-size: 12px;font-weight: bold;text-align:center;color:#f1f1f1;'>Metal</td></tr><tr><td>Available : </td><td style='font-size: 11px;font-weight: bold;text-align:right;color:#CCC;'>35.756.871</td></tr><tr><td>Production per hour : </td><td><span>141.571.560</span></td></tr><tr><td>Production per day : </td><td><span>3.397.717.444</span></td></tr><tr><td>Storage capacity : </td><td><span>45.125.000</span></td></tr></table></div>">
+                            <span class="resource-icon resource-icon-metal"></span>
+
+                                        <div style="position:absolute;width:116px;top:18px;left:56px;text-align:left;">
+                                            <span class="resource-amount">
+                                                <span style="position:absolute;font-size: 10px;font-weight: bold;color: #b3c8e1;top: -16px;left: 0px;">Metal</span>
+                                                <span id="metal-amount" style="font-size:10px;">35.756.871</span>
+                                                
+                                            </span>
+                                        </div>
+
+
+
+
+                        </a>
+                        <a href="/resource" class="resource-item resource-item-crystal tooltip" data-tooltip-position="bottom" data-tooltip-content="<div class='player-level-info-tooltip'><table style='max-width:320px;'><tr><td colspan='2' style='font-size: 12px;font-weight: bold;text-align:center;color:#f1f1f1;'>Crystal</td></tr><tr><td>Available : </td><td style='font-size: 11px;font-weight: bold;text-align:right;color:#CCC;'>21.815.592</td></tr><tr><td>Production per hour : </td><td><span>106.870.723</span></td></tr><tr><td>Production per day : </td><td><span>2.564.897.363</span></td></tr><tr><td>Storage capacity : </td><td><span>35.906.250</span></td></tr></table></div>">
+                            <span class="resource-icon resource-icon-crystal"></span>
+
+                                        <div style="position:absolute;width:116px;top:18px;left:56px;text-align:left;">
+                                            <span class="resource-amount">
+                                                <span style="position:absolute;font-size: 10px;font-weight: bold;color: #b3c8e1;top: -16px;left: 0px;">Crystal</span>
+                                                <span id="crystal-amount" style="font-size:10px;">21.815.592</span>
+                                                
+                                            </span>
+                                        </div>
+
+
+
+                        </a>
+                        <a href="/resource" class="resource-item resource-item-deuterium tooltip" data-tooltip-position="bottom" data-tooltip-content="<div class='player-level-info-tooltip'><table style='max-width:320px;'><tr><td colspan='2' style='font-size: 12px;font-weight: bold;text-align:center;color:#f1f1f1;'>Deuterium</td></tr><tr><td>Available : </td><td style='font-size: 11px;font-weight: bold;text-align:right;color:#CCC;'>6.526.950</td></tr><tr><td>Production per hour : </td><td><span>4.677.763</span></td></tr><tr><td>Production per day : </td><td><span>112.266.304</span></td></tr><tr><td>Storage capacity : </td><td><span>28.375.000</span></td></tr></table></div>">
+                            <span class="resource-icon resource-icon-deuterium"></span>
+
+                                        <div style="position:absolute;width:116px;top:18px;left:56px;text-align:left;">
+                                            <span class="resource-amount">
+                                                <span style="position:absolute;font-size: 10px;font-weight: bold;color: #b3c8e1;top: -16px;left: 0px;">Deuterium</span>
+                                                <span id="deuterium-amount" style="font-size:10px;">6.526.950</span>
+                                                
+                                            </span>
+                                        </div>
+
+
+                        </a>
+                        <a href="/resource" class="resource-item resource-item-energy tooltip" data-tooltip-position="bottom" data-tooltip-content="<div class='player-level-info-tooltip'><table style='max-width:320px;'><tr><td colspan='2' style='font-size: 12px;font-weight: bold;text-align:center;color:#f1f1f1;'>Energy</td></tr><tr><td>Energy production : </td><td><span>13.595</span></td></tr><tr><td>Energy consumption : </td><td><span style='color:#dc0606;'>4.942</span></td></tr></table></div>">
+                            <span class="resource-icon resource-icon-energy"></span>
+
+                                    <div style="position: absolute;top: 18px;width: 116px;left: 56px;text-align: left;">
+                                        <span style="position:absolute;font-size: 10px;font-weight: bold;color: #b3c8e1;top: -10px;left: 0px;">Energy</span>
+                                        <span class="resource-amount" style="color:#0f0 !important;font-size:10px;">8.653</span>
+                                    </div>
+
+
+                        </a>
+                        <a href="/darkmatter/purchase" class="resource-item right-item resource-item-darkmatter tooltip" data-tooltip-position="bottom" data-tooltip-content="<div class='player-level-info-tooltip'><table style='max-width:320px;'><tr><td colspan='2' style='font-size: 12px;font-weight: bold;text-align:center;color:#f1f1f1;border:none;'>Dark matter</td></tr></table></div>">
+                            <span class="resource-icon resource-icon-darkmatter" style="right: 6px !important;left: unset !important;top: 5px !important;"></span>
+                            <span style="position:absolute;font-size: 10px;font-weight: bold;color: #b3c8e1;top: 8px;right: 56px;">Dark matter</span>
+                            <span class="resource-amount" style="position: absolute;top: 24px;width: 116px;right: 58px;text-align: right;font-size: 11px;font-weight: bold;">353.830</span>
+                        </a>
+                        <a href="/wiki" class="resource-item right-item resource-item-wiki tooltip" data-tooltip-position="bottom" data-tooltip-content="<div class='player-level-info-tooltip'><table style='max-width:320px;'><tr><td colspan='2' style='font-size: 12px;font-weight: bold;text-align:center;color:#f1f1f1;border:none;'>Wiki</td></tr></table></div>">
+                            <span class="resource-icon resource-icon-wiki" style="right: 6px !important;left: unset !important;top: 5px !important;"></span>
+                            <span style="position: absolute;font-size: 12px;font-weight: bold;color: #b0c0d5;top: 16px;right: 44px;">Wiki</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="messages-section">
+
+                    <a href="/messages" class="messages-button tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;'>Unread messages (0)</div>">
+
+                    </a>
+                    <a href="/chat" class="chat-button tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;'>Unread chat messages (0)</div>">
+
+                    </a>
+                </div>
+                <div class="fleet-info-section ">
+
+                            <div style="cursor:pointer;text-align:left;padding-left:20px;" id="fleet-movement-detail-btn">
+                                <div style="padding:4px;color:#FFF;font-size:11px;">
+                                    <span><b>1</b> Missions: </span>
+                                            <span style="color:#9C0;">1 Own</span>
+
+                                </div>
+                                <div style="padding:4px;font-size:11px;color:#FFF;width:50%;float:left;">
+                                    <span>
+
+
+
+                                        Next: <span id="NextMissionRemainingTime">11:34</span>
+                                    </span>
+                                </div>
+                                <div style="padding:4px;font-size:11px;color:#FFF;width:50%;float:left;">
+                                    <span>Type:</span>
+                                            <span style="color:#9C0;">Colonize</span>
+
+                                </div>
+                            </div>
+
+
+                </div>
+
+                <div id="system-clock">16.10.2026 15:39:56</div>
+                <a href="/home/playerprofile" id="user-profile-section" class="tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;width:240px;float:left;'><div style='float:left;width:60px;height:60px;'><img style='width:60px;height:60px;' src='/assets/images/V2/officer/EMPEROR.png' /></div><div style='float:left;width:180px;padding:3px 8px;'><div style='float:left;width:100%;color: #ffc107;max-width: 170px;max-height: 15px;overflow: hidden;text-align: left;white-space: nowrap;overflow: hidden !important;text-overflow: ellipsis;line-height: 16px;font-weight: bold;'>Test Player</div><div style='float:left;width:100%;border-top: 1px solid #8f9cab;padding-top: 4px;margin-top:4px;line-height:12px;'>Ranking : <span style='color: #ffc107;font-weight: bold;'>2.924</span> / 3.300</div></div></div></div>">
+
+                            <div class="avatar-box player_class_MINER"></div>
+
+                    <div class="player-name">Test Player</div>
+                    <div class="player-ranking"><i class="fad fa-crown"></i> 2.924</div>
+                </a>
+
+
+            </div>
+
+            <div id="game-bottom" style="float:left;width:1000px;">
+
+                <div style="float:left;width:100%;position:relative;margin-top:5px;">
+
+                    <div id="left-menu-1">
+
+
+
+                        <div class="menu-item ">
+                            <a href="/home" class="text-item">Overview</a>
+                        </div>
+
+
+
+                                <div class="menu-item active">
+                                    <a href="/building/resource" class="text-item">Resources</a>
+                                    
+                                </div>
+
+
+                        <div class="menu-item ">
+                            <a href="/building/facility" class="text-item">Facilities</a>
+                            
+                        </div>
+
+
+
+                        <div class="menu-item ">
+                            <a href="/research" class="text-item">Research</a>
+                            
+                        </div>
+                        
+                        <div class="menu-item ">
+                            <a href="/hangar" class="text-item">Shipyard</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/defense" class="text-item">Defense</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/fleet" class="text-item">Fleet</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/galaxy" class="text-item">Galaxy</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/alliance" class="text-item">Alliance</a>
+                            
+                        </div>
+                        <div class="menu-item">
+                            <a href="/empire" target="_blank" class="text-item">Empire</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/officer" class="text-item">Officers</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/academy" class="text-item">Academy</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/merchant" class="text-item premium-text">Merchant</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/premium" class="text-item premium-text">Premiums</a>
+                            
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/shop" class="text-item premium-text">Shop</a>
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/shop/inventory" class="text-item">Inventory</a>
+                        </div>
+                        <div class="menu-item ">
+                            <a href="/simulator" class="text-item">Simulators</a>
+                        </div>
+                        <div class="menu-item">
+                            <a href="/darkmatter/promote" class="text-item" style="color:#4caf50;">Promote Server</a>
+                        </div>
+                    </div>
+
+                    <div id="content-wrapper" class="">
+                        <div id="layoutFleetMovements" class="fleet-movement-wrapper">
+                            <div class="header">
+                                <span class="title">Events</span>
+                            </div>
+                            <div class="content" id="fleet-movement-content"></div>
+                            <div class="footer"></div>
+                        </div>
+
+                        
+
+
+<link href="/assets/styles/app/pages/buildingResource.css?v=4355" rel="stylesheet" />
+
+<div class="content-section">
+    <div class="header"></div>
+    <div class="content">
+        <div id="buildings-container">
+            <div class="header" style="background:url(../../assets/images/V2/page-header/building.png)no-repeat;">
+                <span class="main-title">Resources - Home planet</span>
+
+                <a href="/resource" class="btn_resource_settings">Resource settings</a>
+
+                        <div class="building-detail" id="detail-METAL_MINE" data-building-type="METAL_MINE">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/METAL_MINE.gif) no-repeat;" data-ajax-modal data-modal-title="Metal Mine - Technical details" data-modal-url="/building/buildinginfo?BuildingType=METAL_MINE" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Metal Mine - Technical details" data-modal-url="/building/buildinginfo?BuildingType=METAL_MINE" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Metal Mine</h3>
+                                    <h3 class="building-level">Level: 24</h3>
+
+
+
+
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">15:25</span></div>
+
+                                                <div class="info-item">Energy consumption : <i style="color:#ca2828;font-size:10px;" class="fas fa-bolt"></i> <span style="font-weight:bold;color:#ca2828;">498</span></div>
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 27</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">1.943.267</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">485.817</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="27" max-value="39" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="27">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>The metal mine allows the extraction of raw metal from the planet. Metal production increases as the structure level increases.
+</li>
+                            <li>Once the metal storages are fully filled, metal production on the planet is also stopped.</li>
+                            <li>Metal mine needs energy to operate.</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-CRYSTAL_MINE" data-building-type="CRYSTAL_MINE">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/CRYSTAL_MINE.gif) no-repeat;" data-ajax-modal data-modal-title="Crystal Mine - Technical details" data-modal-url="/building/buildinginfo?BuildingType=CRYSTAL_MINE" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Crystal Mine - Technical details" data-modal-url="/building/buildinginfo?BuildingType=CRYSTAL_MINE" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Crystal Mine</h3>
+                                    <h3 class="building-level">Level: 23</h3>
+
+
+
+
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">09:56</span></div>
+
+                                                <div class="info-item">Energy consumption : <i style="color:#ca2828;font-size:10px;" class="fas fa-bolt"></i> <span style="font-weight:bold;color:#ca2828;">441</span></div>
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 26</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">1.064.802</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">532.406</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="26" max-value="38" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="26">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>The crystal mine allows the raw crystal to be extracted from the planet. Crystal production increases as the structure level increases.</li>
+                            <li>Once the crystal storages are fully filled, crystal production on the planet is also stopped.</li>
+                            <li>Crystal mine needs energy to operate.</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-DEUTERIUM_REFINERY" data-building-type="DEUTERIUM_REFINERY">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/DEUTERIUM_REFINERY.gif) no-repeat;" data-ajax-modal data-modal-title="Deuterium Refinery - Technical details" data-modal-url="/building/buildinginfo?BuildingType=DEUTERIUM_REFINERY" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Deuterium Refinery - Technical details" data-modal-url="/building/buildinginfo?BuildingType=DEUTERIUM_REFINERY" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Deuterium Refinery</h3>
+                                    <h3 class="building-level">Level: 10</h3>
+
+
+
+
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:31</span></div>
+
+                                                <div class="info-item">Energy consumption : <i style="color:#ca2828;font-size:10px;" class="fas fa-bolt"></i> <span style="font-weight:bold;color:#ca2828;">217</span></div>
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 15</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">82.251</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">24.192</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="15" max-value="25" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="15">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>Deuterium synthesizer provides the extraction of deuterium from the planet. The deuterium production increases as the structure level increases.</li>
+                            <li>
+Once the deuterium tanks are fully filled, deuterium production on the planet is also stopped.</li>
+                            <li>Deuterium synthesizer needs energy to operate.
+</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-SOLAR_POWER_PLANT" data-building-type="SOLAR_POWER_PLANT">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/SOLAR_POWER_PLANT.gif) no-repeat;" data-ajax-modal data-modal-title="Solar Power Plant - Technical details" data-modal-url="/building/buildinginfo?BuildingType=SOLAR_POWER_PLANT" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Solar Power Plant - Technical details" data-modal-url="/building/buildinginfo?BuildingType=SOLAR_POWER_PLANT" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Solar Power Plant</h3>
+                                    <h3 class="building-level">Level: 7</h3>
+
+
+
+
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:00</span></div>
+
+                                                <div class="info-item">Energy production : <i style="color:#44bb30;font-size:10px;" class="fas fa-bolt"></i> <span style="font-weight:bold;color:#44bb30;">94</span></div>
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 9</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">2.563</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">1.025</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="9" max-value="22" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="9">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>Solar power plants are huge structures that produce energy using solar rays. They contribute to the energy production of the planet and helps the operation of the mines.
+</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-FUSION_REACTOR" data-building-type="FUSION_REACTOR">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/FUSION_REACTOR.gif) no-repeat;" data-ajax-modal data-modal-title="Fusion Reactor - Technical details" data-modal-url="/building/buildinginfo?BuildingType=FUSION_REACTOR" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Fusion Reactor - Technical details" data-modal-url="/building/buildinginfo?BuildingType=FUSION_REACTOR" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Fusion Reactor</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+
+
+
+
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:00</span></div>
+
+                                                <div class="info-item">Energy production : <i style="color:#44bb30;font-size:10px;" class="fas fa-bolt"></i> <span style="font-weight:bold;color:#44bb30;">49</span></div>
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 1</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">900</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">360</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/deuterium.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">180</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="1" max-value="15" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="1">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>Fusion reactors are plants that produce radioactive energy using fusion technology.
+ They contribute to the energy production of the planet and helping the operation of the mines.
+</li><li>Fusion reactors need deuterium to work and use some of the deuterium production on the planet.
+</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-METAL_STORAGE" data-building-type="METAL_STORAGE">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/METAL_STORAGE.gif) no-repeat;" data-ajax-modal data-modal-title="Metal Storage - Technical details" data-modal-url="/building/buildinginfo?BuildingType=METAL_STORAGE" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Metal Storage - Technical details" data-modal-url="/building/buildinginfo?BuildingType=METAL_STORAGE" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Metal Storage</h3>
+                                    <h3 class="building-level">Level: 5</h3>
+
+
+
+
+                                                <a href="#" class="demolish-building tooltip" data-tooltip-position="left" data-tooltip-content="<div style='width:200px;font-size:11px;line-height:15px;'><div style='font-size:11px;border-bottom:1px dotted #AAA;'>Demolish building to level 4</div><div><h3 style='margin-top:6px;color:#CCC;'>Resources to return:</h3><div style='margin-top:2px;'><span style='display:block;float:left;width:70px;text-align:right;color:#CCC;'>Metal :</span> 25.313</div><div style='margin-top:6px;'><span style='display:block;float:left;color:#CCC;'>Duration :</span> 00:05</div></div></div>">
+                                                    Demolish
+                                                </a>
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:45</span></div>
+
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 6</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">151.875</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="6" max-value="20" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="6">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>Metal storages are structures used to store metal resources on the planet.</li>
+                            <li>Once the metal storages are fully filled, metal production on the planet is also stopped.</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-CRYSTAL_STORAGE" data-building-type="CRYSTAL_STORAGE">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/CRYSTAL_STORAGE.gif) no-repeat;" data-ajax-modal data-modal-title="Crystal Storage - Technical details" data-modal-url="/building/buildinginfo?BuildingType=CRYSTAL_STORAGE" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Crystal Storage - Technical details" data-modal-url="/building/buildinginfo?BuildingType=CRYSTAL_STORAGE" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Crystal Storage</h3>
+                                    <h3 class="building-level">Level: 4</h3>
+
+
+
+
+                                                <a href="#" class="demolish-building tooltip" data-tooltip-position="left" data-tooltip-content="<div style='width:200px;font-size:11px;line-height:15px;'><div style='font-size:11px;border-bottom:1px dotted #AAA;'>Demolish building to level 3</div><div><h3 style='margin-top:6px;color:#CCC;'>Resources to return:</h3><div style='margin-top:2px;'><span style='display:block;float:left;width:70px;text-align:right;color:#CCC;'>Metal :</span> 16.875</div><div><span style='display:block;float:left;width:70px;text-align:right;color:#CCC;'>Crystal :</span> 8.438</div><div style='margin-top:6px;'><span style='display:block;float:left;color:#CCC;'>Duration :</span> 00:06</div></div></div>">
+                                                    Demolish
+                                                </a>
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:43</span></div>
+
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 5</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">101.250</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">50.625</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="5" max-value="19" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="5">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>Crystal storages are used to store crystal resources on the planet.</li>
+                            <li>Once the crystal storages are fully filled, crystal production on the planet is also stopped.</li>
+                        </ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-DEUTERIUM_TANK" data-building-type="DEUTERIUM_TANK">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/DEUTERIUM_TANK.gif) no-repeat;" data-ajax-modal data-modal-title="Deuterium Tank - Technical details" data-modal-url="/building/buildinginfo?BuildingType=DEUTERIUM_TANK" data-modal-size="700"></a>
+                                <a href="#" class="btn-help" data-ajax-modal data-modal-title="Deuterium Tank - Technical details" data-modal-url="/building/buildinginfo?BuildingType=DEUTERIUM_TANK" data-modal-size="700"><i class="fas fa-info-circle" style="font-size: 11px;"></i> More info</a>
+
+                                <div class="right-section">
+                                    <h3 class="building-title">Deuterium Tank</h3>
+                                    <h3 class="building-level">Level: 3</h3>
+
+
+
+
+                                                <a href="#" class="demolish-building tooltip" data-tooltip-position="left" data-tooltip-content="<div style='width:200px;font-size:11px;line-height:15px;'><div style='font-size:11px;border-bottom:1px dotted #AAA;'>Demolish building to level 2</div><div><h3 style='margin-top:6px;color:#CCC;'>Resources to return:</h3><div style='margin-top:2px;'><span style='display:block;float:left;width:70px;text-align:right;color:#CCC;'>Metal :</span> 11.250</div><div><span style='display:block;float:left;width:70px;text-align:right;color:#CCC;'>Crystal :</span> 11.250</div><div style='margin-top:6px;'><span style='display:block;float:left;color:#CCC;'>Duration :</span> 00:06</div></div></div>">
+                                                    Demolish
+                                                </a>
+
+
+
+
+
+
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:36</span></div>
+
+
+
+                                    </div>
+
+                                    <div class="required-section">
+
+
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 4</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">67.500</span>
+
+
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+
+                                                                <span class="resource-amount">67.500</span>
+
+
+                                                    </div>
+
+
+
+                                        <div class="upgrade-btn-container">
+
+                                                    <div class="upgrade-input-container">
+                                                        <span class="upgrade-input-desc">Level</span>
+                                                        <div class="upgrade-input-arrow"></div>
+                                                        <input type="text" class="upgrade-input numberFormatInput" value="4" max-value="18" />
+                                                    </div>
+                                                    <a href="#" class="upgrade-btn" data-min-level="4">Upgrade</a>
+
+
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul>
+                            <li>Deuterium tanks are structures used to store deuterium resources on the planet.</li>
+                            <li>Once the deuterium tanks are fully filled, deuterium production on the planet is also stopped.</li>
+                        </ul>
+                            </div>
+                        </div>
+
+
+            </div>
+            <div class="buildings">
+                <div class="header">Resource buildings</div>
+                <div class="content">
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Metal Mine</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/METAL_MINE.gif)">
+                                <a href="#" class="building-btn " data-building-type="METAL_MINE">
+                                    <span class="building-level">24</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="METAL_MINE" data-tolevel="27" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Metal Mine</span> to level <span style='color:#d29d00;'>27</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Crystal Mine</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/CRYSTAL_MINE.gif)">
+                                <a href="#" class="building-btn " data-building-type="CRYSTAL_MINE">
+                                    <span class="building-level">23</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="CRYSTAL_MINE" data-tolevel="26" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Crystal Mine</span> to level <span style='color:#d29d00;'>26</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Deuterium Refinery</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/DEUTERIUM_REFINERY.gif)">
+                                <a href="#" class="building-btn " data-building-type="DEUTERIUM_REFINERY">
+                                    <span class="building-level">10</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="DEUTERIUM_REFINERY" data-tolevel="15" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Deuterium Refinery</span> to level <span style='color:#d29d00;'>15</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Solar Power Plant</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/SOLAR_POWER_PLANT.gif)">
+                                <a href="#" class="building-btn " data-building-type="SOLAR_POWER_PLANT">
+                                    <span class="building-level">7</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="SOLAR_POWER_PLANT" data-tolevel="9" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Solar Power Plant</span> to level <span style='color:#d29d00;'>9</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Fusion Reactor</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/FUSION_REACTOR.gif)">
+                                <a href="#" class="building-btn " data-building-type="FUSION_REACTOR">
+                                    <span class="building-level">0</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="FUSION_REACTOR" data-tolevel="1" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Fusion Reactor</span> to level <span style='color:#d29d00;'>1</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Metal Storage</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/METAL_STORAGE.gif)">
+                                <a href="#" class="building-btn " data-building-type="METAL_STORAGE">
+                                    <span class="building-level">5</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="METAL_STORAGE" data-tolevel="6" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Metal Storage</span> to level <span style='color:#d29d00;'>6</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Crystal Storage</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/CRYSTAL_STORAGE.gif)">
+                                <a href="#" class="building-btn " data-building-type="CRYSTAL_STORAGE">
+                                    <span class="building-level">4</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="CRYSTAL_STORAGE" data-tolevel="5" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Crystal Storage</span> to level <span style='color:#d29d00;'>5</span></h3>"></a>
+
+                                </a>
+                            </div>
+<div class="building-item tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:10px;color:#AAA;'>Deuterium Tank</div><div style='font-size:9px;color:#d43635;'></div>" style="background:url(../../assets/images/V2/building/DEUTERIUM_TANK.gif)">
+                                <a href="#" class="building-btn " data-building-type="DEUTERIUM_TANK">
+                                    <span class="building-level">3</span>
+                                            <a href="#" class="upgrade-btn-small tooltip" data-building-type="DEUTERIUM_TANK" data-tolevel="4" data-tooltip-position="top" data-tooltip-content="<h3 style='font-size:10px;color:#AAA;'>Upgrade <span style='color:#d29d00;'>Deuterium Tank</span> to level <span style='color:#d29d00;'>4</span></h3>"></a>
+
+                                </a>
+                            </div>
+
+
+                </div>
+            </div>
+
+            <div class="bottom-side" style="">
+                <div class="largebox">
+                    <div class="header">
+                        Buildings under construction
+                    </div>
+                    <div class="content">
+
+                                        <div class="container" id="firstConstruction" data-cancel-message="Cancel the upgrade of Metal Mine to level 25 ?" data-building-type="METAL_MINE" data-tolevel="25">
+                                            <div style="float:left;width:100%;height:16px;margin-bottom:10px;background: url(../../assets/images/percentage_gray.png?v=2) repeat-x;border-radius:8px;overflow:hidden;">
+                                                <div id="building_percentage" style="float:left;width:23%;;height:16px;background: url(../../assets/images/percentage_green.png?v=2) repeat-x;"></div>
+                                            </div>
+                                            <a href="#" class="cancel-building-construction tooltip" data-tooltip-position="top" data-tooltip-content="<span style='font-size:11px;'>Cancel the upgrade of <span style='color:#d29d00;'>Metal Mine</span> to level <span style='color:#d29d00;'>25</span> ?</span>"><img /></a>
+                                            <img src="/assets/images/V2/building/METAL_MINE.gif" style="width:72px;height:72px;float:left;" />
+                                            <div style="float:left;width:calc(60% - 15px);font-size:11px;text-align:left;padding-left:15px;">
+                                                <span style="display:block;float:left;width:100%;font-size:12px;color:#d29d00;text-align:left;">Metal Mine</span>
+                                                        <div style="float:left;width:100%;margin-top:6px;color:#6f9fc8;">Upgrade to level <span style="color:#a26d00;">25</span></div>
+
+
+                                                <div style="float:left;width:100%;margin-top:6px;"><span style="color:#6f9fc8;">Duration : <span style="color:#FFF;" id="firstConstructionRemainingTime">05:18</span></span></div>
+                                            </div>
+
+                                            <div style="float:left;">
+
+                                                        <a href="#" class="complete-btn tooltip" data-building-type="METAL_MINE" data-tolevel="25" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;'>Complete this construction for <span style='color:#d29d00;'>1.000</span> DM.</div>">
+                                                            <span class="btn-dm-complete-text">Complete</span>
+                                                            <span class="btn-dm-complete-cost">Cost : 1.000 DM</span>
+                                                        </a>
+
+
+
+                                            </div>
+                                        </div>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="CRYSTAL_MINE" data-tolevel="24" data-cancel-message="Cancel the upgrade of Crystal Mine to level 24 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Crystal Mine (24) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/CRYSTAL_MINE.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>24</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="DEUTERIUM_REFINERY" data-tolevel="11" data-cancel-message="Cancel the upgrade of Deuterium Refinery to level 11 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Deuterium Refinery (11) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/DEUTERIUM_REFINERY.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>11</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="METAL_MINE" data-tolevel="26" data-cancel-message="Cancel the upgrade of Metal Mine to level 26 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Metal Mine (26) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/METAL_MINE.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>26</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="CRYSTAL_MINE" data-tolevel="25" data-cancel-message="Cancel the upgrade of Crystal Mine to level 25 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Crystal Mine (25) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/CRYSTAL_MINE.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>25</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="DEUTERIUM_REFINERY" data-tolevel="12" data-cancel-message="Cancel the upgrade of Deuterium Refinery to level 12 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Deuterium Refinery (12) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/DEUTERIUM_REFINERY.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>12</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="SOLAR_POWER_PLANT" data-tolevel="8" data-cancel-message="Cancel the upgrade of Solar Power Plant to level 8 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Solar Power Plant (8) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/SOLAR_POWER_PLANT.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>8</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="DEUTERIUM_REFINERY" data-tolevel="13" data-cancel-message="Cancel the upgrade of Deuterium Refinery to level 13 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Deuterium Refinery (13) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/DEUTERIUM_REFINERY.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>13</span>
+                                        </a>
+                                        <a href="#" class="construction-queue-item  tooltip" data-building-type="DEUTERIUM_REFINERY" data-tolevel="14" data-cancel-message="Cancel the upgrade of Deuterium Refinery to level 14 ?" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;text-align:center;'>Deuterium Refinery (14) </br><span style='font-size:9px;color:#AAA;'>Click to cancel the upgrade</span></div>" style="background:url(../../assets/images/V2/building/DEUTERIUM_REFINERY.gif) 0px 0px no-repeat;background-size:contain;">
+                                            <span>14</span>
+                                        </a>
+
+
+                    </div>
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+    <div class="footer"></div>
+</div>
+
+<script>
+
+    window.localization.TERRAFORMER = `TERRAFORMER`;
+    window.localization.MOON_BASE = `MOON_BASE`;
+    window.localization.TERRAFORMER_LAST_FIELD_WARNING = `This building will occupy the last free space on this planet. Do you wish to proceed?</span><br/><span style="font-size:11px;color:#AAA;">(Alternatively, the terraformer could be used to make other fields on the planet usable)`;
+    window.localization.CONVERT_UPGRADE_CALL_RESOURCE_TRADER = `Do you want to call the <span style=\"color:#FFC107;\">resource trader</span>?`;
+    window.localization.CONVERT_UPGRADE_CALL_RESOURCE_TRADER_DESC = `Missing resources will be converted by resource trader.`;
+    window.localization.COST = `Cost`;
+    window.localization.DARK_MATTER = `Dark matter`;
+                
+
+            window.currentConstructionRemainingSeconds = 318;
+
+                
+
+
+    window.remainingFieldsQueueIncluded = '246';
+    window.currentPlanet_Id = '11111111-1111-1111-1111-111111111111';
+    window.tradeDarkMatterCost = '2.500';
+
+</script>
+
+<script src="/assets/js/app/pages/buildingResource.js?v=4355"></script>
+                    </div>
+
+                    <div id="planet-selection">
+                        <span class="planet-info">[1/4] Planets</span>
+                        <div id="other-planets">
+                                        <div class="planet-item  selected">
+                                            <a class="planet-select selected" href="?planet=11111111-1111-1111-1111-111111111111">
+                                                <img class="planet-icon" src="/assets/images/v2/planet/1/1_small.jpg?v=4" />
+                                                <span class="planet-name">Home planet</span>
+                                                <span class="planet-coords">
+                                                    [8:260:3]
+                                                            <i class="fas fa-industry tooltip" data-tooltip-position="top" data-tooltip-content="<div style='font-size:11px;color:#DDD;'>Metal Mine (25)</div>" style="font-size: 12px;color: #FF9800;float: right;margin-left:5px;"></i>
+
+                                                </span>
+
+                                            </a>
+                                        </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer"></div>
+
+    <!-- AJAX-MODAL -->
+    <div class="modal micromodal-slide" id="ajax-modal" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+            <div class="modal__container modal__medium" id="ajax-modal-container" role="dialog" aria-modal="true" aria-labelledby="ajax-modal-title">
+                <header class="modal__header">
+                    <h2 class="modal__title" id="ajax-modal-title"></h2>
+                    <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
+                </header>
+                <main class="modal__content" id="ajax-modal-content">
+
+                </main>
+                
+
+                
+            </div>
+        </div>
+    </div>
+
+    
+
+
+    <!-- AJAX-MODAL-END -->
+    <!-- COMBAT-REPORT-MODAL -->
+    <div class="modal micromodal-slide" id="ajax-combatreport-modal" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+            <div class="modal__container modal__chat" id="ajax-combatreport-modal-container" role="dialog" aria-modal="true" aria-labelledby="ajax-modal-title" style="padding: 5px 5px;">
+                <header class="modal__header">
+                    <div class="navigation">
+                        <a href="#" class="nav-item modal__title" id="ajax-combatreport-modal-title" data-target="combatReport-tab" data-ajax-loaded="true">Battle Report</a>
+                        <a href="#" class="nav-item" data-target="comments-tab">Comments</a>
+                    </div>
+                    <button class="modal__close" style="border: 1px solid #0b9eb7;" aria-label="Close modal" data-micromodal-close></button>
+                </header>
+                <main class="modal__content" id="ajax-combatreport-modal-content">
+                    <div class="content">
+                        <div class="tab-item" id="combatReport-tab" style="min-height:200px;">
+                        </div>
+                        <div class="tab-item" id="comments-tab" style="min-height:200px;">
+
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    <!--  COMBAT-REPORT-MODAL -->
+    <!-- PLAYER-BADGE-MODAL -->
+    <div class="modal micromodal-slide" id="ajax-playerBadge-modal" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+            <div class="modal__container " id="ajax-playerBadge-modal-container" style="background:linear-gradient( 180deg,rgb(29,42,59) 0%, rgb(0,0,0) 100%);" role="dialog" aria-modal="true" aria-labelledby="ajax-modal-title">
+                <header class="modal__header">
+                    <h2 class="modal__title" id="ajax-playerBadge-modal-title"></h2>
+                    <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
+                </header>
+                <main class="modal__content" id="ajax-playerBadge-modal-content" style="margin-top:0px !important;">
+
+                </main>
+                
+            </div>
+        </div>
+    </div>
+    <!--  PLAYER-BADGE-MODAL -->
+    <!-- CHAT-MODAL -->
+    <div class="modal micromodal-slide" id="ajax-chat-modal" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+            <div class="modal__container modal__chat" id="ajax-chat-modal-container" role="dialog" aria-modal="true" aria-labelledby="ajax-modal-title">
+                <header class="modal__header">
+                    <h2 class="modal__title" id="ajax-chat-modal-title"></h2>
+                    <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
+                </header>
+                <main class="modal__content" id="ajax-chat-modal-content">
+
+                </main>
+                
+            </div>
+        </div>
+    </div>
+    <!-- CHAT-MODAL-END -->
+    <!-- IFRAME-MODAL -->
+    <div class="modal micromodal-slide" id="iframe-modal" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+            <div class="modal__container modal__medium" id="iframe-modal-container" role="dialog" aria-modal="true" aria-labelledby="iframe-modal-title">
+                <header class="modal__header">
+                    <h2 class="modal__title" id="iframe-modal-title"></h2>
+                    <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
+                </header>
+                <main class="modal__content" id="iframe-modal-content">
+
+                </main>
+                
+            </div>
+        </div>
+    </div>
+    <!-- IFRAME-MODAL-END -->
+    <!-- PLAYER FRIEDNS ADD-MODAL -->
+    <div class="modal micromodal-slide" id="ajax-playerfriendcreate-modal" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+            <div class="modal__container modal__chat" id="ajax-playerfriendcreate-modal-container" role="dialog" aria-modal="true" aria-labelledby="ajax-modal-title">
+                <header class="modal__header">
+                    <h2 class="modal__title" id="ajax-playerfriendcreate-modal-title"></h2>
+                    <button class="modal__close" aria-label="Close modal" data-micromodal-close></button>
+                </header>
+                <main class="modal__content" id="ajax-playerfriendcreate-modal-content">
+
+                </main>
+                
+            </div>
+        </div>
+    </div>
+    <!--  PLAYER FRIEDNS ADD-MODAL -->
+
+
+
+    <div id="BackGroundFreezerPreloader" class="BackGroundFreezer" align="center">
+        <div class="loader">
+        </div>
+    </div>
+
+    <script>
+
+        var _browserLanguage = (window.navigator.userLanguage || window.navigator.language).substring(0, 2).toLowerCase();
+        var _fleetReturnCounterInterval = null;
+
+
+
+
+        function ReloadPage() {
+            if (!window.location.hash) {
+                window.location.href = window.location.href;
+            } else {
+                window.location.reload();
+            }
+        }
+
+        function ReportChatMessage(msgId,isUniverseMessage) {
+
+            var data = {
+                Id: msgId
+            };
+
+            if (isUniverseMessage != undefined && isUniverseMessage != null && isUniverseMessage === true) {
+                PostRequest('/chat/reportuniversalmessage', JSON.stringify(data),
+                function (res) {
+                    if (res.IsSuccess) {
+                        ShowSuccessMessage(`The report has been sent to the administrators for review.`);
+                    }
+                    else {
+                        ShowError(res.Message);
+                    }
+                },
+                function () {
+                    ShowError();
+                });
+            }
+            else {
+                PostRequest('/chat/reportmessage', JSON.stringify(data),
+                function (res) {
+                    if (res.IsSuccess) {
+                        ShowSuccessMessage(`The report has been sent to the administrators for review.`);
+                    }
+                    else {
+                        ShowError(res.Message);
+                    }
+                },
+                function () {
+                    ShowError();
+                });
+            }
+        }
+
+        function ShowError(contentHtml) {
+            var defaultMsg = `An unexpected error occurred.`;
+            var errorMsg = '';
+            if (contentHtml === undefined || contentHtml == null || contentHtml === '') {
+                errorMsg = defaultMsg;
+            }
+            else
+                errorMsg = contentHtml;
+
+            Swal.fire({
+                type: 'error',
+                title: `Error`,
+                html: `<div style="font-size:12px;">`+errorMsg+`</div>`,
+                footer: '',
+                onBeforeOpen: function (ele) {
+                    console.log($(ele));
+                    $(ele).addClass('swal2-modal-error');
+                }
+            });
+        }
+
+        function ShowNotEnoughDM() {
+            var message = `Not enough Dark Matter available!</br> Do you want to buy some now?`;
+
+            Swal.fire({
+                title: 'Error',
+                html: '<span style="font-size: 12px; ">' + message + '</span>',
+                type: 'error',
+                showCancelButton: true,
+                buttonStyling: false,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'No',
+                onBeforeOpen: function (ele) {
+                    console.log($(ele));
+                    $(ele).addClass('swal2-modal-error');
+                }
+            }).then(function(result){
+                if (result.value) {
+                    window.location.href = '/darkmatter/purchase';
+                }
+            })
+        }
+
+        function ShowSuccessMessage(message, callback) {
+            Swal.fire({
+                title: `Success`,
+                html: `<span style="font-size:12px;">${message}</span>`,
+                confirmButtonColor: '#3085d6',
+                confirmButtonText: 'Ok',
+                onBeforeOpen: function (ele) {
+                    console.log($(ele));
+                    $(ele).addClass('swal2-modal-success');
+                }
+            }).then((result) => {
+                if (result.value) {
+                    if (callback != undefined && callback != null) {
+                        callback();
+                    }
+                }
+            });
+        }
+
+        window.isConnectedChatWs = false;
+
+        function ConnectChatWS() {
+            if (window.isConnectedChatWs)
+                return;
+
+            var hub = $.connection.wSHub;
+
+            hub.client.newChatMessage = function (dataJson) {
+                var data = JSON.parse(dataJson);
+                console.log(data);
+
+                data.MessageContent = Emojify(data.MessageContent);
+
+                if (data.IsAllianceChat === true) {
+                    var allianceChatMessagesContainer = $('#alliance_chat_messages');
+                    if (allianceChatMessagesContainer.length > 0) {
+                        var msgDateObj = new Date(data.MessageDate);
+
+                        allianceChatMessagesContainer.append('<div class="message-item"><span class="msg-sender">' + data.FromPlayerName + '</span><span class="msg-date">' + FormatDate(msgDateObj) + '</span><span class="msg-arrow"></span><div class="msg-content">' + data.MessageContent + '</div></div>');
+
+                       allianceChatMessagesContainer.animate({ scrollTop: allianceChatMessagesContainer.prop("scrollHeight")}, 1000);
+                    }
+                }
+                else {
+                    var playerChatMessagesContainer = $('#player_chat_messages_' + data.FromPlayerId);
+                    if (playerChatMessagesContainer.length > 0) {
+
+                        var msgDateObj = new Date(data.MessageDate);
+
+                        playerChatMessagesContainer.append('<div class="message-item"><span class="msg-sender">' + data.FromPlayerName + '</span><span class="msg-date">' + FormatDate(msgDateObj) + '</span><span class="msg-arrow"></span><div class="msg-content">' + data.MessageContent + '</div></div>');
+
+                       playerChatMessagesContainer.animate({ scrollTop: playerChatMessagesContainer.prop("scrollHeight")}, 1000);
+
+                    }
+                }
+
+            };
+
+            $.connection.hub.start();
+            window.isConnectedChatWs = true;
+        }
+
+        
+
+        $(function () {
+
+            window.fleetDetailTableOpened = false;
+
+            var currentMissionRemainingSeconds = 694;
+
+            setInterval(function () {
+                currentMissionRemainingSeconds -= 1;
+                $('#NextMissionRemainingTime').html(ConvertToTimeString(currentMissionRemainingSeconds));
+            }, 1000);
+
+
+            $('#fleet-movement-detail-btn').click(function () {
+
+                if (window.fleetDetailTableOpened === true) {
+                    $('#layoutFleetMovements').toggleClass('opened');
+                }
+                else {
+
+                    $('#header .fleet-info-section').loading(true);
+
+                    $.ajax({
+                        url: '/home/fleetmovementlist',
+                        type: 'GET',
+                        cache:false,
+                        success: function (data) {
+                            window.fleetDetailTableOpened = true;
+
+                            $('#fleet-movement-content').html(data);
+
+                            ConfigureModals();
+                            ConfigureTooltips();
+
+                            $('#layoutFleetMovements').toggleClass('opened');
+
+                            $('#header .fleet-info-section').loading(false);
+                        }
+                    });
+                }
+
+                return false;
+            })
+
+        });
+
+
+        
+
+
+        function MutePlayer(playerId, successCallBack) {
+
+            var data = {
+                Id: playerId
+            };
+
+            Swal.fire({
+                title: 'Warning',
+                html: '<span style="font-size: 12px; ">'+'Are you sure you want to mute the player?'+'</span>',
+                type: 'warning',
+                showCancelButton: true,
+                buttonStyling: false,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'No'
+            }).then(function (result) {
+                if (result.value) {
+                    PostRequest('/home/MutePlayer', JSON.stringify(data),
+                        function (res) {
+                            if (res.IsSuccess) {
+                                var idmute = "#id_playerMute_" + playerId;
+                                $('' + idmute).hide();
+                                var idUnmute = "#id_playerUnMute_" + playerId;
+                                $('' + idUnmute).show();
+
+                                ShowSuccessMessage(`This player is muted. This can be undone in the player search section.`);
+                                if (successCallBack)
+                                    successCallBack();
+                            } else {
+                                ShowError(res.Message);
+                            }
+                        });
+                }
+            });
+        }
+
+        function UnMutePlayer(playerId , successCallBack) {
+            var data = {
+                Id: playerId
+            };
+            PostRequest('/home/UnMutePlayer', JSON.stringify(data),
+                function (res) {
+                    if (res.IsSuccess) {
+                        ShowSuccessMessage(`The player is unmuted.`);
+                        $("#id_playerUnMute_" + playerId).hide();
+                        $("#id_playerMute_" + playerId).show();
+                        if (successCallBack)
+                            successCallBack();
+                    } else {
+                        ShowError(res.Message);
+
+                    }
+                });
+        }
+
+        function ShowPlayerBadgeDialog(playerId) {
+
+            if (playerId === undefined || playerId === null || playerId === '')
+                return;
+
+            $('#ajax-playerBadge-modal-content').html('<div class="modal__loader__container"><div class="modal__loader"></div></div>');
+            $('#ajax-playerBadge-modal-title').html('');
+
+            var modalSizeCss = '';
+            var modalSize = $(this).attr('data-modal-size');
+            if (modalSize !== undefined && modalSize !== null) {
+
+                if (modalSize === 'large' || modalSize === 'medium' || modalSize === 'small' || modalSize === '700')
+                    modalSizeCss = 'modal__' + modalSize;
+            }
+
+            if (modalSizeCss === '') {
+                modalSizeCss = 'modal__medium';
+            }
+
+            $('#ajax-playerBadge-modal-container').removeClass('modal__large');
+            $('#ajax-playerBadge-modal-container').removeClass('modal__medium');
+            $('#ajax-playerBadge-modal-container').removeClass('modal__small');
+            $('#ajax-playerBadge-modal-container').addClass(modalSizeCss);
+
+            MicroModal.show('ajax-playerBadge-modal');
+
+            var url = '/Home/PlayerBadge?Id=' + playerId + '';
+
+            $.ajax({
+                url: url,
+                type: 'GET',
+                cache: false,
+                success: function (data) {
+                    $('#ajax-playerBadge-modal-content').html(data);
+                    ConfigureTooltips();
+                }
+            });
+        }
+
+        function TranslateMessage(btnTranslate) {
+            var msgItem = $(btnTranslate).closest('.message-item');
+            var msgText = msgItem.find('.msg-content').find('p').html();
+
+            if (msgItem == undefined || msgText == undefined || msgItem.find('.translate_original_msg').length > 0 || msgItem.find('.x-loading').length > 0) {
+                return false;
+            }
+
+            msgItem.append('<div class="x-loading" style="position: absolute;left: 0px;top: 0px;width: 100%;height: 100%;background-color: rgba(0, 0, 0, 0.5);text-align: center;display: flex;justify-content: center;align-items: center;"><i class="fas fa-sync-alt fa-spin" style="font-size: 26px;color:#79d5ff;"></i></div>');
+
+            $.getJSON('https://translate-pa.googleapis.com/v1/translate?params.client=gtx&query.source_language=auto&query.target_language=' + _browserLanguage + '&query.display_language=' + _browserLanguage + '&query.text=' + encodeURIComponent(msgText) + '&key=AIzaSyDLEeFI5OtFBwYBIoK_jj5m32rZK5CkCXA&data_types=TRANSLATION&data_types=SENTENCE_SPLITS&data_types=BILINGUAL_DICTIONARY_FULL', function (data) {
+                msgItem.find('.msg-content').find('p').addClass('translate_original_msg');
+                msgItem.find('.msg-content').append('<p class="translate_result_msg">' + data.translation + '</p>');
+                msgItem.find('.x-loading').remove();
+            }).fail(function () { ShowError('TRANSLATE-ERROR'); msgItem.find('.x-loading').remove(); });
+
+            return false;
+        }
+
+        
+
+
+    </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920" integrity="sha512-L0ha0OXavK/8okipN9F8BtP84dg9DUhPERbBXzwI6dgTA55d2+yweo3pn5CSFYs45/r8md2+xvUPtTdvTNRfjA==" data-cf-beacon='{"version":"2024.11.0","token":"2bf9dd8fdb5f462fab051c0ef58ac7d9","spa":2}' crossorigin="anonymous"></script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a4b778f6ade7ed0d',t:'MTc5MjE1Nzk5Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
+
+
+
+
+
+
+

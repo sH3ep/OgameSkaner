@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Storage;
 
@@ -104,6 +105,81 @@ internal sealed class OgamexClient : IOgamexClient
         {
             return false;
         }
+    }
+
+    /// <summary>Message the server sends when all 15 slots (running item + 14 waiting) are taken.</summary>
+    internal const string QueueFullMessage = "Construction queue is full.";
+
+    public async Task<OwnPlanetsSnapshot> GetOwnPlanetsAsync(CancellationToken cancellationToken = default)
+    {
+        // Every game page has the planet list in its sidebar.
+        var page = await GetBuildingPageAsync("building/resource", planet: null, cancellationToken).ConfigureAwait(false);
+        return new OwnPlanetsSnapshot(page.Planets, page.CurrentPlanet);
+    }
+
+    public Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default) =>
+        GetBuildingPageAsync("building/resource", planet, cancellationToken);
+
+    public async Task<PlanetBuildState> GetPlanetBuildStateAsync(PlanetId planet, bool includeFacilities = true, CancellationToken cancellationToken = default)
+    {
+        var pages = new List<BuildingPage>
+        {
+            await GetBuildingPageAsync("building/resource", planet, cancellationToken).ConfigureAwait(false)
+        };
+
+        // Moons have no mines; their buildings are left to a separate automation.
+        if (pages[0].Buildings.All(b => b.Building != BuildingType.MetalMine))
+            throw new OgamexException($"{planet} is not a planet (a moon?). Only planets are automated.");
+        if (includeFacilities)
+            pages.Add(await GetBuildingPageAsync("building/facility", planet, cancellationToken).ConfigureAwait(false));
+
+        // The latest page has the freshest resources and queue; buildings come from both.
+        var latest = pages[^1];
+        var buildings = pages.SelectMany(p => p.Buildings).GroupBy(b => b.Building).Select(g => g.Last()).ToList();
+        var levels = buildings.ToDictionary(b => b.Building, b => b.Level);
+
+        return new PlanetBuildState(
+            latest.Planets.FirstOrDefault(p => p.Id == planet) ?? new OwnPlanet(planet, planet.Value, default),
+            levels,
+            latest.Resources,
+            latest.Queue,
+            EnergyBalance: (long)Math.Floor(latest.EnergyProduction - latest.EnergyConsumption))
+        {
+            NextLevelCosts = buildings.Where(b => b.NextLevelCost is not null).ToDictionary(b => b.Building, b => b.NextLevelCost!.Value),
+            Locked = buildings.Where(b => b.Locked).Select(b => b.Building).ToHashSet(),
+            StorageCapacity = latest.StorageCapacity,
+            FreeFields = pages.Select(p => p.FreeFields).LastOrDefault(f => f is not null),
+            VacationMode = latest.VacationMode
+        };
+    }
+
+    public async Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Post, "building/increasebuilding", referer: "building/resource");
+        request.Content = JsonContent.Create(new IncreaseBuildingRequest(BuildingCatalog.Get(building).ServerId, planet.Value), options: JsonOptions);
+
+        var response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        if (response.IsSuccess)
+            return EnqueueOutcome.Queued;
+
+        return string.Equals(response.Message?.Trim(), QueueFullMessage, StringComparison.OrdinalIgnoreCase)
+            ? new EnqueueOutcome(EnqueueResult.QueueFull, response.Message)
+            : new EnqueueOutcome(EnqueueResult.Rejected, response.Message);
+    }
+
+    /// <summary>Loads a building page, switching to <paramref name="planet"/> first when given.</summary>
+    /// <exception cref="OgamexException">The server returned another planet (unknown or lost planet id).</exception>
+    private async Task<BuildingPage> GetBuildingPageAsync(string path, PlanetId? planet, CancellationToken cancellationToken)
+    {
+        var uri = planet is { } id ? $"{path}?planet={Uri.EscapeDataString(id.Value)}" : path;
+        using var request = CreateRequest(HttpMethod.Get, uri, referer: path);
+        var page = BuildingPageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+
+        // An unknown planet id is silently ignored and the current planet is returned instead.
+        if (planet is { } expected && page.CurrentPlanet != expected)
+            throw new OgamexException($"Planet {expected} is not available on {Universe.Name}. Refresh the planet list.");
+
+        return page;
     }
 
     public void Dispose() => _http.Dispose();

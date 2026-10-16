@@ -22,6 +22,9 @@ public sealed class OgamexOptions
     /// <summary>Random extra delay (0..value) added to <see cref="MinRequestInterval"/>.</summary>
     public TimeSpan RequestJitter { get; set; } = TimeSpan.FromMilliseconds(200);
 
+    /// <summary>How many buildings the server allows in a planet's build queue, counting the one being built (1 + 14 waiting).</summary>
+    public int BuildQueueCapacity { get; set; } = 15;
+
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>When set, every response body is written to this directory (useful for capturing test fixtures).</summary>

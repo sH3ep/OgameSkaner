@@ -78,6 +78,7 @@ public partial class App : Application
 
         builder.Services.AddPage<ScannerViewModel, ScannerView>("Scanner");
         builder.Services.AddPage<PlayersViewModel, PlayersView>("Players");
+        builder.Services.AddPage<BuilderViewModel, BuilderView>("Builder");
         builder.Services.AddPage<UtilitiesViewModel, UtilitiesView>("Utilities");
 
         return builder.Build();

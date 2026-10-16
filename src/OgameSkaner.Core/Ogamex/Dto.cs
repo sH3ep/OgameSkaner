@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace OgameSkaner.Core.Ogamex;
 
 // Request/response bodies of the OgameX JSON endpoints (serialized with camelCase names).
@@ -19,3 +21,11 @@ internal sealed record SendFleetRequest(
     int MissionType);
 
 internal sealed record ShipRequest(string ShipType, long Quantity);
+
+/// <summary>Body of <c>/building/increasebuilding</c>; the game sends these exact (PascalCase) names.</summary>
+internal sealed record IncreaseBuildingRequest(
+    [property: JsonPropertyName("BuildingType")] string BuildingType,
+    [property: JsonPropertyName("__PlanetId")] string PlanetId);
+
+/// <summary>Answer of the building endpoints: <c>{"IsSuccess":false,"Message":"Construction queue is full.","ValidationErrors":null}</c>.</summary>
+internal sealed record BuildingResponse(bool IsSuccess, string? Message);
