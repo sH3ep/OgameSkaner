@@ -12,7 +12,7 @@
         <Grid.Background>
             <ImageBrush ImageSource="{Binding BackgroundPath}" />
         </Grid.Background>
-        <ContentControl Content="{Binding CurrentView, Mode=OneWay}" Margin="148,0,4,0" />
+        <ContentControl Content="{Binding CurrentView, Mode=OneWay}" Margin="206,0,4,0" />
         <TextBlock HorizontalAlignment="Left" Margin="88,0,0,39" TextWrapping="Wrap" Text="sH3ep  @2019" Width="319"
                    Height="24" VerticalAlignment="Bottom" />
         <Button Content="UserPlanetView" Command="{Binding ShowUserPlanetViewCommand}" HorizontalAlignment="Left"
@@ -40,9 +40,11 @@
         <Label Content="{Binding LoginStatus,UpdateSourceTrigger=PropertyChanged}" Foreground="Yellow"
                HorizontalAlignment="Left" Margin="10,335,0,0" VerticalAlignment="Top" Width="73" />
         <ComboBox ItemsSource="{Binding GameConfigurationNames,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding SelectedGameConfigurationName, Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"
-            HorizontalAlignment="Left" Margin="10,100,0,0" VerticalAlignment="Top" Width="196" Height="31"/>
-        <Button Content="ManageConfigurations" Command="{Binding ManageConfigurationCommand}" HorizontalAlignment="Left" Margin="10,136,0,0" VerticalAlignment="Top" Width="133" Height="25"/>
-        <Button Content="Export Data" Command="{Binding ExportDataCommand}" HorizontalAlignment="Left" Margin="10,166,0,0" VerticalAlignment="Top" Width="133" Height="25"/>
+            HorizontalAlignment="Left" Margin="10,145,0,0" VerticalAlignment="Top" Width="196" Height="31"/>
+        <Button Content="ManageConfigurations" Command="{Binding ManageConfigurationCommand}" HorizontalAlignment="Left" Margin="10,181,0,0" VerticalAlignment="Top" Width="133" Height="25"/>
+        <Button Content="Export Data" Command="{Binding ExportDataCommand}" HorizontalAlignment="Left" Margin="10,211,0,0" VerticalAlignment="Top" Width="133" Height="25"/>
+        <Button Content="Utilities" Command="{Binding ShowUtilitiesViewCommand}" HorizontalAlignment="Left"
+            Margin="10,100,0,0" VerticalAlignment="Top" Width="133" Height="40" />
     </Grid>
 
 

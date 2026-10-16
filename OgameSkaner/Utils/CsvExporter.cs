@@ -24,6 +24,7 @@ namespace OgameSkaner.Utils
                 var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
                
                 csv.WriteRecords(items);
+                writer.Close();
             }
         }
     }

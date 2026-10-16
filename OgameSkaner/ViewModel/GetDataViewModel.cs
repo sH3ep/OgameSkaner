@@ -146,7 +146,7 @@ namespace OgameSkaner.ViewModel
                                 await gameFileReader.AddPlayersFromFile(solarSysteFile, usersPlanets, DateTime.Now, actualGalaxy, actualSolarSystem);
                                 ActualPositionReaded = actualGalaxy + ":" + actualSolarSystem;
                                 dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());
-                                await Task.Delay(750 + random.Next(250, 750));
+                                await Task.Delay(400 + random.Next(0, 200));
                             }
 
                         dataManager.SaveIntoXmlFile("Database" + _gameRestClient.GetGameType() + _gameRestClient.GetUniversum());

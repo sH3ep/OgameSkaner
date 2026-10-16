@@ -111,7 +111,7 @@ namespace OgameScaner.ViewModel
         public DelegateCommand ShowGetDataCommand { set; get; }
         public DelegateCommand ManageConfigurationCommand { set; get; }
         public DelegateCommand ExportDataCommand { set; get; }
-
+        public DelegateCommand ShowUtilitiesViewCommand { set; get; }
 
         #endregion
 
@@ -133,7 +133,9 @@ namespace OgameScaner.ViewModel
             {
                 var dataManager = new UserPlanetDataManager();
                 var players = dataManager.LoadFromXml(databaseFileName).ToList();
-                exporter.ExportPlayersToCsv(players.OrderBy(x => x.UserName));
+
+                var playersForExport = players.Select(player => new UserPlanetForExport(player)).ToList();
+                exporter.ExportPlayersToCsv(playersForExport.OrderBy(x => x.UserName));
             }
         }
 
@@ -161,6 +163,13 @@ namespace OgameScaner.ViewModel
             var restClientFactory = new GameRestClientFactory();
             var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
             CurrentView = new UserPlanetView(gameRestClient);
+        }
+
+        private void ShowUtilitiesView()
+        {
+            var restClientFactory = new GameRestClientFactory();
+            var gameRestClient = restClientFactory.CreateRestClient(_actualGameConfigurationModel.GameType, _actualGameConfigurationModel.Universum);
+            CurrentView = new UtilitiesView(gameRestClient);
         }
 
         private void ShowGetData()
@@ -206,6 +215,7 @@ namespace OgameScaner.ViewModel
             ShowUserPlanetViewCommand = new DelegateCommand(ShowUserPlanetView, CanExecuteButtons);
             ManageConfigurationCommand = new DelegateCommand(ManageConfiguration, CanExecuteButtons);
             ExportDataCommand = new DelegateCommand(ExportData, CanExecuteButtons);
+            ShowUtilitiesViewCommand = new DelegateCommand(ShowUtilitiesView, CanExecuteButtons);
         }
 
         private async Task CheckLogInStatus()

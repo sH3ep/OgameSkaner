@@ -19,6 +19,10 @@ namespace OgameSkaner.RestClient
                     return GetSolarSystemRequestConfiguration();
                 case RequestType.Login:
                     return GetLoginRequestConfiguration();
+                case RequestType.GetFleet:
+                    return GetFleetRequestConfiguration();
+                case RequestType.SendFleet:
+                    return GetSendFleetRequestConfiguration();
 
                 default:
                     return GetStartPageRequestConfiguration();
@@ -51,6 +55,24 @@ namespace OgameSkaner.RestClient
 
             AddDefaultHeadersAndCookies(request, _universum);
 
+            return request;
+        }
+
+        private RestRequest GetFleetRequestConfiguration()
+        {
+            var request = new RestRequest("https://" + _universum + ".ogamex.net/fleet", Method.Get);
+
+            AddDefaultHeadersAndCookies(request, _universum);
+
+            return request;
+        }
+
+        private RestRequest GetSendFleetRequestConfiguration()
+        {
+            var request = new RestRequest("https://" + _universum + ".ogamex.net/fleet/submitfleet", Method.Post);
+
+            AddDefaultHeadersAndCookies(request, _universum);
+            request.AddHeader("referer", $"https://{_universum}.ogamex.net/fleet");
 
             return request;
         }
@@ -75,10 +97,10 @@ namespace OgameSkaner.RestClient
             var token = new Token(GameType.OgameX, universum).GetToken();
             var sessionId = new Token(GameType.OgameX, universum).GetSessionId();
 
-            request.AddCookie("lang", "pl", "/", "tron.ogamex.net");
-            request.AddCookie("timeZoneOffset", "120", "/", "tron.ogamex.net");
-            request.AddCookie("SessionId", sessionId, "/", "tron.ogamex.net");
-            request.AddCookie("gameAuthToken", token, "/", "tron.ogamex.net");
+            request.AddCookie("lang", "pl", "/", $"{universum}.ogamex.net");
+            request.AddCookie("timeZoneOffset", "120", "/", $"{universum}.ogamex.net");
+            request.AddCookie("SessionId", sessionId, "/", $"{universum}.ogamex.net");
+            request.AddCookie("gameAuthToken", token, "/", $"{universum}.ogamex.net");
             request.AddCookie("_ga", "GA1.1.1428976385.1681921793", "/", ".ogamex.net");
             //   request.AddCookie("__cf_bm", "0");
             request.AddCookie("_ga_EB8YK2X9FG", "GS1.1.1695987173.382.1.1695987237.0.0.0", "/", ".ogamex.net");

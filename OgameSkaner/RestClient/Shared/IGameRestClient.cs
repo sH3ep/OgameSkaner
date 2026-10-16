@@ -1,4 +1,5 @@
-﻿using System.Security;
+﻿using System.Collections.Generic;
+using System.Security;
 using System.Threading.Tasks;
 using OgameSkaner.Model;
 using OgameSkaner.RestClient.InterWar;
@@ -18,6 +19,7 @@ namespace OgameSkaner.RestClient
         void SpyPlanet(UserPlanet userPlanet,PlanetType planetType);
         string GetUniversum();
         GameType GetGameType();
+        Task<GetFleetResponse> GetFleet();
+        Task EscapeFleet(int galaxy, int solar, int position, bool toMoon, Dictionary<string, string> ships);
     }
-
 }

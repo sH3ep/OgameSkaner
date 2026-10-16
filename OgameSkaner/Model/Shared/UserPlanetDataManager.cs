@@ -69,7 +69,7 @@ namespace OgameSkaner.Model
 
                 if (strictSearch)
                 {
-                    tempList = _userPlanets.Where(x => x.UserName.ToLower() == userName.ToLower());
+                    tempList = _userPlanets.Where(x => x.UserName.ToLower() == userName.ToLower().Trim());
                 }
                 else
                 {

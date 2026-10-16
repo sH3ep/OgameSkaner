@@ -65,6 +65,9 @@
   <PropertyGroup>
     <SignManifests>false</SignManifests>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>OgameSkaner.App</StartupObject>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Brotli.Core, Version=2.1.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Brotli.NET.2.1.1\lib\net45\Brotli.Core.dll</HintPath>
@@ -83,6 +86,9 @@
     </Reference>
     <Reference Include="GalaSoft.MvvmLight.Platform, Version=5.4.1.0, Culture=neutral, PublicKeyToken=5f873c45e98af8a1, processorArchitecture=MSIL">
       <HintPath>..\packages\MvvmLightLibs.5.4.1.1\lib\net45\GalaSoft.MvvmLight.Platform.dll</HintPath>
+    </Reference>
+    <Reference Include="HtmlAgilityPack, Version=1.11.70.0, Culture=neutral, PublicKeyToken=bd319b19eaf3b43a, processorArchitecture=MSIL">
+      <HintPath>..\packages\HtmlAgilityPack.1.11.70\lib\Net45\HtmlAgilityPack.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Bcl.AsyncInterfaces, Version=7.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Bcl.AsyncInterfaces.7.0.0\lib\net462\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
@@ -137,6 +143,7 @@
       <HintPath>..\packages\System.ValueTuple.4.5.0\lib\net47\System.ValueTuple.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
+    <Reference Include="System.Web.Extensions" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\MvvmLightLibs.5.4.1.1\lib\net45\System.Windows.Interactivity.dll</HintPath>
@@ -191,6 +198,8 @@
     <Compile Include="Model\InterWar\IWgameFileReader.cs" />
     <Compile Include="RestClient\Sgame\SgameRestClient.cs" />
     <Compile Include="Utils\ProgresBarData.cs" />
+    <Compile Include="Utils\UserPlanetForExport.cs" />
+    <Compile Include="ViewModel\UtilitiesViewModel.cs" />
     <Compile Include="ViewModel\ManageConfigurationViewModel.cs" />
     <Compile Include="ViewModel\GetDataViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
@@ -210,6 +219,9 @@
     </Compile>
     <Compile Include="View\UserPlanetView.xaml.cs">
       <DependentUpon>UserPlanetView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="View\UtilitiesView.xaml.cs">
+      <DependentUpon>UtilitiesView.xaml</DependentUpon>
     </Compile>
     <Compile Include="WpfExtensions\GifImage.cs" />
     <Compile Include="WpfExtensions\ListBoxExtensions.cs" />
@@ -244,6 +256,10 @@
       <Generator>MSBuild:Compile</Generator>
     </Page>
     <Page Include="View\UserPlanetView.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="View\UtilitiesView.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

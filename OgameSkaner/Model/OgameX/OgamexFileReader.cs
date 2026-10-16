@@ -42,7 +42,6 @@ namespace OgameSkaner.Model.Sgame
                 while (true)
                 {
                     actualLine = stringReader.ReadLine();
-
                     if (actualLine.Contains(PlanetNumberString))
                     {
                         planetPosition = GetPlanetPosition(actualLine);
