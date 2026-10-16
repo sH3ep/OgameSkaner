@@ -38,6 +38,13 @@
                 <TextBlock DockPanel.Dock="Top" Foreground="#555" TextWrapping="Wrap" Margin="0,0,0,6"
                            Text="Relative: target = reference level + value (e.g. -2). Absolute: target = value. The cheapest upgrade below its target is queued first (value = metal + 1.5×crystal + 3×deuterium). Only upgrades the planet can pay for right now are queued; locked buildings are skipped. The solar plant and storages are automatic." />
 
+                <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                    <Button DockPanel.Dock="Right" Content="↻" MinWidth="0" Padding="6,0" Margin="6,0,0,0"
+                            Command="{Binding RefreshViewedPlanetCommand}" ToolTip="Read the selected planet again" />
+                    <TextBlock Text="{Binding ViewedPlanetInfo, TargetNullValue='Click a planet in the list on the right to see its levels in the Actual column.'}"
+                               Foreground="#555" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
+
                 <DataGrid ItemsSource="{Binding Rules}" AutoGenerateColumns="False" CanUserAddRows="False"
                           CanUserDeleteRows="False" CanUserSortColumns="False" HeadersVisibility="Column"
                           SelectionUnit="Cell" Background="Transparent">
@@ -52,6 +59,7 @@
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Header="Building" Binding="{Binding DisplayName}" IsReadOnly="True" Width="*" />
                         <DataGridTextColumn Header="Category" Binding="{Binding Category}" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Actual" Binding="{Binding Actual}" IsReadOnly="True" Width="70" Foreground="#2b5797" />
                         <DataGridTemplateColumn Header="Mode" Width="90">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
@@ -109,22 +117,20 @@
                         <Button DockPanel.Dock="Right" Content="All" Command="{Binding SelectAllPlanetsCommand}" Margin="0,0,4,0" MinWidth="50" />
                         <TextBlock Text="Planets" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </DockPanel>
-                    <Border BorderBrush="#BBB" BorderThickness="1" MaxHeight="180" Margin="0,0,0,2">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <ItemsControl ItemsSource="{Binding Planets}" Margin="4,2">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type vm:PlanetSelectionItemViewModel}">
-                                        <CheckBox IsChecked="{Binding IsSelected}" Margin="0,2">
-                                            <StackPanel Orientation="Horizontal">
-                                                <TextBlock Text="{Binding Name}" Width="140" TextTrimming="CharacterEllipsis" />
-                                                <TextBlock Text="{Binding Coordinates}" Foreground="#555" />
-                                            </StackPanel>
-                                        </CheckBox>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                        </ScrollViewer>
-                    </Border>
+                    <ListBox ItemsSource="{Binding Planets}" SelectedItem="{Binding ViewedPlanet}" MaxHeight="180" Margin="0,0,0,2"
+                             HorizontalContentAlignment="Stretch"
+                             ToolTip="Tick the planets to automate; click a planet to see its levels in the Actual column">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlanetSelectionItemViewModel}">
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0"
+                                              ToolTip="Run automation on this planet" />
+                                    <TextBlock Text="{Binding Name}" Width="140" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Coordinates}" Foreground="#555" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                     <TextBlock Text="{Binding PlanetsInfo}" Foreground="#555" Margin="0,0,0,6"
                                ToolTip="New planets are ticked automatically; unticked planets are remembered" />
 

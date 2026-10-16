@@ -21,6 +21,7 @@ public sealed partial class BuilderViewModel : PageViewModel
     private string? _loadedUniverse;
     private HashSet<string> _excludedPlanetIds = [];
     private bool _loading;
+    private bool _restoringViewedPlanet;
 
     public BuilderViewModel(
         IUniverseContext context,
@@ -41,6 +42,13 @@ public sealed partial class BuilderViewModel : PageViewModel
             RunCancelCommand.Execute(null);
             StatusText = null;
             LoadSettings();
+        };
+
+        RunCommand.PropertyChanged += (_, e) =>
+        {
+            // Levels change during a run; show the fresh ones afterwards.
+            if (e.PropertyName == nameof(RunCommand.IsRunning) && !RunCommand.IsRunning && ViewedPlanet is not null)
+                _ = ShowViewedPlanetAsync();
         };
     }
 
@@ -66,6 +74,13 @@ public sealed partial class BuilderViewModel : PageViewModel
     [ObservableProperty]
     private string? _planetsInfo;
 
+    /// <summary>The planet whose levels are shown in the Actual column (selected in the planet list).</summary>
+    [ObservableProperty]
+    private PlanetSelectionItemViewModel? _viewedPlanet;
+
+    [ObservableProperty]
+    private string? _viewedPlanetInfo;
+
     [ObservableProperty]
     private string? _statusText;
 
@@ -88,6 +103,78 @@ public sealed partial class BuilderViewModel : PageViewModel
     partial void OnStorageFillPercentChanged(int value) => SaveSettings();
 
     partial void OnModeChanged(BuildAutomationMode value) => SaveSettings();
+
+    partial void OnViewedPlanetChanged(PlanetSelectionItemViewModel? value)
+    {
+        if (!_restoringViewedPlanet)
+            _ = ShowViewedPlanetAsync();
+    }
+
+    [RelayCommand]
+    private Task RefreshViewedPlanetAsync() => ShowViewedPlanetAsync();
+
+    /// <summary>Reads the viewed planet and fills the Actual column and the summary line.</summary>
+    private async Task ShowViewedPlanetAsync()
+    {
+        ClearActual();
+        if (ViewedPlanet?.Planet is not { } planet || _context.Client is not { } client)
+            return;
+
+        if (RunCommand.IsRunning)
+        {
+            ViewedPlanetInfo = $"{planet.Name}: levels are shown when the run has finished.";
+            return;
+        }
+
+        ViewedPlanetInfo = $"Reading {planet}…";
+        try
+        {
+            var state = await _ownPlanets.InspectAsync(client, planet.Id);
+            if (ViewedPlanet?.Planet != planet)
+                return; // another planet was selected meanwhile
+
+            foreach (var rule in Rules)
+                rule.Actual = DescribeLevel(state, rule.Building);
+            ViewedPlanetInfo = DescribePlanet(state);
+        }
+        catch (OgamexException ex)
+        {
+            ViewedPlanetInfo = $"Reading {planet} failed: {ex.Message}";
+        }
+    }
+
+    private void ClearActual()
+    {
+        foreach (var rule in Rules)
+            rule.Actual = null;
+        ViewedPlanetInfo = null;
+    }
+
+    private static string DescribeLevel(PlanetBuildState state, BuildingType building)
+    {
+        if (state.Locked.Contains(building))
+            return "locked";
+
+        var level = state.LevelOf(building);
+        var queued = state.Queue.Where(q => q.Building == building).Select(q => q.Level).DefaultIfEmpty(level).Max();
+        return queued > level ? $"{level} → {queued}" : level.ToString();
+    }
+
+    private string DescribePlanet(PlanetBuildState state)
+    {
+        static string Fill(long amount, long capacity) => capacity > 0 ? $"{100 * amount / capacity}%" : "?";
+
+        var capacity = state.StorageCapacity ?? default;
+        return string.Join("   ",
+            $"{state.Planet}:",
+            $"queue {state.Queue.Count}",
+            $"energy {state.EnergyBalance:+#,0;-#,0;0}",
+            $"free fields {state.FreeFields?.ToString() ?? "?"}",
+            $"solar plant {DescribeLevel(state, BuildingType.SolarPlant)}",
+            $"storages {DescribeLevel(state, BuildingType.MetalStorage)} / {DescribeLevel(state, BuildingType.CrystalStorage)} / {DescribeLevel(state, BuildingType.DeuteriumTank)}"
+                + $" (full {Fill(state.Resources.Metal, capacity.Metal)} / {Fill(state.Resources.Crystal, capacity.Crystal)} / {Fill(state.Resources.Deuterium, capacity.Deuterium)})",
+            $"read {DateTime.Now:T}");
+    }
 
     [RelayCommand]
     private void SelectAllPlanets() => SetAllPlanets(true);
@@ -214,6 +301,7 @@ public sealed partial class BuilderViewModel : PageViewModel
 
     private void ShowPlanets(OwnPlanetList list)
     {
+        var viewedId = ViewedPlanet?.Planet.Id;
         Planets.Clear();
         foreach (var planet in list.Planets)
             Planets.Add(new PlanetSelectionItemViewModel(planet, !_excludedPlanetIds.Contains(planet.Id.Value), OnPlanetSelectionChanged));
@@ -221,6 +309,20 @@ public sealed partial class BuilderViewModel : PageViewModel
         PlanetsInfo = list.RefreshedAt is { } at
             ? $"{Planets.Count} planets, refreshed {at:g}"
             : "Planet list not refreshed yet";
+
+        // Keep the viewed planet without reading it again; the new row object only replaces the old one.
+        _restoringViewedPlanet = true;
+        try
+        {
+            ViewedPlanet = Planets.FirstOrDefault(p => p.Planet.Id == viewedId);
+        }
+        finally
+        {
+            _restoringViewedPlanet = false;
+        }
+
+        if (ViewedPlanet is null)
+            ClearActual();
     }
 
     private void SaveSettings()

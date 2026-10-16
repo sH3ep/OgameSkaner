@@ -20,4 +20,18 @@ public sealed class OwnPlanetService(IOwnPlanetStore store, TimeProvider timePro
         store.Save(client.Universe.Name, list);
         return new OwnPlanetRefresh(list, snapshot.CurrentPlanet);
     }
+
+    /// <summary>
+    /// Reads a planet's buildings, resources and queue. Reading a planet selects it in the game (also for the
+    /// player's browser), so the planet that was selected before is selected again afterwards.
+    /// </summary>
+    /// <exception cref="OgamexException">The planet could not be read.</exception>
+    public async Task<PlanetBuildState> InspectAsync(IOgamexClient client, PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        var before = await client.GetOwnPlanetsAsync(cancellationToken).ConfigureAwait(false);
+        var state = await client.GetPlanetBuildStateAsync(planet, includeFacilities: true, cancellationToken).ConfigureAwait(false);
+        if (before.CurrentPlanet != planet)
+            await client.SelectPlanetAsync(before.CurrentPlanet, CancellationToken.None).ConfigureAwait(false);
+        return state;
+    }
 }

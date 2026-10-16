@@ -46,6 +46,10 @@ public sealed partial class BuildingRuleItemViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(Target))]
     private int _value;
 
+    /// <summary>Level on the planet selected in the planet list, e.g. "24" or "24 → 27" with queued levels.</summary>
+    [ObservableProperty]
+    private string? _actual;
+
     public bool IsRelative => Mode == RuleMode.Relative;
 
     public bool IsAbsolute => Mode == RuleMode.Absolute;
