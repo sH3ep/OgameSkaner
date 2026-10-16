@@ -22,14 +22,15 @@ public enum Gene : byte
 
 /// <summary>
 /// The game's rules as the simulator sees them: costs, construction times, production, energy and storage capacity.
-/// Calibrated on OgameX (genesis, 2026-10-16) with the test account's bonuses included; see
+/// Formulas measured on OgameX (genesis, 2026-10-16); the account's bonuses (<see cref="AccountBonuses"/>, read from
+/// the game before every simulation) and the planet (slot, temperature) are parameters. See
 /// <c>docs/ogamex-build-api.md</c> ("Formulas for the optimizer"). Everything is precomputed per level, so the
 /// simulator only does array lookups.
 /// </summary>
 public sealed class GameModel
 {
     /// <summary>Changes whenever a formula changes, so results simulated with an older model aren't compared.</summary>
-    public const string Version = "genesis-2026-10-16";
+    public const string Version = "genesis-2026-10-16b";
 
     public const int MaxLevel = 60;
     public const int BuildingCount = 10;
@@ -40,16 +41,19 @@ public sealed class GameModel
     public const int ShipyardRoboticsLevel = 2;
     public const int NaniteRoboticsLevel = 10;
 
-    // Production per second of one "formula unit" (30·L·1.1^L metal, 20·L·1.1^L crystal, 10·L·1.1^L deuterium),
-    // with the account's bonuses. Base income doesn't depend on mines or energy (metal 25/s, crystal 12.5/s).
-    private const double MineUnitPerSecond = 6.5645833;
-    private const double MetalBaseIncome = 25;
-    private const double CrystalBaseIncome = 12.5;
-    private const double DeuteriumEfficiency = 0.721488;
-    private const double EnergyBonus = 1.464;
+    /// <summary>"Each level … increases the production speed of buildings … by 80%" (Nanite Factory description).</summary>
     private const double NaniteSpeedUp = 1.8;
 
-    // Storage capacity by level (game's table, bonus included); later levels continue the growth of the differences.
+    /// <summary>OgameX's solar plant gives 1.2 × the standard 20·L·1.1^L (Resources page, before bonuses).</summary>
+    private const double SolarBase = 24;
+
+    /// <summary>Satellite energy before bonuses: 0.26158·(min temperature + 140) (Home 55.97 at 74 °C, Colony 54.67 at 69 °C).</summary>
+    private const double SatelliteEnergyPerDegree = 0.26158;
+
+    /// <summary>One satellite at Shipyard 0, measured with +10% ship production speed.</summary>
+    private const double MeasuredSatelliteSeconds = 22.6;
+
+    // Storage capacity by level as the game showed it with +10% storage capacity; later levels continue the growth.
     private static readonly double[] MeasuredCapacity =
     [
         11_000_000, 17_600_000, 24_062_500, 31_212_500, 39_496_875, 49_637_500, 62_794_531,
@@ -69,10 +73,16 @@ public sealed class GameModel
     private readonly double[][] _baseSeconds = new double[BuildingCount][];
     private readonly double[] _roboticsDivisor = new double[MaxLevel + 2];
     private readonly double[] _naniteDivisor = new double[MaxLevel + 2];
+    private readonly double _satelliteSeconds;
 
-    public GameModel(int maxTemperature)
+    public GameModel(AccountBonuses bonuses, PlanetConditions planet)
     {
-        MaxTemperature = maxTemperature;
+        Bonuses = bonuses;
+        Planet = planet;
+        var calibration = AccountBonuses.Calibration;
+
+        // Durations were measured with the calibration account's construction speed; speeds divide the time.
+        var construction = (1 + bonuses.ConstructionSpeed) / (1 + calibration.ConstructionSpeed);
         for (var b = 0; b < BuildingCount; b++)
         {
             _metal[b] = new double[MaxLevel + 2];
@@ -86,33 +96,48 @@ public sealed class GameModel
                 _crystal[b][level] = c;
                 _deuterium[b][level] = d;
                 var (h, k) = DurationConstants((Gene)b);
-                _baseSeconds[b][level] = (m + c) * h * Math.Pow(k, level);
+                _baseSeconds[b][level] = (m + c) * h * Math.Pow(k, level) / construction;
             }
         }
 
+        // Per second: (basic + mine · energy factor · (1 + Σ increases)) · (1 + class bonus). The mine's base is
+        // economy speed · formula · (1 + planet slot bonus); deuterium also depends on the average temperature.
+        var more = 1 + bonuses.ClassBonus;
+        var perSecond = bonuses.EconomySpeed / 3600;
+        BaseMetalIncome = 30 * perSecond * more;
+        BaseCrystalIncome = 15 * perSecond * more;
+        var metal = perSecond * (1 + planet.MetalBonus) * (1 + bonuses.Metal.Total) * more;
+        var crystal = perSecond * (1 + planet.CrystalBonus) * (1 + bonuses.Crystal.Total) * more;
+        var deuterium = perSecond * (1 + planet.DeuteriumBonus) * (1 + bonuses.Deuterium.Total) * more
+                        * Math.Max(0, 1.202 - 0.004 * planet.AverageTemperature);
+        var energy = 1 + bonuses.Energy.Total;
         for (var level = 0; level <= MaxLevel + 1; level++)
         {
+            var growth = level * Math.Pow(1.1, level);
             _roboticsDivisor[level] = (1 + level) * Math.Pow(1.05, level);
             _naniteDivisor[level] = Math.Pow(NaniteSpeedUp, level);
-            MetalPerSecond[level] = MineUnitPerSecond * 30 * level * Math.Pow(1.1, level);
-            CrystalPerSecond[level] = MineUnitPerSecond * 20 * level * Math.Pow(1.1, level);
-            DeuteriumPerSecond[level] = MineUnitPerSecond * 10 * level * Math.Pow(1.1, level)
-                                        * DeuteriumEfficiency * (1.44 - 0.004 * maxTemperature);
-            MetalConsumption[level] = 10 * level * Math.Pow(1.1, level);
-            CrystalConsumption[level] = 10 * level * Math.Pow(1.1, level);
-            DeuteriumConsumption[level] = 20 * level * Math.Pow(1.1, level);
-            SolarEnergy[level] = 20 * level * Math.Pow(1.1, level) * EnergyBonus;
-            Capacity[level] = CapacityOf(level);
+            MetalPerSecond[level] = 30 * growth * metal;
+            CrystalPerSecond[level] = 20 * growth * crystal;
+            DeuteriumPerSecond[level] = 10 * growth * deuterium;
+            MetalConsumption[level] = 10 * growth;
+            CrystalConsumption[level] = 10 * growth;
+            DeuteriumConsumption[level] = 20 * growth;
+            SolarEnergy[level] = SolarBase * growth * energy;
+            Capacity[level] = CapacityOf(level) / (1 + calibration.StorageIncrease) * (1 + bonuses.StorageIncrease);
         }
 
-        SatelliteEnergy = Math.Max(0, (maxTemperature + 140) / 6.0 * EnergyBonus);
+        SatelliteEnergy = Math.Max(0, SatelliteEnergyPerDegree * (planet.MinTemperature + 140) * energy);
+        _satelliteSeconds = MeasuredSatelliteSeconds * (1 + calibration.ShipyardSpeed) / (1 + bonuses.ShipyardSpeed);
     }
 
-    public int MaxTemperature { get; }
+    public AccountBonuses Bonuses { get; }
 
-    public static double BaseMetalIncome => MetalBaseIncome;
+    public PlanetConditions Planet { get; }
 
-    public static double BaseCrystalIncome => CrystalBaseIncome;
+    /// <summary>Basic income per second (no mine or energy needed); only the class bonus applies to it.</summary>
+    public double BaseMetalIncome { get; }
+
+    public double BaseCrystalIncome { get; }
 
     public double[] MetalPerSecond { get; } = new double[MaxLevel + 2];
     public double[] CrystalPerSecond { get; } = new double[MaxLevel + 2];
@@ -148,8 +173,8 @@ public sealed class GameModel
     /// <summary>How much faster everything builds at a Robotics/Nanite level (1 at level 0).</summary>
     public double SpeedUp(int robotics, int nanite) => _roboticsDivisor[robotics] * _naniteDivisor[nanite];
 
-    /// <summary>Time to build one satellite: 22.6 s at Shipyard 0, 11.3% less per level; Nanite doesn't help.</summary>
-    public static double SatelliteSeconds(int shipyard) => Math.Max(1, Math.Floor(22.6 * Math.Pow(0.887, shipyard)));
+    /// <summary>Time to build one satellite: 11.3% less per Shipyard level; Nanite doesn't help (Home: 6 s at Shipyard 11, Nanite 1).</summary>
+    public double SatelliteSeconds(int shipyard) => Math.Max(1, Math.Floor(_satelliteSeconds * Math.Pow(0.887, shipyard)));
 
     private static (double Metal, double Crystal, double Deuterium) Cost(Gene gene, int level)
     {
@@ -180,8 +205,9 @@ public sealed class GameModel
     }
 
     /// <summary>
-    /// Seconds per resource unit (metal + crystal) at Robotics 0 / Nanite 0 and level 0, and the growth per level.
-    /// Fitted to 120 durations read from the game (all within 0.1%); time = (m + c)·h·k^level / ((1+R)·1.05^R·1.8^N).
+    /// Seconds per resource unit (metal + crystal) at Robotics 0 / Nanite 0 and level 0, and the growth per level,
+    /// with the calibration account's +80% construction speed. Fitted to 120 durations read from the game (all within
+    /// 0.1%); time = (m + c)·h·k^level / ((1+R)·1.05^R·1.8^N) · 1.8 / (1 + construction speed).
     /// </summary>
     private static (double H, double K) DurationConstants(Gene gene) => gene switch
     {

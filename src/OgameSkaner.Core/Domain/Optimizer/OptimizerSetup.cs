@@ -14,10 +14,20 @@ public sealed record OptimizerSetup
     public int CrystalMine { get; init; } = 17;
     public int DeuteriumSynthesizer { get; init; } = 12;
 
-    /// <summary>Planet's maximum temperature: deuterium production and satellite energy depend on it.</summary>
-    public int MaxTemperature { get; init; } = 84;
+    /// <summary>Planet slot 1–15: production bonuses (OgameX wiki) and the temperature range.</summary>
+    public int PlanetSlot { get; init; } = 8;
+
+    /// <summary>Planet temperature: deuterium depends on the average, satellite energy on the minimum.</summary>
+    public int MinTemperature { get; init; } = 28;
+
+    public int MaxTemperature { get; init; } = 32;
 
     public ResourceSet StartResources { get; init; } = new(500, 500, 0);
+
+    /// <summary>The account's bonuses read from the game (research, officers, academy, premium, ranking, class).</summary>
+    public AccountBonuses Bonuses { get; init; } = AccountBonuses.Calibration;
+
+    public PlanetConditions Planet => new(PlanetSlot, MinTemperature, MaxTemperature);
 
     public int SolarMaxLevel { get; init; } = 40;
     public int RoboticsMaxLevel { get; init; } = 10;
@@ -30,10 +40,18 @@ public sealed record OptimizerSetup
 
     public int ShipyardMaxLevel { get; init; } = 8;
 
-    /// <summary>Identifies the setup (and the model version) so the best order can be kept per setup.</summary>
+    /// <summary>
+    /// Identifies the setup, the account's bonuses and the model version, so the best order is kept per setup and
+    /// orders simulated with other bonuses aren't compared.
+    /// </summary>
     public string Key => FormattableString.Invariant(
-        $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer} | T{MaxTemperature} | start {StartResources.Metal}/{StartResources.Crystal}/{StartResources.Deuterium} | solar≤{SolarMaxLevel} robotics≤{RoboticsMaxLevel} nanite≤{NaniteMaxLevel} ") +
-        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites") + " | " + GameModel.Version;
+        $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer} | slot {PlanetSlot} {MinTemperature}..{MaxTemperature}°C | start {StartResources.Metal}/{StartResources.Crystal}/{StartResources.Deuterium} | solar≤{SolarMaxLevel} robotics≤{RoboticsMaxLevel} nanite≤{NaniteMaxLevel} ") +
+        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites") + " | " + Bonuses.Signature + " | " + GameModel.Version;
+
+    /// <summary>The same setup without the bonuses: finds earlier results for it after the bonuses changed.</summary>
+    public string TargetKey => FormattableString.Invariant(
+        $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer} | slot {PlanetSlot} {MinTemperature}..{MaxTemperature}°C | start {StartResources.Metal}/{StartResources.Crystal}/{StartResources.Deuterium} | solar≤{SolarMaxLevel} robotics≤{RoboticsMaxLevel} nanite≤{NaniteMaxLevel} ") +
+        (UseSatellites ? $"satellites shipyard≤{ShipyardMaxLevel}" : "no satellites");
 
     public string ShortName => $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer}";
 

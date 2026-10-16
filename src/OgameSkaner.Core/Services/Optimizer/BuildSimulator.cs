@@ -204,7 +204,7 @@ public sealed class BuildSimulator
 
         _crystal -= crystal;
         _deuterium -= deuterium;
-        var seconds = GameModel.SatelliteSeconds(_levels[(int)Gene.Shipyard]);
+        var seconds = Model.SatelliteSeconds(_levels[(int)Gene.Shipyard]);
         if (_satellitesPending == 0)
         {
             _satelliteSeconds = seconds;
@@ -311,8 +311,8 @@ public sealed class BuildSimulator
     {
         var use = EnergyUse(_levels[0], _levels[1], _levels[2]);
         var factor = use <= 0 ? 1 : Math.Min(1, EnergyProduction(_satellites) / use);
-        metal = GameModel.BaseMetalIncome + Model.MetalPerSecond[_levels[0]] * factor;
-        crystal = GameModel.BaseCrystalIncome + Model.CrystalPerSecond[_levels[1]] * factor;
+        metal = Model.BaseMetalIncome + Model.MetalPerSecond[_levels[0]] * factor;
+        crystal = Model.BaseCrystalIncome + Model.CrystalPerSecond[_levels[1]] * factor;
         deuterium = Model.DeuteriumPerSecond[_levels[2]] * factor;
     }
 

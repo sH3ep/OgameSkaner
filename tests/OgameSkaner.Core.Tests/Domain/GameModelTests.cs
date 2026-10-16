@@ -6,7 +6,11 @@ namespace OgameSkaner.Core.Tests.Domain;
 /// <summary>Values read from the game (genesis, 2026-10-16); the model must reproduce them.</summary>
 public class GameModelTests
 {
-    private readonly GameModel _model = new(maxTemperature: 84);
+    // Colony: slot 4 (+15% metal and crystal), 69–74 °C, with the account's bonuses on 2026-10-16.
+    private static readonly PlanetConditions Colony = new(4, 69, 74);
+    private static readonly PlanetConditions Home = new(3, 74, 75);
+
+    private readonly GameModel _model = new(AccountBonuses.Calibration, Colony);
 
     [Theory]
     [InlineData(Gene.MetalMine, 1, 80, 20, 0)]
@@ -72,23 +76,55 @@ public class GameModelTests
     }
 
     [Fact]
-    public void Production_and_energy_match_the_colony()
+    public void Production_matches_the_resource_settings_page()
     {
-        // Colony: Metal Mine 13, Crystal Mine 15, Deuterium Synthesizer 12, Solar Plant 16 (values per second).
-        Assert.Equal(8863.46, GameModel.BaseMetalIncome + _model.MetalPerSecond[13], 2);
-        Assert.Equal(8239.07, GameModel.BaseCrystalIncome + _model.CrystalPerSecond[15], 2);
-        Assert.Equal(1969.24, _model.DeuteriumPerSecond[12], 1);
-        Assert.InRange(_model.SolarEnergy[16], 2152.6, 2152.7);
-        Assert.Equal(1379.81, _model.CrystalConsumption[15] + _model.DeuteriumConsumption[12], 1);
-        Assert.Equal(54.67, _model.SatelliteEnergy, 1);
+        // "Production per hour" on /resource (Colony: Metal 13, Crystal 15, Deuterium 12; Home: 24, 24, 15).
+        var home = new GameModel(AccountBonuses.Calibration, Home);
+        AssertClose(32_094_263, _model.BaseMetalIncome + _model.MetalPerSecond[13]);
+        AssertClose(29_833_583, _model.BaseCrystalIncome + _model.CrystalPerSecond[15]);
+        AssertClose(7_130_655, _model.DeuteriumPerSecond[12]);
+        AssertClose(146_677_662, home.BaseMetalIncome + home.MetalPerSecond[24]);
+        AssertClose(127_087_640, home.BaseCrystalIncome + home.CrystalPerSecond[24]);
+        AssertClose(11_708_208, home.DeuteriumPerSecond[15]);
+
+        // Within 0.01% (the game rounds every row of the table).
+        static void AssertClose(double perHour, double perSecond) => Assert.InRange(perSecond * 3600, perHour * 0.9999, perHour * 1.0001);
+    }
+
+    [Fact]
+    public void Energy_matches_the_resource_settings_page()
+    {
+        // Colony: solar plant 16 gives 1,764 + 30% bonuses = 2,293; mines use 449 + 627 + 753.
+        Assert.InRange(_model.SolarEnergy[16], 2292, 2294);
+        Assert.Equal(1829, _model.MetalConsumption[13] + _model.CrystalConsumption[15] + _model.DeuteriumConsumption[12], 0);
+        // Hangar: 54.67 per satellite before bonuses (Colony, min 69 °C); Home 55.97 (74 °C).
+        Assert.Equal(54.67 * 1.3, _model.SatelliteEnergy, 1);
+        Assert.Equal(55.97 * 1.3, new GameModel(AccountBonuses.Calibration, Home).SatelliteEnergy, 1);
+    }
+
+    [Fact]
+    public void Bonuses_change_production_and_construction_time()
+    {
+        var weaker = AccountBonuses.Calibration with
+        {
+            Metal = AccountBonuses.Calibration.Metal with { Ranking = 0 },
+            ClassBonus = 0,
+            ConstructionSpeed = 0
+        };
+        var model = new GameModel(weaker, Colony);
+
+        // Metal: (60,000 + 3,096,687 · (1 + 0.89)) per hour, no class bonus.
+        Assert.InRange((model.BaseMetalIncome + model.MetalPerSecond[13]) * 3600, 60_000 + 3_096_687 * 1.89 - 50, 60_000 + 3_096_687 * 1.89 + 50);
+        // Construction speed +80% → +0%: 1.8× longer.
+        Assert.InRange(model.Seconds(Gene.MetalMine, 28, 4, 0), _model.Seconds(Gene.MetalMine, 28, 4, 0) * 1.8 - 2, _model.Seconds(Gene.MetalMine, 28, 4, 0) * 1.8 + 2);
     }
 
     [Fact]
     public void Storage_capacity_follows_the_games_table_and_keeps_growing()
     {
-        Assert.Equal(11_000_000, _model.Capacity[0]);
-        Assert.Equal(49_637_500, _model.Capacity[5]);
-        Assert.Equal(293_510_400, _model.Capacity[11]);
+        Assert.Equal(11_000_000, _model.Capacity[0], 3);
+        Assert.Equal(49_637_500, _model.Capacity[5], 3);
+        Assert.Equal(293_510_400, _model.Capacity[11], 3);
         for (var level = 1; level <= GameModel.MaxLevel; level++)
             Assert.True(_model.Capacity[level] > _model.Capacity[level - 1]);
     }
@@ -99,7 +135,7 @@ public class GameModelTests
         // Shown on the hangar page for Shipyard 0–7.
         double[] shown = [23, 20, 17, 15, 13, 12, 11, 9];
         for (var shipyard = 0; shipyard < shown.Length; shipyard++)
-            Assert.InRange(GameModel.SatelliteSeconds(shipyard), shown[shipyard] - 1, shown[shipyard]);
+            Assert.InRange(_model.SatelliteSeconds(shipyard), shown[shipyard] - 1, shown[shipyard]);
     }
 
     [Fact]

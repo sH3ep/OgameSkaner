@@ -1,5 +1,6 @@
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 
@@ -83,6 +84,16 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         Task.FromResult(new OwnPlanetsSnapshot(OwnPlanets.ToList(), CurrentPlanet ?? OwnPlanets.FirstOrDefault()?.Id ?? default));
 
     public Dictionary<PlanetId, ShipyardState> Shipyards { get; } = new();
+
+    public AccountBonuses Bonuses { get; set; } = AccountBonuses.Calibration;
+
+    public int BonusReads { get; private set; }
+
+    public Task<AccountBonuses> GetAccountBonusesAsync(CancellationToken cancellationToken = default)
+    {
+        BonusReads++;
+        return Task.FromResult(Bonuses);
+    }
 
     public List<(PlanetId Planet, string ShipType, int Quantity)> OrderedShips { get; } = [];
 

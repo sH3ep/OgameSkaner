@@ -227,3 +227,40 @@ Colony's Metal Mine and Deuterium Synthesizer, and by raising the Colony's Shipy
   storage capacity per level.
 - `POST /building/demolishbuilding {BuildingType, __PlanetId}` demolishes one level, instantly on this server.
 - Requests in a tight loop trigger a Cloudflare "Access denied" page for about a minute: keep ≥ 1.3 s between requests.
+
+## Account bonuses (read before every optimizer run, 2026-10-16)
+`IOgamexClient.GetAccountBonusesAsync` reads three pages (`AccountBonusParser`); `GameModel` takes the result.
+- **`GET /resource`** (resource settings, current planet): table `#resource-settings-content` with the rows Basic
+  production, one row per building (with `select.factor-select[data-factor-type]`), then **Researches, Officers,
+  Academy, Premium, Ranking bonus, Class bonus**, Production per hour/day/week, Storage capacity. Each bonus row is an
+  absolute number per resource; divided by the mine's own row it gives the percentage (Colony and Home: research 4%,
+  officers 30%, academy 55%, ranking 500% for metal, crystal and deuterium; energy: research 16%, officers 6%,
+  academy 8%). Rows are recognised by position, not by their (translated) labels.
+  - Formula (verified on Colony and Home within 0.01%):
+    `per hour = (basic + mine · energy factor · (1 + research + officers + academy + premium + ranking)) · (1 + class)`.
+    The increases add up; the class bonus (Miner +50%, "affects all bonuses") multiplies everything, basic income included.
+  - Mine base = economy speed (2000) · 30/20/10 · L · 1.1^L · (1 + planet slot bonus); deuterium also
+    · (1.202 − 0.004 · average temperature). Basic income = 30/15/0 · economy speed.
+  - Energy: solar plant 24 · L · 1.1^L (1.2 × standard), satellite 0.26158 · (min temperature + 140); both
+    · (1 + energy increases). Class bonus doesn't apply to energy.
+- **`GET /officer`**: `div.officer-detail[data-officer-type]` with `.officer-level` "Level: 5/20" and `.bottom-section`
+  "Each level provides: Increases construction speed by 10%." Used: `CONSTRUCTION_EXPERT` (construction speed),
+  `TECHNOCRAT` (ship production speed), `STORAGE_EXPERT` (storage capacity). Geologist/Engineer show up in the
+  resource page's Officers row.
+- **`GET /academy`**: selected class `.class-info-item.selectedClass h3`; talents `div.academy-element-container`
+  with the details in `data-tooltip-content`: title + `<span>(Level: 6)</span>` (no span = level 0), "+5% Construction
+  speed" and `UpgradeTalent('MINER_CONSTRUCTION_SPEED')` (the id). Used: `*_CONSTRUCTION_SPEED` (+5%/level),
+  `*_HANGAR_SPEED` (+5%), `*_STORAGE_CAPACITY` (+2%).
+- **Speeds** divide the time like the Nanite Factory ("+80% production speed" = time ÷ 1.8, matching the
+  measurements): construction time ÷ (1 + construction speed), satellites ÷ (1 + ship production speed). The
+  calibration account had construction +80% (Construction expert 5 + Construction mastery 6) and ships +10%
+  (Technocrat 1); those are divided out of the measured durations. Assumption: the construction speed bonuses add up
+  (not verified – the levels can't be changed without spending dark matter).
+- Storage capacity · (1 + storage increase) (the measured table had +10% from Storage mastery 5).
+- **Premium** (`/premium`) is only a purchase form; nothing was active, so active construction/hangar/storage premiums
+  aren't readable yet. Production and energy premiums are covered by the resource page's Premium row.
+- **Planet slots** (wiki `/Wiki/colonization`): temperature range and production bonus per slot – 1: crystal +34%,
+  2: +32%, 3: +30%; 4–6: metal and crystal +15%; 7–9: metal +30%; 10–12: metal +15%, deuterium +10%; 13–15:
+  deuterium +20%. Overview (`/home`) shows the planet's own temperature ("Approximately 69°C to 74°C").
+- Research tables (`/research/researchinfo?ResearchType=MINERAL_TECHNOLOGY`): Mineral/Crystallization/Fuel
+  Technology give 4, 9, 14, 19, 25, 31, 38, 45, 53, 61% total for levels 1–10; Energy Technology 2% per level.

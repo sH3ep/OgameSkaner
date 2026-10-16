@@ -6,13 +6,24 @@ namespace OgameSkaner.Core.Services.Optimizer;
 /// <param name="Runs">Independent searches; each starts from its own randomized greedy order.</param>
 /// <param name="IterationsPerRun">Simulated orders per run (simulated annealing steps).</param>
 /// <param name="Seed">Base seed: the same seed and options give the same result.</param>
-/// <param name="Threads">Parallel runs; null = all cores.</param>
-public sealed record OptimizerOptions(int Runs = 200, int IterationsPerRun = 20_000, int Seed = 1, int? Threads = null);
+/// <param name="Threads">Parallel runs; null = <see cref="DefaultCpuPercent"/> of the cores.</param>
+public sealed record OptimizerOptions(int Runs = 200, int IterationsPerRun = 20_000, int Seed = 1, int? Threads = null)
+{
+    /// <summary>Leaves some cores free so the computer stays usable during a long search.</summary>
+    public const int DefaultCpuPercent = 90;
+
+    public int ThreadCount => Math.Max(1, Threads ?? ThreadsFor(DefaultCpuPercent));
+
+    /// <summary>Number of worker threads for a share of the logical cores (at least one; 24 cores at 90% = 21).</summary>
+    public static int ThreadsFor(int cpuPercent) =>
+        Math.Clamp((int)Math.Floor(Environment.ProcessorCount * Math.Clamp(cpuPercent, 1, 100) / 100.0), 1, Environment.ProcessorCount);
+}
 
 public sealed record OptimizerProgress(int RunsDone, int Runs, double BestSeconds, long Evaluations, TimeSpan Elapsed);
 
 /// <summary>
-/// Brute-force search for the fastest build order of a setup: many independent runs spread over all cores. A run
+/// Brute-force search for the fastest build order of a setup: many independent runs spread over the cores (worker
+/// threads at below-normal priority, so the desktop and the game stay responsive). A run
 /// builds a randomized greedy order (cheapest mine next, solar plant or satellites when energy runs out, a factory
 /// when it pays back with a random threshold), then improves it by simulated annealing: moving and swapping genes,
 /// adding and removing helper levels. Every candidate is scored by <see cref="BuildSimulator"/>.
@@ -29,7 +40,7 @@ public sealed class BuildOrderOptimizer
 
     private static OptimizedOrder? Run(OptimizerSetup setup, OptimizerOptions options, IProgress<OptimizerProgress>? progress, CancellationToken cancellationToken)
     {
-        var model = new GameModel(setup.MaxTemperature);
+        var model = new GameModel(setup.Bonuses, setup.Planet);
         var watch = Stopwatch.StartNew();
         var sync = new object();
         Gene[]? best = null;
@@ -38,17 +49,13 @@ public sealed class BuildOrderOptimizer
         var runsDone = 0;
         long evaluations = 0;
 
-        var parallel = new ParallelOptions { MaxDegreeOfParallelism = options.Threads ?? Environment.ProcessorCount };
-        try
+        // Dedicated threads (not the thread pool) so they can run below normal priority; each takes the next run.
+        var nextRun = -1;
+        void Work()
         {
-            Parallel.For(0, options.Runs, parallel, (run, state) =>
+            int run;
+            while (!cancellationToken.IsCancellationRequested && (run = Interlocked.Increment(ref nextRun)) < options.Runs)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    state.Stop();
-                    return;
-                }
-
                 var search = new RunSearch(new BuildSimulator(model, setup), new Random(unchecked(options.Seed * 1_000_003 + run * 7919)));
                 var (genes, seconds) = search.Run(options.IterationsPerRun, cancellationToken);
                 lock (sync)
@@ -64,11 +71,14 @@ public sealed class BuildOrderOptimizer
                     }
                     progress?.Report(new OptimizerProgress(runsDone, options.Runs, bestSeconds, evaluations, watch.Elapsed));
                 }
-            });
+            }
         }
-        catch (OperationCanceledException)
-        {
-        }
+
+        var threads = Enumerable.Range(0, Math.Min(options.ThreadCount, Math.Max(1, options.Runs)))
+            .Select(i => new Thread(Work) { IsBackground = true, Priority = ThreadPriority.BelowNormal, Name = $"Optimizer {i + 1}" })
+            .ToList();
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());
 
         if (best is null || double.IsPositiveInfinity(bestSeconds))
             return null;

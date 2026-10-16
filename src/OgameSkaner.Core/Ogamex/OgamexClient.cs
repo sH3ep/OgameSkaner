@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Storage;
 
@@ -133,6 +134,17 @@ internal sealed class OgamexClient : IOgamexClient
 
         var response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
         return response.IsSuccess ? EnqueueOutcome.Queued : new EnqueueOutcome(EnqueueResult.Rejected, response.Message);
+    }
+
+    public async Task<AccountBonuses> GetAccountBonusesAsync(CancellationToken cancellationToken = default)
+    {
+        using var resourceRequest = CreateRequest(HttpMethod.Get, "resource", referer: "home");
+        var production = AccountBonusParser.ParseResourceSettings(await SendForStringAsync(resourceRequest, cancellationToken).ConfigureAwait(false));
+        using var officerRequest = CreateRequest(HttpMethod.Get, "officer", referer: "home");
+        var officers = AccountBonusParser.ParseOfficers(await SendForStringAsync(officerRequest, cancellationToken).ConfigureAwait(false));
+        using var academyRequest = CreateRequest(HttpMethod.Get, "academy", referer: "home");
+        var (className, skills) = AccountBonusParser.ParseAcademy(await SendForStringAsync(academyRequest, cancellationToken).ConfigureAwait(false));
+        return AccountBonusParser.Combine(production, officers, className, skills, _timeProvider.GetLocalNow());
     }
 
     public Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default) =>

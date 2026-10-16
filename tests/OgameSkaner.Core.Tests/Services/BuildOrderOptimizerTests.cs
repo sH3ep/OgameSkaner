@@ -20,7 +20,7 @@ public class BuildOrderOptimizerTests
     [Fact]
     public async Task Finds_the_same_best_time_as_trying_every_order()
     {
-        var simulator = new BuildSimulator(new GameModel(Small.MaxTemperature), Small);
+        var simulator = new BuildSimulator(new GameModel(Small.Bonuses, Small.Planet), Small);
         var exhaustive = Orders(4, 3, 2).Min(order => simulator.Evaluate(order));
 
         var result = await new BuildOrderOptimizer().RunAsync(Small, new OptimizerOptions(Runs: 8, IterationsPerRun: 3_000, Threads: 4));
@@ -48,7 +48,7 @@ public class BuildOrderOptimizerTests
     public async Task Uses_helpers_and_beats_its_own_greedy_start()
     {
         var setup = new OptimizerSetup { MetalMine = 22, CrystalMine = 19, DeuteriumSynthesizer = 14 };
-        var simulator = new BuildSimulator(new GameModel(setup.MaxTemperature), setup);
+        var simulator = new BuildSimulator(new GameModel(setup.Bonuses, setup.Planet), setup);
         var greedy = new BuildOrderOptimizer.RunSearch(simulator, new Random(1)).Greedy();
         var greedySeconds = simulator.Evaluate(greedy);
 
@@ -94,6 +94,17 @@ public class BuildOrderOptimizerTests
 
         Assert.Equal(["Metal Mine 1", "Solar Plant 1", "Metal Mine 2"], schema.Steps.Select(s => s.ToString()));
         Assert.Equal((0, 0, true), (schema.Rules.RoboticsMaxLevel, schema.Rules.NaniteMaxLevel, schema.Rules.UseSolarSatellites));
+    }
+
+    [Fact]
+    public void Default_uses_90_percent_of_the_cores()
+    {
+        var expected = Math.Max(1, (int)Math.Floor(Environment.ProcessorCount * 0.9));
+
+        Assert.Equal(expected, new OptimizerOptions().ThreadCount);
+        Assert.Equal(1, OptimizerOptions.ThreadsFor(1));
+        Assert.Equal(Environment.ProcessorCount, OptimizerOptions.ThreadsFor(100));
+        Assert.Equal(3, new OptimizerOptions(Threads: 3).ThreadCount);
     }
 
     /// <summary>Every distinct order of the given numbers of mine levels.</summary>

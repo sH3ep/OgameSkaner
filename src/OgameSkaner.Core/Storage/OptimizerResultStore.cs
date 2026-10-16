@@ -11,6 +11,9 @@ public sealed class OptimizerData
 
     public int IterationsPerRun { get; set; } = 20_000;
 
+    /// <summary>Share of the logical cores the search may use.</summary>
+    public int CpuPercent { get; set; } = Services.Optimizer.OptimizerOptions.DefaultCpuPercent;
+
     public List<OptimizedOrder> Results { get; set; } = [];
 }
 
@@ -18,7 +21,7 @@ public interface IOptimizerResultStore
 {
     OptimizerData Load();
 
-    void SaveSettings(OptimizerSetup setup, int runs, int iterationsPerRun);
+    void SaveSettings(OptimizerSetup setup, int runs, int iterationsPerRun, int cpuPercent);
 
     /// <summary>Keeps <paramref name="order"/> only when its setup has no result yet or it is faster; returns the best one.</summary>
     OptimizedOrder SaveIfBetter(OptimizedOrder order);
@@ -40,7 +43,7 @@ public sealed class JsonOptimizerResultStore(IAppPaths paths) : IOptimizerResult
             return JsonFile.Read<OptimizerData>(FilePath) ?? new OptimizerData();
     }
 
-    public void SaveSettings(OptimizerSetup setup, int runs, int iterationsPerRun)
+    public void SaveSettings(OptimizerSetup setup, int runs, int iterationsPerRun, int cpuPercent)
     {
         lock (_sync)
         {
@@ -48,6 +51,7 @@ public sealed class JsonOptimizerResultStore(IAppPaths paths) : IOptimizerResult
             data.LastSetup = setup;
             data.Runs = runs;
             data.IterationsPerRun = iterationsPerRun;
+            data.CpuPercent = cpuPercent;
             JsonFile.Write(FilePath, data);
         }
     }

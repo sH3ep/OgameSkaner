@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using OgameSkaner.App.Infrastructure;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Optimizer;
+using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Optimizer;
 using OgameSkaner.Core.Storage;
 
@@ -16,7 +17,8 @@ public sealed record SchemaLibraryChangedMessage(Guid SchemaId);
 
 /// <summary>
 /// Build order optimizer: simulates the game for a setup (target mine levels on a fresh planet) and searches the
-/// fastest order on all cores. The best order per setup is kept and can be saved as a schema.
+/// fastest order on all cores. The account's bonuses (research, officers, academy, premium, ranking, class) are read
+/// from the game before every search. The best order per setup is kept and can be saved as a schema.
 /// </summary>
 public sealed partial class OptimizerViewModel : PageViewModel
 {
@@ -25,6 +27,8 @@ public sealed partial class OptimizerViewModel : PageViewModel
     private readonly ISchemaStore _schemas;
     private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
+    private readonly IUniverseContext _context;
+    private AccountBonuses _bonuses = AccountBonuses.Calibration;
     private bool _loading;
 
     public OptimizerViewModel(
@@ -32,13 +36,15 @@ public sealed partial class OptimizerViewModel : PageViewModel
         IOptimizerResultStore store,
         ISchemaStore schemas,
         IDialogService dialogs,
-        IMessenger messenger)
+        IMessenger messenger,
+        IUniverseContext context)
     {
         _optimizer = optimizer;
         _store = store;
         _schemas = schemas;
         _dialogs = dialogs;
         _messenger = messenger;
+        _context = context;
         Load();
     }
 
@@ -49,6 +55,8 @@ public sealed partial class OptimizerViewModel : PageViewModel
     [ObservableProperty] private int _metalMine;
     [ObservableProperty] private int _crystalMine;
     [ObservableProperty] private int _deuteriumSynthesizer;
+    [ObservableProperty] private int _planetSlot;
+    [ObservableProperty] private int _minTemperature;
     [ObservableProperty] private int _maxTemperature;
     [ObservableProperty] private long _startMetal;
     [ObservableProperty] private long _startCrystal;
@@ -60,6 +68,9 @@ public sealed partial class OptimizerViewModel : PageViewModel
     [ObservableProperty] private int _shipyardMaxLevel;
     [ObservableProperty] private int _runs;
     [ObservableProperty] private int _iterationsPerRun;
+    [ObservableProperty] private int _cpuPercent;
+
+    public string CpuInfo => $"= {OptimizerOptions.ThreadsFor(CpuPercent)} of {Environment.ProcessorCount} threads";
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(SaveAsSchemaCommand))]
@@ -77,8 +88,13 @@ public sealed partial class OptimizerViewModel : PageViewModel
     [ObservableProperty]
     private double _progressPercent;
 
+    [ObservableProperty]
+    private string? _bonusesText;
+
+    public IReadOnlyList<int> Slots { get; } = Enumerable.Range(1, PlanetConditions.SlotCount).ToList();
+
     public string ModelInfo =>
-        $"Model {GameModel.Version}: costs, build times, production and energy measured on genesis (account bonuses included). " +
+        $"Model {GameModel.Version}: costs, build times, production and energy measured on genesis; the account's bonuses are read from the game. " +
         "Fresh planet, one building at a time; satellites are built in the shipyard alongside.";
 
     private OptimizerSetup Setup => new()
@@ -86,7 +102,10 @@ public sealed partial class OptimizerViewModel : PageViewModel
         MetalMine = Math.Clamp(MetalMine, 0, GameModel.MaxLevel),
         CrystalMine = Math.Clamp(CrystalMine, 0, GameModel.MaxLevel),
         DeuteriumSynthesizer = Math.Clamp(DeuteriumSynthesizer, 0, GameModel.MaxLevel),
-        MaxTemperature = Math.Clamp(MaxTemperature, -140, 260),
+        PlanetSlot = Math.Clamp(PlanetSlot, 1, PlanetConditions.SlotCount),
+        MinTemperature = Math.Clamp(Math.Min(MinTemperature, MaxTemperature), -140, 260),
+        MaxTemperature = Math.Clamp(Math.Max(MinTemperature, MaxTemperature), -140, 260),
+        Bonuses = _bonuses,
         StartResources = new ResourceSet(Math.Max(0, StartMetal), Math.Max(0, StartCrystal), Math.Max(0, StartDeuterium)),
         SolarMaxLevel = Math.Clamp(SolarMaxLevel, 0, GameModel.MaxLevel),
         RoboticsMaxLevel = Math.Clamp(RoboticsMaxLevel, 0, GameModel.MaxLevel),
@@ -98,8 +117,21 @@ public sealed partial class OptimizerViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (_loading || e.PropertyName is nameof(Result) or nameof(SelectedSaved) or nameof(ResultInfo) or nameof(StatusText) or nameof(ProgressPercent))
+        if (_loading || e.PropertyName is nameof(Result) or nameof(SelectedSaved) or nameof(ResultInfo) or nameof(StatusText) or nameof(ProgressPercent) or nameof(BonusesText) or nameof(CpuInfo))
             return;
+
+        if (e.PropertyName == nameof(CpuPercent))
+            OnPropertyChanged(nameof(CpuInfo));
+
+        if (e.PropertyName == nameof(PlanetSlot))
+        {
+            // A typical temperature for the new slot; the user can still change it.
+            var typical = PlanetConditions.TypicalFor(PlanetSlot);
+            _loading = true;
+            MinTemperature = typical.MinTemperature;
+            MaxTemperature = typical.MaxTemperature;
+            _loading = false;
+        }
 
         // A setup input changed: remember it and show the best order already found for it.
         SaveSettings();
@@ -108,18 +140,58 @@ public sealed partial class OptimizerViewModel : PageViewModel
 
     partial void OnSelectedSavedChanged(OptimizedOrder? value)
     {
-        if (value is not null)
-            ApplySetup(value.Setup);
+        if (value is null)
+            return;
+
+        ApplySetup(value.Setup with { Bonuses = _bonuses });
+        if (Result is null)
+        {
+            // Found with other bonuses (they changed since): show it, a new search uses the current ones.
+            ShowResult(value, null);
+            ResultInfo += $" · simulated with other bonuses ({value.Setup.Bonuses.Signature})";
+        }
+    }
+
+    /// <summary>Reads the bonuses from the game; keeps the last known ones when that isn't possible.</summary>
+    [RelayCommand]
+    private Task RefreshBonusesAsync() => RefreshBonusesAsync(CancellationToken.None);
+
+    private async Task<bool> RefreshBonusesAsync(CancellationToken cancellationToken)
+    {
+        if (_context.Client is not { } client)
+        {
+            StatusText = "No universe selected: using the last known bonuses.";
+            return false;
+        }
+
+        try
+        {
+            StatusText = "Reading research, officers, academy and class from the game…";
+            SetBonuses(await client.GetAccountBonusesAsync(cancellationToken));
+            SaveSettings();
+            ShowResult(SavedResults.FirstOrDefault(r => r.SetupKey == Setup.Key), null);
+            StatusText = "Bonuses read from the game.";
+            return true;
+        }
+        catch (Exception ex) when (ex is OgamexException or System.Net.Http.HttpRequestException)
+        {
+            StatusText = $"Reading the bonuses failed ({ex.Message}); using the last known ones.";
+            return false;
+        }
     }
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
     {
+        var refreshed = await RefreshBonusesAsync(cancellationToken);
+        if (cancellationToken.IsCancellationRequested)
+            return;
+        var bonusNote = refreshed ? string.Empty : " (bonuses not refreshed)";
         var setup = Setup;
         var runs = Math.Max(1, Runs);
-        var options = new OptimizerOptions(runs, Math.Max(100, IterationsPerRun), Seed: Environment.TickCount);
+        var options = new OptimizerOptions(runs, Math.Max(100, IterationsPerRun), Seed: Environment.TickCount, Threads: OptimizerOptions.ThreadsFor(CpuPercent));
         var previous = SavedResults.FirstOrDefault(r => r.SetupKey == setup.Key);
-        StatusText = $"Running {runs} searches on {Environment.ProcessorCount} cores…";
+        StatusText = $"Running {runs} searches on {options.ThreadCount} of {Environment.ProcessorCount} threads{bonusNote}…";
         ProgressPercent = 0;
 
         var progress = new Progress<OptimizerProgress>(p =>
@@ -148,7 +220,7 @@ public sealed partial class OptimizerViewModel : PageViewModel
                     ? $"better than the saved {OptimizedOrder.FormatDuration(previous.TotalSeconds)}"
                     : $"the saved {OptimizedOrder.FormatDuration(previous.TotalSeconds)} is still the best";
             StatusText = (cancellationToken.IsCancellationRequested ? "Stopped. " : "Done. ") +
-                         $"This search: {OptimizedOrder.FormatDuration(found.TotalSeconds)} ({comparison}).";
+                         $"This search: {OptimizedOrder.FormatDuration(found.TotalSeconds)} ({comparison}){bonusNote}.";
             ShowResult(best, previous);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -197,8 +269,17 @@ public sealed partial class OptimizerViewModel : PageViewModel
         _loading = true;
         Runs = data.Runs;
         IterationsPerRun = data.IterationsPerRun;
+        CpuPercent = Math.Clamp(data.CpuPercent, 1, 100);
         _loading = false;
+        SetBonuses(data.LastSetup.Bonuses);
         ApplySetup(data.LastSetup);
+    }
+
+    private void SetBonuses(AccountBonuses bonuses)
+    {
+        _bonuses = bonuses;
+        var source = bonuses.ReadAt is { } readAt ? $"Read from the game {readAt:yyyy-MM-dd HH:mm}" : bonuses.Details;
+        BonusesText = $"{bonuses}\n{(bonuses.ReadAt is null ? string.Empty : bonuses.Details + "\n")}{source}";
     }
 
     private void ApplySetup(OptimizerSetup setup)
@@ -207,6 +288,8 @@ public sealed partial class OptimizerViewModel : PageViewModel
         MetalMine = setup.MetalMine;
         CrystalMine = setup.CrystalMine;
         DeuteriumSynthesizer = setup.DeuteriumSynthesizer;
+        PlanetSlot = setup.PlanetSlot;
+        MinTemperature = setup.MinTemperature;
         MaxTemperature = setup.MaxTemperature;
         StartMetal = setup.StartResources.Metal;
         StartCrystal = setup.StartResources.Crystal;
@@ -225,7 +308,7 @@ public sealed partial class OptimizerViewModel : PageViewModel
     {
         try
         {
-            _store.SaveSettings(Setup, Runs, IterationsPerRun);
+            _store.SaveSettings(Setup, Runs, IterationsPerRun, Math.Clamp(CpuPercent, 1, 100));
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

@@ -1,5 +1,6 @@
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Optimizer;
 
 namespace OgameSkaner.Core.Ogamex;
 
@@ -29,6 +30,12 @@ public interface IOgamexClient : IDisposable
 
     /// <summary>Orders ships in the planet's shipyard, e.g. <c>SOLAR_SATELLITE</c>.</summary>
     Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The account's production and speed bonuses (research, officers, academy, premium, ranking, class) from the
+    /// resource settings, officers and academy pages. Read-only; doesn't change the selected planet.
+    /// </summary>
+    Task<AccountBonuses> GetAccountBonusesAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Makes <paramref name="planet"/> the current planet in the game (also for the browser).</summary>
     Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default);

@@ -6,9 +6,9 @@ namespace OgameSkaner.Core.Tests.Services;
 
 public class BuildSimulatorTests
 {
-    private static readonly GameModel Model = new(maxTemperature: 84);
+    private static readonly GameModel Model = new(AccountBonuses.Calibration, new PlanetConditions(8, 28, 32));
 
-    private static BuildSimulator Simulator(OptimizerSetup setup) => new(Model, setup);
+    private static BuildSimulator Simulator(OptimizerSetup setup) => new(Model, setup with { PlanetSlot = 8, MinTemperature = 28, MaxTemperature = 32 });
 
     private static OptimizerSetup Targets(int metal, int crystal = 0, int deuterium = 0) => new()
     {
@@ -82,7 +82,7 @@ public class BuildSimulatorTests
         Assert.DoesNotContain(skipped, s => s.IsSatellites);
         var satellites = Assert.Single(ordered, s => s.IsSatellites);
         Assert.Equal(1, satellites.Level);
-        Assert.Equal(GameModel.SatelliteSeconds(3), satellites.FinishSeconds - satellites.StartSeconds, 6);
+        Assert.Equal(Model.SatelliteSeconds(3), satellites.FinishSeconds - satellites.StartSeconds, 6);
     }
 
     [Fact]

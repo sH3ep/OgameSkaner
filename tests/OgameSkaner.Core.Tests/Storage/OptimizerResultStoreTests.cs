@@ -46,13 +46,13 @@ public class OptimizerResultStoreTests : IDisposable
     public void Settings_and_orders_round_trip()
     {
         var setup = new OptimizerSetup { MetalMine = 25, NaniteMaxLevel = 2, UseSatellites = false };
-        Store().SaveSettings(setup, runs: 500, iterationsPerRun: 30_000);
+        Store().SaveSettings(setup, runs: 500, iterationsPerRun: 30_000, cpuPercent: 75);
         Store().SaveIfBetter(Order(setup, 42));
 
         var data = Store().Load();
 
         Assert.Equal(setup, data.LastSetup);
-        Assert.Equal((500, 30_000), (data.Runs, data.IterationsPerRun));
+        Assert.Equal((500, 30_000, 75), (data.Runs, data.IterationsPerRun, data.CpuPercent));
         var order = Assert.Single(data.Results);
         Assert.Equal(setup, order.Setup);
         Assert.Equal([new OptimizedStep(Gene.MetalMine, 1, 0, 42)], order.Steps);
