@@ -3,11 +3,15 @@ using OgameSkaner.Core.Domain.Buildings;
 
 namespace OgameSkaner.App.ViewModels;
 
-/// <summary>One editable row of the build strategy.</summary>
+/// <summary>
+/// One editable row of the build strategy. Relative rules are edited through the offset, absolute rules
+/// through the target level; switching the mode keeps the resulting target.
+/// </summary>
 public sealed partial class BuildingRuleItemViewModel : ObservableObject
 {
     private readonly Action _changed;
     private int _referenceLevel;
+    private int _targetBeforeModeChange;
 
     public BuildingRuleItemViewModel(BuildingRule rule, int referenceLevel, Action changed)
     {
@@ -34,14 +38,28 @@ public sealed partial class BuildingRuleItemViewModel : ObservableObject
     private bool _enabled;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(Target))]
+    [NotifyPropertyChangedFor(nameof(Target), nameof(IsRelative), nameof(IsAbsolute))]
     private RuleMode _mode;
 
+    /// <summary>The offset for relative rules, the target level for absolute ones (as stored).</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(Target))]
     private int _value;
 
-    public int Target => ToRule().TargetFor(_referenceLevel);
+    public bool IsRelative => Mode == RuleMode.Relative;
+
+    public bool IsAbsolute => Mode == RuleMode.Absolute;
+
+    /// <summary>The level to reach; editable for absolute rules, calculated from the reference level for relative ones.</summary>
+    public int Target
+    {
+        get => ToRule().TargetFor(_referenceLevel);
+        set
+        {
+            if (IsAbsolute)
+                Value = Math.Max(0, value);
+        }
+    }
 
     public BuildingRule ToRule() => new(Building, Enabled, Mode, Value);
 
@@ -53,7 +71,14 @@ public sealed partial class BuildingRuleItemViewModel : ObservableObject
 
     partial void OnEnabledChanged(bool value) => _changed();
 
-    partial void OnModeChanged(RuleMode value) => _changed();
+    partial void OnModeChanging(RuleMode value) => _targetBeforeModeChange = Target;
+
+    partial void OnModeChanged(RuleMode value)
+    {
+        // Keep the level the rule aims at: Relative +2 at reference 10 becomes Absolute 12 and back.
+        Value = value == RuleMode.Absolute ? _targetBeforeModeChange : _targetBeforeModeChange - _referenceLevel;
+        _changed();
+    }
 
     partial void OnValueChanged(int value) => _changed();
 }

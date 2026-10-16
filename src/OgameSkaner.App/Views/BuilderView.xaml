@@ -60,9 +60,34 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Value" Width="60"
-                                            Binding="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
-                        <DataGridTextColumn Header="Target" Binding="{Binding Target}" IsReadOnly="True" Width="60" />
+                        <DataGridTemplateColumn Header="Offset" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRelative}"
+                                             Margin="0" ToolTip="Relative rules: target = reference level + offset (e.g. 2 or -2)" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="Target" Width="60">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsRelative}"
+                                             Margin="0" ToolTip="Absolute rules: the level to reach. Relative rules: calculated from the reference level">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsRelative}" Value="True">
+                                                        <Setter Property="Background" Value="Transparent" />
+                                                        <Setter Property="BorderThickness" Value="0" />
+                                                        <Setter Property="Foreground" Value="#555" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
             </DockPanel>
