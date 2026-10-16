@@ -1,0 +1,17 @@
+<UserControl x:Class="OgameSkaner.App.Views.UtilitiesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:UtilitiesViewModel}"
+             d:DesignHeight="450" d:DesignWidth="760">
+    <DockPanel Background="{StaticResource PanelBackground}">
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,8,8,2">
+            <Button Content="Escape fleet to moon" Command="{Binding EscapeFleetToMoonCommand}"
+                    ToolTip="Sends every ship of the planet currently selected in the game to its moon" />
+        </StackPanel>
+        <ListBox ItemsSource="{Binding Log}" Margin="8,0,8,8" />
+    </DockPanel>
+</UserControl>
