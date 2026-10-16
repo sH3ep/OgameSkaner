@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 using OgameSkaner.App.Infrastructure;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Schemas;
@@ -16,7 +17,7 @@ namespace OgameSkaner.App.ViewModels;
 /// Build schemas: a library of build orders (shared by all universes), one schema per planet, and a runner that
 /// feeds them into the game as a virtual queue. Everything is saved on every change.
 /// </summary>
-public sealed partial class SchemasViewModel : PageViewModel
+public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaLibraryChangedMessage>
 {
     private const string ActivityName = "The Schemas runner";
 
@@ -36,7 +37,8 @@ public sealed partial class SchemasViewModel : PageViewModel
         SchemaRunner runner,
         OwnPlanetService ownPlanets,
         IDialogService dialogs,
-        AutomationActivity activity)
+        AutomationActivity activity,
+        IMessenger messenger)
     {
         _context = context;
         _store = store;
@@ -48,6 +50,7 @@ public sealed partial class SchemasViewModel : PageViewModel
         foreach (var schema in store.LoadLibrary())
             Schemas.Add(new SchemaItemViewModel(schema, SaveLibrary));
         SelectedSchema = Schemas.FirstOrDefault();
+        messenger.Register(this);
 
         _context.CurrentChanged += (_, _) =>
         {
@@ -133,6 +136,15 @@ public sealed partial class SchemasViewModel : PageViewModel
     }
 
     private bool HasSelectedSchema() => SelectedSchema is not null;
+
+    /// <summary>Another page (the Optimizer) saved a schema into the library: show it and select it.</summary>
+    public void Receive(SchemaLibraryChangedMessage message)
+    {
+        var known = Schemas.Select(s => s.Model.Id).ToHashSet();
+        foreach (var schema in _store.LoadLibrary().Where(s => !known.Contains(s.Id)))
+            Schemas.Add(new SchemaItemViewModel(schema, SaveLibrary));
+        SelectedSchema = Schemas.FirstOrDefault(s => s.Model.Id == message.SchemaId) ?? SelectedSchema;
+    }
 
     private void AddSchema(BuildSchema schema)
     {

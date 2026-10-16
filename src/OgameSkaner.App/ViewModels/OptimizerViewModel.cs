@@ -1,0 +1,285 @@
+using System.Collections.ObjectModel;
+using System.IO;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using OgameSkaner.App.Infrastructure;
+using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Optimizer;
+using OgameSkaner.Core.Services.Optimizer;
+using OgameSkaner.Core.Storage;
+
+namespace OgameSkaner.App.ViewModels;
+
+/// <summary>Sent after a schema was added to the library outside the Schemas page.</summary>
+public sealed record SchemaLibraryChangedMessage(Guid SchemaId);
+
+/// <summary>
+/// Build order optimizer: simulates the game for a setup (target mine levels on a fresh planet) and searches the
+/// fastest order on all cores. The best order per setup is kept and can be saved as a schema.
+/// </summary>
+public sealed partial class OptimizerViewModel : PageViewModel
+{
+    private readonly BuildOrderOptimizer _optimizer;
+    private readonly IOptimizerResultStore _store;
+    private readonly ISchemaStore _schemas;
+    private readonly IDialogService _dialogs;
+    private readonly IMessenger _messenger;
+    private bool _loading;
+
+    public OptimizerViewModel(
+        BuildOrderOptimizer optimizer,
+        IOptimizerResultStore store,
+        ISchemaStore schemas,
+        IDialogService dialogs,
+        IMessenger messenger)
+    {
+        _optimizer = optimizer;
+        _store = store;
+        _schemas = schemas;
+        _dialogs = dialogs;
+        _messenger = messenger;
+        Load();
+    }
+
+    public ObservableCollection<OptimizedOrder> SavedResults { get; } = [];
+
+    public ObservableCollection<OptimizedStepItem> Steps { get; } = [];
+
+    [ObservableProperty] private int _metalMine;
+    [ObservableProperty] private int _crystalMine;
+    [ObservableProperty] private int _deuteriumSynthesizer;
+    [ObservableProperty] private int _maxTemperature;
+    [ObservableProperty] private long _startMetal;
+    [ObservableProperty] private long _startCrystal;
+    [ObservableProperty] private long _startDeuterium;
+    [ObservableProperty] private int _solarMaxLevel;
+    [ObservableProperty] private int _roboticsMaxLevel;
+    [ObservableProperty] private int _naniteMaxLevel;
+    [ObservableProperty] private bool _useSatellites;
+    [ObservableProperty] private int _shipyardMaxLevel;
+    [ObservableProperty] private int _runs;
+    [ObservableProperty] private int _iterationsPerRun;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(SaveAsSchemaCommand))]
+    private OptimizedOrder? _result;
+
+    [ObservableProperty]
+    private OptimizedOrder? _selectedSaved;
+
+    [ObservableProperty]
+    private string? _resultInfo;
+
+    [ObservableProperty]
+    private string? _statusText;
+
+    [ObservableProperty]
+    private double _progressPercent;
+
+    public string ModelInfo =>
+        $"Model {GameModel.Version}: costs, build times, production and energy measured on genesis (account bonuses included). " +
+        "Fresh planet, one building at a time; satellites are built in the shipyard alongside.";
+
+    private OptimizerSetup Setup => new()
+    {
+        MetalMine = Math.Clamp(MetalMine, 0, GameModel.MaxLevel),
+        CrystalMine = Math.Clamp(CrystalMine, 0, GameModel.MaxLevel),
+        DeuteriumSynthesizer = Math.Clamp(DeuteriumSynthesizer, 0, GameModel.MaxLevel),
+        MaxTemperature = Math.Clamp(MaxTemperature, -140, 260),
+        StartResources = new ResourceSet(Math.Max(0, StartMetal), Math.Max(0, StartCrystal), Math.Max(0, StartDeuterium)),
+        SolarMaxLevel = Math.Clamp(SolarMaxLevel, 0, GameModel.MaxLevel),
+        RoboticsMaxLevel = Math.Clamp(RoboticsMaxLevel, 0, GameModel.MaxLevel),
+        NaniteMaxLevel = Math.Clamp(NaniteMaxLevel, 0, GameModel.MaxLevel),
+        UseSatellites = UseSatellites,
+        ShipyardMaxLevel = Math.Clamp(ShipyardMaxLevel, 0, GameModel.MaxLevel)
+    };
+
+    protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        if (_loading || e.PropertyName is nameof(Result) or nameof(SelectedSaved) or nameof(ResultInfo) or nameof(StatusText) or nameof(ProgressPercent))
+            return;
+
+        // A setup input changed: remember it and show the best order already found for it.
+        SaveSettings();
+        ShowResult(SavedResults.FirstOrDefault(r => r.SetupKey == Setup.Key), null);
+    }
+
+    partial void OnSelectedSavedChanged(OptimizedOrder? value)
+    {
+        if (value is not null)
+            ApplySetup(value.Setup);
+    }
+
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task RunAsync(CancellationToken cancellationToken)
+    {
+        var setup = Setup;
+        var runs = Math.Max(1, Runs);
+        var options = new OptimizerOptions(runs, Math.Max(100, IterationsPerRun), Seed: Environment.TickCount);
+        var previous = SavedResults.FirstOrDefault(r => r.SetupKey == setup.Key);
+        StatusText = $"Running {runs} searches on {Environment.ProcessorCount} cores…";
+        ProgressPercent = 0;
+
+        var progress = new Progress<OptimizerProgress>(p =>
+        {
+            ProgressPercent = 100.0 * p.RunsDone / p.Runs;
+            var speed = p.Elapsed.TotalSeconds > 0 ? p.Evaluations / p.Elapsed.TotalSeconds : 0;
+            StatusText = $"Run {p.RunsDone}/{p.Runs} · best {OptimizedOrder.FormatDuration(p.BestSeconds)} · " +
+                         $"{p.Evaluations:N0} orders simulated ({speed:N0}/s) · {p.Elapsed:hh\\:mm\\:ss}";
+        });
+
+        var found = await _optimizer.RunAsync(setup, options, progress, cancellationToken);
+        if (found is null)
+        {
+            StatusText = cancellationToken.IsCancellationRequested ? "Stopped before any order was finished." : "No order reaches these targets.";
+            return;
+        }
+
+        try
+        {
+            var best = _store.SaveIfBetter(found);
+            ReplaceSaved(best);
+            var improved = previous is null || found.TotalSeconds < previous.TotalSeconds;
+            var comparison = previous is null
+                ? "first result for this setup"
+                : improved
+                    ? $"better than the saved {OptimizedOrder.FormatDuration(previous.TotalSeconds)}"
+                    : $"the saved {OptimizedOrder.FormatDuration(previous.TotalSeconds)} is still the best";
+            StatusText = (cancellationToken.IsCancellationRequested ? "Stopped. " : "Done. ") +
+                         $"This search: {OptimizedOrder.FormatDuration(found.TotalSeconds)} ({comparison}).";
+            ShowResult(best, previous);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            ShowResult(found, previous);
+            StatusText = $"Saving the result failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(HasResult))]
+    private void SaveAsSchema()
+    {
+        var order = Result!;
+        var schema = order.ToSchema($"{order.Setup.ShortName} – {OptimizedOrder.FormatDuration(order.TotalSeconds)}");
+        try
+        {
+            var library = _schemas.LoadLibrary().ToList();
+            library.Add(schema);
+            _schemas.SaveLibrary(library);
+            _messenger.Send(new SchemaLibraryChangedMessage(schema.Id));
+            StatusText = $"Saved as schema '{schema.Name}' ({schema.Steps.Count} steps) – see the Schemas page.";
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _dialogs.ShowError($"Saving the schema failed: {ex.Message}");
+        }
+    }
+
+    private bool HasResult() => Result is not null;
+
+    private void Load()
+    {
+        OptimizerData data;
+        try
+        {
+            data = _store.Load();
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
+        {
+            data = new OptimizerData();
+            StatusText = $"Reading the saved results failed: {ex.Message}";
+        }
+
+        foreach (var result in data.Results.Where(r => r.SetupKey == r.Setup.Key).OrderBy(r => r.Setup.ShortName))
+            SavedResults.Add(result);
+        _loading = true;
+        Runs = data.Runs;
+        IterationsPerRun = data.IterationsPerRun;
+        _loading = false;
+        ApplySetup(data.LastSetup);
+    }
+
+    private void ApplySetup(OptimizerSetup setup)
+    {
+        _loading = true;
+        MetalMine = setup.MetalMine;
+        CrystalMine = setup.CrystalMine;
+        DeuteriumSynthesizer = setup.DeuteriumSynthesizer;
+        MaxTemperature = setup.MaxTemperature;
+        StartMetal = setup.StartResources.Metal;
+        StartCrystal = setup.StartResources.Crystal;
+        StartDeuterium = setup.StartResources.Deuterium;
+        SolarMaxLevel = setup.SolarMaxLevel;
+        RoboticsMaxLevel = setup.RoboticsMaxLevel;
+        NaniteMaxLevel = setup.NaniteMaxLevel;
+        UseSatellites = setup.UseSatellites;
+        ShipyardMaxLevel = setup.ShipyardMaxLevel;
+        _loading = false;
+        SaveSettings();
+        ShowResult(SavedResults.FirstOrDefault(r => r.SetupKey == Setup.Key), null);
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            _store.SaveSettings(Setup, Runs, IterationsPerRun);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            StatusText = $"Saving the settings failed: {ex.Message}";
+        }
+    }
+
+    private void ReplaceSaved(OptimizedOrder best)
+    {
+        var old = SavedResults.FirstOrDefault(r => r.SetupKey == best.SetupKey);
+        if (old is not null)
+            SavedResults[SavedResults.IndexOf(old)] = best;
+        else
+            SavedResults.Add(best);
+    }
+
+    private void ShowResult(OptimizedOrder? order, OptimizedOrder? previous)
+    {
+        Result = order;
+        Steps.Clear();
+        if (order is null)
+        {
+            ResultInfo = "No result for this setup yet – press Start.";
+            return;
+        }
+
+        var number = 0;
+        foreach (var step in order.Steps)
+            Steps.Add(new OptimizedStepItem(step.IsSatellites ? 0 : ++number, step));
+
+        var buildings = order.Steps.Where(s => !s.IsSatellites).ToList();
+        var satellites = order.Steps.Where(s => s.IsSatellites).Sum(s => s.Level);
+        var change = previous is not null && previous.TotalSeconds > order.TotalSeconds
+            ? $" (was {OptimizedOrder.FormatDuration(previous.TotalSeconds)})"
+            : string.Empty;
+        ResultInfo = $"Best: {OptimizedOrder.FormatDuration(order.TotalSeconds)}{change} · {buildings.Count} buildings" +
+                     (satellites > 0 ? $", {satellites} satellites" : string.Empty) +
+                     $" · Robotics {Max(Gene.RoboticsFactory)}, Nanite {Max(Gene.NaniteFactory)}, Solar {Max(Gene.SolarPlant)}, Shipyard {Max(Gene.Shipyard)}" +
+                     $" · found {order.FoundAt:yyyy-MM-dd HH:mm} · {order.Runs:N0} runs, {order.Evaluations:N0} orders simulated";
+
+        int Max(Gene gene) => buildings.Where(s => s.Gene == gene).Select(s => s.Level).DefaultIfEmpty().Max();
+    }
+}
+
+/// <summary>One row of the best order.</summary>
+public sealed class OptimizedStepItem(int number, OptimizedStep step)
+{
+    public string Number => number > 0 ? $"{number}." : "+";
+
+    public string Text => step.ToString() + (step.Forced ? " (storage full)" : string.Empty);
+
+    public string Start => OptimizedOrder.FormatDuration(step.StartSeconds);
+
+    public string Finish => OptimizedOrder.FormatDuration(step.FinishSeconds);
+
+    public bool IsHelper => step.Gene > Gene.DeuteriumSynthesizer;
+}

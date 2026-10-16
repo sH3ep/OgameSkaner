@@ -1,0 +1,146 @@
+<UserControl x:Class="OgameSkaner.App.Views.OptimizerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:OptimizerViewModel}"
+             d:DesignHeight="620" d:DesignWidth="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="360" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Setup and search -->
+        <GroupBox Header="Setup">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="Target mine levels on a fresh planet:" Foreground="#555" Margin="0,0,0,4" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Metal Mine" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding MetalMine, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                        <TextBlock Grid.Column="2" Text="Max temperature °C" VerticalAlignment="Center" Margin="12,0,6,6" />
+                        <TextBox Grid.Column="3" Text="{Binding MaxTemperature, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 ToolTip="The planet's maximum temperature: deuterium production and satellite energy depend on it (Colony ≈ 84)" />
+
+                        <TextBlock Grid.Row="1" Text="Crystal Mine" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding CrystalMine, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Solar plant max" VerticalAlignment="Center" Margin="12,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding SolarMaxLevel, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+
+                        <TextBlock Grid.Row="2" Text="Deuterium Synth." VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding DeuteriumSynthesizer, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Robotics max" VerticalAlignment="Center" Margin="12,0,6,6" />
+                        <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding RoboticsMaxLevel, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+
+                        <TextBlock Grid.Row="3" Text="Start metal" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding StartMetal, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text="Nanite max" VerticalAlignment="Center" Margin="12,0,6,6" />
+                        <TextBox Grid.Row="3" Grid.Column="3" Text="{Binding NaniteMaxLevel, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 ToolTip="0 = no Nanite Factory. It needs Robotics 10 (and Computer Technology 10)." />
+
+                        <TextBlock Grid.Row="4" Text="Start crystal" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding StartCrystal, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                        <CheckBox Grid.Row="4" Grid.Column="2" Content="Solar satellites" IsChecked="{Binding UseSatellites}" VerticalAlignment="Center" Margin="12,0,6,6"
+                                  ToolTip="Allow satellites for energy (need Robotics 3 and Shipyard 3; built in the shipyard alongside the buildings)" />
+
+                        <TextBlock Grid.Row="5" Text="Start deuterium" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding StartDeuterium, UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+                        <TextBlock Grid.Row="5" Grid.Column="2" Text="Shipyard max" VerticalAlignment="Center" Margin="12,0,6,6" />
+                        <TextBox Grid.Row="5" Grid.Column="3" Text="{Binding ShipyardMaxLevel, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 ToolTip="A higher shipyard builds satellites faster" />
+                    </Grid>
+
+                    <Separator Margin="0,4,0,8" />
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="70" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="70" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="Runs" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding Runs, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 ToolTip="Independent searches spread over all cores; the best one wins" />
+                        <TextBlock Grid.Column="2" Text="Orders per run" VerticalAlignment="Center" Margin="12,0,6,6" />
+                        <TextBox Grid.Column="3" Text="{Binding IterationsPerRun, UpdateSourceTrigger=PropertyChanged, Delay=400}"
+                                 ToolTip="How many orders each run simulates while improving its start" />
+                    </Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Start" Command="{Binding RunCommand}" />
+                        <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                    </StackPanel>
+                    <ProgressBar Height="8" Maximum="100" Value="{Binding ProgressPercent}" Margin="0,0,0,4" />
+                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+
+                    <TextBlock Text="Saved setups" FontWeight="SemiBold" Margin="0,0,0,2" />
+                </StackPanel>
+                <TextBlock DockPanel.Dock="Bottom" Text="{Binding ModelInfo}" TextWrapping="Wrap" Foreground="#777" Margin="0,6,0,0" />
+                <ListBox ItemsSource="{Binding SavedResults}" SelectedItem="{Binding SelectedSaved}"
+                         ToolTip="Click a setup to open its best order">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Setup.ShortName}" Width="110" />
+                                <TextBlock Text="{Binding Total, StringFormat='{}{0:g}'}" Foreground="#2b5797" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </GroupBox>
+
+        <!-- Best order -->
+        <GroupBox Grid.Column="1" Header="Best order">
+            <DockPanel>
+                <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                    <Button DockPanel.Dock="Right" Content="Save as schema" Command="{Binding SaveAsSchemaCommand}" Margin="6,0,0,0"
+                            ToolTip="Adds the order to the schema library (Schemas page) with absolute levels" />
+                    <TextBlock Text="{Binding ResultInfo}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
+                <ListView ItemsSource="{Binding Steps}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="#" Width="45" DisplayMemberBinding="{Binding Number}" />
+                            <GridViewColumn Header="Build" Width="260">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Text}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsHelper}" Value="True">
+                                                            <Setter Property="Foreground" Value="#2b5797" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                            <GridViewColumn Header="Start" Width="110" DisplayMemberBinding="{Binding Start}" />
+                            <GridViewColumn Header="Done" Width="110" DisplayMemberBinding="{Binding Finish}" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </DockPanel>
+        </GroupBox>
+    </Grid>
+</UserControl>

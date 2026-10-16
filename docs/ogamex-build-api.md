@@ -198,3 +198,32 @@ Not needed for the first version, but the server may refuse for these reasons an
   Storages: base 20,000 × 1.5^(level−1) (metal storage metal only, crystal storage half crystal, deuterium tank equal).
   Solar plant: base 100/40 × 1.5^(level−1). Mines: no clean formula found yet (ratio to standard varies per level).
   `remainingFieldsQueueIncluded` gives the free fields.
+
+## Formulas for the optimizer (measured 2026-10-16, genesis, test account)
+Used by `Domain/Optimizer/GameModel` and pinned by `GameModelTests`. Measured by queueing levels one after another and
+reading each next-level cost/duration (then cancelling), by demolishing (instant on OgameX) and rebuilding the
+Colony's Metal Mine and Deuterium Synthesizer, and by raising the Colony's Shipyard to 7.
+- **Mine costs**: one curve for all mines, base × 1.48^(L−1) up to level 20, then ×1.46 per level for 21–30 and
+  ×1.445 from 31 (checked up to 36). Bases (4/3 of standard OGame): metal mine 80/20, crystal mine 64/32,
+  deuterium synthesizer 340/100. **Solar plant** 100/40 ×1.5, ×1.49 from 21. Storages 20,000 ×1.5^(L−1)
+  (metal only / +½ crystal / +equal crystal). Robotics 400/120/200, Shipyard 400/200/100, Nanite 1M/500k/100k, all ×2.
+  The game's rounding differs from ours by a few units at high levels (< 0.001%).
+- **Construction time** = (metal + crystal) · h · k^level ÷ ((1 + R) · 1.05^R) ÷ 1.8^N, shown floored to whole
+  seconds. R = Robotics, N = Nanite. h/k per building: mines and solar plant 0.0037086 / 1.01981, storages
+  0.0036916 / 1.05, Robotics 0.0051155 / 1.05, Nanite 0.003937 / 1.05, Shipyard 0.004305 / 1.05. Fitted to 120
+  durations (all within 0.1%). The Robotics term reproduces the user's Metal Mine times for Robotics 0–4
+  (79/37/24/17/13 s). Nanite ×1.8 per level (Home: Metal Mine 25 336 s → 186 s with Nanite 1).
+- **Production per second** with the account's bonuses: metal 25 + 6.5645833·30·L·1.1^L·f, crystal
+  12.5 + 6.5645833·20·L·1.1^L·f, deuterium 6.5645833·10·L·1.1^L·0.721488·(1.44 − 0.004·Tmax)·f (no base income),
+  f = min(1, energy produced / used). Measured with each mine demolished to 0 (base income) and at Colony's levels.
+- **Energy**: consumption is the standard formula without rounding (10/10/20·L·1.1^L); solar plant
+  20·L·1.1^L·1.464; a satellite gives (Tmax + 140)/6·1.464 (Colony: 54.67, so Tmax ≈ 84).
+- **Storage capacity** (`/building/buildinginfo?BuildingType=METAL_STORAGE` shows the table, bonus included):
+  11M, 17.6M, 24.06M, 31.21M, 39.50M, 49.64M, 62.79M, 80.82M, 106.68M, 145.08M, 203.44M, 293.51M for levels 0–11.
+- **Solar satellites**: 0/2,000/500, built in the shipyard alongside the buildings; one takes ≈ 22.6 s · 0.887^Shipyard
+  (23, 20, 17, 15, 13, 12, 11, 9 s for Shipyard 0–7; Home: Shipyard 11 with Nanite 1 = 6 s, so Nanite doesn't help).
+  The hangar page unlocks them at Shipyard 1; the model requires Robotics 3 and Shipyard 3 as the user specified.
+- `/building/buildinginfo?BuildingType=…` tables: production/energy per level (production without the speed factor),
+  storage capacity per level.
+- `POST /building/demolishbuilding {BuildingType, __PlanetId}` demolishes one level, instantly on this server.
+- Requests in a tight loop trigger a Cloudflare "Access denied" page for about a minute: keep ≥ 1.3 s between requests.
