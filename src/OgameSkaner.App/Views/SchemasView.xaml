@@ -70,7 +70,7 @@
                              ToolTip="Items kept in the game's queue (running one included). The game drops items it can't pay when their turn comes, so keep it small." />
                 </Grid>
 
-                <TextBlock DockPanel.Dock="Top" Text="Click a building to add its next level:" Foreground="#555" Margin="0,4,0,2" />
+                <TextBlock DockPanel.Dock="Top" Text="Click a building to add it below the selected step (levels are numbered automatically):" Foreground="#555" Margin="0,4,0,2" />
                 <ItemsControl DockPanel.Dock="Top" ItemsSource="{Binding Palette}" Margin="0,0,0,4">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>

@@ -65,26 +65,24 @@ public sealed partial class SchemaItemViewModel : ObservableObject
 
     public string Summary => $"{Model.Steps.Count} steps";
 
-    public void AddStep(BuildingType building)
+    /// <summary>Inserts the building at <paramref name="index"/> (levels are renumbered); returns the new step's row.</summary>
+    public SchemaStepItemViewModel AddStep(BuildingType building, int index)
     {
-        Model.AppendNextLevel(building);
+        var position = Model.Insert(building, index);
         StepsChanged();
+        return Steps[position];
     }
 
     public void RemoveStep(int index)
     {
-        Model.Steps.RemoveAt(index);
+        Model.RemoveAt(index);
         StepsChanged();
     }
 
     public void MoveStep(int index, int delta)
     {
-        var target = index + delta;
-        if (target < 0 || target >= Model.Steps.Count)
-            return;
-
-        (Model.Steps[index], Model.Steps[target]) = (Model.Steps[target], Model.Steps[index]);
-        StepsChanged();
+        if (Model.Move(index, delta))
+            StepsChanged();
     }
 
     /// <summary>Marks the steps for a planet: ✓ built, ⏳ queued, ▶ next; null clears the marks.</summary>

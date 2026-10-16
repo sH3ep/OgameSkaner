@@ -142,8 +142,13 @@ public sealed partial class SchemasViewModel : PageViewModel
         SaveLibrary();
     }
 
+    /// <summary>Inserts the building just below the selected step (at the end when none is selected) and selects it.</summary>
     [RelayCommand]
-    private void AddStep(BuildingType building) => SelectedSchema?.AddStep(building);
+    private void AddStep(BuildingType building)
+    {
+        if (SelectedSchema is { } schema)
+            SelectedStep = schema.AddStep(building, SelectedStep is { } selected ? selected.Index + 1 : schema.Steps.Count);
+    }
 
     [RelayCommand]
     private void RemoveStep()

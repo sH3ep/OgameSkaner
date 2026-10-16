@@ -37,6 +37,59 @@ public class SchemaPlannerTests
         Assert.Equal([new(BuildingType.MetalMine, 1), new(BuildingType.CrystalMine, 1), new SchemaStep(BuildingType.MetalMine, 2)], schema.Steps);
     }
 
+    private static string Levels(BuildSchema schema) => string.Join(" ", schema.Steps.Select(s => $"{s.Building switch
+    {
+        BuildingType.MetalMine => "M",
+        BuildingType.CrystalMine => "C",
+        _ => "D"
+    }}{s.Level}"));
+
+    [Fact]
+    public void Inserting_below_a_step_renumbers_the_following_levels()
+    {
+        var schema = new BuildSchema();
+        foreach (var building in new[] { BuildingType.MetalMine, BuildingType.CrystalMine, BuildingType.MetalMine })
+            schema.AppendNextLevel(building);
+
+        var index = schema.Insert(BuildingType.MetalMine, 1);
+
+        Assert.Equal(1, index);
+        Assert.Equal("M1 M2 C1 M3", Levels(schema));
+    }
+
+    [Fact]
+    public void Moving_and_removing_keeps_each_buildings_levels_rising_in_list_order()
+    {
+        var schema = new BuildSchema();
+        foreach (var building in new[] { BuildingType.MetalMine, BuildingType.CrystalMine, BuildingType.MetalMine, BuildingType.MetalMine })
+            schema.AppendNextLevel(building);
+
+        Assert.Equal("M1 C1 M2 M3", Levels(schema));
+
+        Assert.True(schema.Move(3, -1)); // M3 above M2 → still numbered in order
+        Assert.Equal("M1 C1 M2 M3", Levels(schema));
+
+        Assert.True(schema.Move(1, 1)); // C1 below the next metal step
+        Assert.Equal("M1 M2 C1 M3", Levels(schema));
+        Assert.False(schema.Move(0, -1));
+
+        schema.RemoveAt(1);
+        Assert.Equal("M1 C1 M2", Levels(schema));
+    }
+
+    [Fact]
+    public void Renumbering_keeps_a_mid_game_start()
+    {
+        var schema = new BuildSchema
+        {
+            Steps = [new(BuildingType.MetalMine, 15), new(BuildingType.CrystalMine, 12), new(BuildingType.MetalMine, 13), new(BuildingType.MetalMine, 14)]
+        };
+
+        schema.Renumber();
+
+        Assert.Equal("M13 C12 M14 M15", Levels(schema));
+    }
+
     [Fact]
     public void Skips_steps_that_are_built_or_queued_and_finishes()
     {
