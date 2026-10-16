@@ -9,14 +9,15 @@
              d:DesignHeight="620" d:DesignWidth="1000">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="360" />
-            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="380" MinWidth="330" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="320" />
         </Grid.ColumnDefinitions>
 
-        <!-- Setup and search -->
+        <!-- Setup and search: one scrolling column -->
         <GroupBox Header="Setup">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
+            <ScrollViewer Style="{StaticResource PanelScroll}" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel Margin="0,0,4,0">
                     <TextBlock Text="Target mine levels on a fresh planet:" Foreground="#555" Margin="0,0,0,4" />
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -77,12 +78,20 @@
 
                     <Separator Margin="0,4,0,6" />
                     <DockPanel Margin="0,0,0,2">
-                        <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshBonusesCommand}" MinWidth="60" Margin="0"
+                        <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshBonusesCommand}" MinWidth="60" Margin="6,0,0,0"
+                                VerticalAlignment="Top"
                                 ToolTip="Reads research, officers, academy, premium, ranking and class from the game (also done before every search)" />
-                        <TextBlock Text="Account bonuses (read from the game)" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Expander ToolTip="Account bonuses read from the game">
+                            <Expander.Header>
+                                <StackPanel>
+                                    <TextBlock Text="Account bonuses" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding BonusesSummary}" Foreground="#555" FontSize="11" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Expander.Header>
+                            <TextBlock Text="{Binding BonusesText}" TextWrapping="Wrap" Foreground="#555" FontSize="11" Margin="0,4,0,0" />
+                        </Expander>
                     </DockPanel>
-                    <TextBlock Text="{Binding BonusesText}" TextWrapping="Wrap" Foreground="#555" FontSize="11" Margin="0,0,0,6" />
-                    <Separator Margin="0,0,0,8" />
+                    <Separator Margin="0,4,0,8" />
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
@@ -111,56 +120,75 @@
                     <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,8" />
 
                     <TextBlock Text="Saved setups" FontWeight="SemiBold" Margin="0,0,0,2" />
+                    <ListBox ItemsSource="{Binding SavedResults}" SelectedItem="{Binding SelectedSaved}" MinHeight="60" MaxHeight="200"
+                             ToolTip="Click a setup to open its best order">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="{Binding Setup.ShortName}" Width="110" />
+                                    <TextBlock Text="{Binding TotalText}" Foreground="#2b5797" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <TextBlock Text="{Binding ModelInfo}" TextWrapping="Wrap" Foreground="#777" Margin="0,6,0,0" />
                 </StackPanel>
-                <TextBlock DockPanel.Dock="Bottom" Text="{Binding ModelInfo}" TextWrapping="Wrap" Foreground="#777" Margin="0,6,0,0" />
-                <ListBox ItemsSource="{Binding SavedResults}" SelectedItem="{Binding SelectedSaved}"
-                         ToolTip="Click a setup to open its best order">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="{Binding Setup.ShortName}" Width="110" />
-                                <TextBlock Text="{Binding Total, StringFormat='{}{0:g}'}" Foreground="#2b5797" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </DockPanel>
+            </ScrollViewer>
         </GroupBox>
 
+        <GridSplitter Grid.Column="1" />
+
         <!-- Best order -->
-        <GroupBox Grid.Column="1" Header="Best order">
+        <GroupBox Grid.Column="2" Header="Best order">
             <DockPanel>
                 <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                    <Button DockPanel.Dock="Right" Content="Save as schema" Command="{Binding SaveAsSchemaCommand}" Margin="6,0,0,0"
+                    <Button DockPanel.Dock="Right" Content="Save as schema" Command="{Binding SaveAsSchemaCommand}" Margin="6,0,0,0" VerticalAlignment="Top"
                             ToolTip="Adds the order to the schema library (Schemas page) with absolute levels" />
                     <TextBlock Text="{Binding ResultInfo}" TextWrapping="Wrap" VerticalAlignment="Center" />
                 </DockPanel>
-                <ListView ItemsSource="{Binding Steps}">
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Header="#" Width="45" DisplayMemberBinding="{Binding Number}" />
-                            <GridViewColumn Header="Build" Width="260">
-                                <GridViewColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Text}">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsHelper}" Value="True">
-                                                            <Setter Property="Foreground" Value="#2b5797" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </GridViewColumn.CellTemplate>
-                            </GridViewColumn>
-                            <GridViewColumn Header="Start" Width="110" DisplayMemberBinding="{Binding Start}" />
-                            <GridViewColumn Header="Done" Width="110" DisplayMemberBinding="{Binding Finish}" />
-                        </GridView>
-                    </ListView.View>
-                </ListView>
+                <!-- Column header; the rows use the same column widths (the build name takes what is left). -->
+                <Grid DockPanel.Dock="Top" Margin="6,0,24,2" TextBlock.FontWeight="SemiBold">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="40" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="80" />
+                        <ColumnDefinition Width="80" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="#" />
+                    <TextBlock Grid.Column="1" Text="Build" />
+                    <TextBlock Grid.Column="2" Text="Start" />
+                    <TextBlock Grid.Column="3" Text="Done" />
+                </Grid>
+                <ListBox ItemsSource="{Binding Steps}" HorizontalContentAlignment="Stretch"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:OptimizedStepItem}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="40" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="80" />
+                                    <ColumnDefinition Width="80" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Number}" Foreground="#777" />
+                                <TextBlock Grid.Column="1" Text="{Binding Text}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Text}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsHelper}" Value="True">
+                                                    <Setter Property="Foreground" Value="#2b5797" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Grid.Column="2" Text="{Binding Start}" />
+                                <TextBlock Grid.Column="3" Text="{Binding Finish}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </DockPanel>
         </GroupBox>
     </Grid>

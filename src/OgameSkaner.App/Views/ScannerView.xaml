@@ -7,65 +7,67 @@
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:ScannerViewModel}"
              d:DesignHeight="450" d:DesignWidth="760">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
+    <ScrollViewer Style="{StaticResource PanelScroll}" HorizontalScrollBarVisibility="Disabled">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <GroupBox Header="Scan galaxy" VerticalAlignment="Top">
-            <StackPanel>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="70" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="70" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
+            <GroupBox Header="Scan galaxy" VerticalAlignment="Top">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="70" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="70" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
 
-                    <TextBlock Text="From galaxy" VerticalAlignment="Center" Margin="0,0,6,6" />
-                    <TextBox Grid.Column="1" Text="{Binding StartGalaxy}" />
-                    <TextBlock Grid.Column="2" Text="system" VerticalAlignment="Center" Margin="0,0,6,6" />
-                    <TextBox Grid.Column="3" Text="{Binding StartSystem}" />
+                        <TextBlock Text="From galaxy" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding StartGalaxy}" />
+                        <TextBlock Grid.Column="2" Text="system" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="3" Text="{Binding StartSystem}" />
 
-                    <TextBlock Grid.Row="1" Text="To galaxy" VerticalAlignment="Center" Margin="0,0,6,6" />
-                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EndGalaxy}" />
-                    <TextBlock Grid.Row="1" Grid.Column="2" Text="system" VerticalAlignment="Center" Margin="0,0,6,6" />
-                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding EndSystem}" />
-                </Grid>
+                        <TextBlock Grid.Row="1" Text="To galaxy" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EndGalaxy}" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="system" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding EndSystem}" />
+                    </Grid>
 
-                <TextBlock Text="Systems from..to are scanned in every galaxy of the range."
-                           Foreground="#555" TextWrapping="Wrap" Margin="0,2,0,8" />
+                    <TextBlock Text="Systems from..to are scanned in every galaxy of the range."
+                               Foreground="#555" TextWrapping="Wrap" Margin="0,2,0,8" />
 
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="Scan" Command="{Binding ScanCommand}" />
-                    <Button Content="Cancel" Command="{Binding ScanCancelCommand}" />
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Scan" Command="{Binding ScanCommand}" />
+                        <Button Content="Cancel" Command="{Binding ScanCancelCommand}" />
+                    </StackPanel>
+
+                    <ProgressBar Height="18" Margin="0,4,0,6"
+                                 Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}" />
+                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
                 </StackPanel>
+            </GroupBox>
 
-                <ProgressBar Height="18" Margin="0,4,0,6"
-                             Maximum="{Binding ProgressMaximum}" Value="{Binding ProgressValue}" />
-                <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" />
-            </StackPanel>
-        </GroupBox>
-
-        <GroupBox Grid.Column="1" Header="Session" VerticalAlignment="Top">
-            <StackPanel>
-                <TextBlock Text="gameAuthToken" Margin="0,0,0,2" />
-                <TextBox Text="{Binding AuthToken, UpdateSourceTrigger=PropertyChanged}" />
-                <TextBlock Text="SessionId" Margin="0,0,0,2" />
-                <TextBox Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" />
-                <Button Content="Save session" Command="{Binding SaveSessionCommand}" HorizontalAlignment="Left" />
-                <TextBlock TextWrapping="Wrap" Foreground="#555" Margin="0,6,0,0">
-                    Log in to the universe in your browser, open the developer tools (F12) →
-                    Application → Cookies, and copy the values of the
-                    <Bold>gameAuthToken</Bold> and <Bold>SessionId</Bold> cookies here.
-                    You can keep playing in the browser at the same time.
-                </TextBlock>
-            </StackPanel>
-        </GroupBox>
-    </Grid>
+            <GroupBox Grid.Column="1" Header="Session" VerticalAlignment="Top">
+                <StackPanel>
+                    <TextBlock Text="gameAuthToken" Margin="0,0,0,2" />
+                    <TextBox Text="{Binding AuthToken, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="SessionId" Margin="0,0,0,2" />
+                    <TextBox Text="{Binding SessionId, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button Content="Save session" Command="{Binding SaveSessionCommand}" HorizontalAlignment="Left" />
+                    <TextBlock TextWrapping="Wrap" Foreground="#555" Margin="0,6,0,0">
+                        Log in to the universe in your browser, open the developer tools (F12) →
+                        Application → Cookies, and copy the values of the
+                        <Bold>gameAuthToken</Bold> and <Bold>SessionId</Bold> cookies here.
+                        You can keep playing in the browser at the same time.
+                    </TextBlock>
+                </StackPanel>
+            </GroupBox>
+        </Grid>
+    </ScrollViewer>
 </UserControl>

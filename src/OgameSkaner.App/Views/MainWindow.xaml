@@ -6,14 +6,14 @@
         xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance vm:MainViewModel}"
-        Title="OgameSkaner" Height="600" Width="1000" MinHeight="450" MinWidth="760"
+        Title="OgameSkaner" Height="760" Width="1200" MinHeight="520" MinWidth="900"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.Background>
             <ImageBrush ImageSource="pack://application:,,,/Resources/background.jpg" Stretch="UniformToFill" />
         </Grid.Background>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="210" />
+            <ColumnDefinition Width="180" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -35,7 +35,7 @@
                 <StackPanel Orientation="Horizontal">
                     <Ellipse Style="{StaticResource StatusDot}" Margin="0,0,8,0"
                              Fill="{Binding SessionStatus, Converter={StaticResource StatusToBrush}}" />
-                    <TextBlock Text="{Binding SessionStatusText}" Foreground="White" TextWrapping="Wrap" MaxWidth="160" />
+                    <TextBlock Text="{Binding SessionStatusText}" Foreground="White" TextWrapping="Wrap" MaxWidth="130" />
                 </StackPanel>
                 <Button Content="Check now" Command="{Binding CheckSessionCommand}" HorizontalAlignment="Left" Margin="0,6,0,12" />
                 <TextBlock Text="sH3ep @2019" Foreground="#99FFFFFF" />

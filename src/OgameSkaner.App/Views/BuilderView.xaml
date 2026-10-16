@@ -9,139 +9,148 @@
              d:DesignHeight="520" d:DesignWidth="900">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="3*" />
-            <ColumnDefinition Width="2*" />
+            <ColumnDefinition Width="3*" MinWidth="360" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="2*" MinWidth="260" />
         </Grid.ColumnDefinitions>
 
         <GroupBox Header="Strategy">
-            <DockPanel>
-                <Grid DockPanel.Dock="Top">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="60" />
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="60" />
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="Reference level" VerticalAlignment="Center" Margin="0,0,6,6" />
-                    <TextBox Grid.Column="1" Text="{Binding ReferenceLevel, UpdateSourceTrigger=PropertyChanged}" />
-                    <TextBlock Grid.Column="2" Text="Solar plant max level" VerticalAlignment="Center" Margin="10,0,6,6" />
-                    <TextBox Grid.Column="3" Text="{Binding SolarMaxLevel, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="The solar plant is built by energy, not price: when the planet is short of energy or the next mine would make it short" />
-                    <TextBlock Grid.Row="1" Grid.Column="2" Text="Storage when full ≥ %" VerticalAlignment="Center" Margin="10,0,6,6" />
-                    <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding StorageFillPercent, UpdateSourceTrigger=PropertyChanged}"
-                             ToolTip="A storage is queued first when its resource is at this share of capacity or more (one level at a time). 0 turns it off." />
-                </Grid>
-                <TextBlock DockPanel.Dock="Top" Foreground="#555" TextWrapping="Wrap" Margin="0,0,0,6"
-                           Text="Relative: target = reference level + value (e.g. -2). Absolute: target = value. The cheapest upgrade below its target is queued first (value = metal + 1.5×crystal + 3×deuterium). Only upgrades the planet can pay for right now are queued; locked buildings are skipped. The solar plant and storages are automatic." />
+            <ScrollViewer Style="{StaticResource PanelScroll}">
+                <DockPanel Style="{StaticResource FillViewport}" MinHeight="330" MinWidth="380">
+                    <Grid DockPanel.Dock="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Reference level" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding ReferenceLevel, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Column="2" Text="Solar plant max level" VerticalAlignment="Center" Margin="10,0,6,6" />
+                        <TextBox Grid.Column="3" Text="{Binding SolarMaxLevel, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="The solar plant is built by energy, not price: when the planet is short of energy or the next mine would make it short" />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="Storage when full ≥ %" VerticalAlignment="Center" Margin="10,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding StorageFillPercent, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="A storage is queued first when its resource is at this share of capacity or more (one level at a time). 0 turns it off." />
+                    </Grid>
+                    <TextBlock DockPanel.Dock="Top" Foreground="#555" TextWrapping="Wrap" Margin="0,0,0,6"
+                               Text="Relative: target = reference level + value (e.g. -2). Absolute: target = value. The cheapest upgrade below its target is queued first (value = metal + 1.5×crystal + 3×deuterium). Only upgrades the planet can pay for right now are queued; locked buildings are skipped. The solar plant and storages are automatic." />
 
-                <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
-                    <Button DockPanel.Dock="Right" Content="↻" MinWidth="0" Padding="6,0" Margin="6,0,0,0"
-                            Command="{Binding RefreshViewedPlanetCommand}" ToolTip="Read the selected planet again" />
-                    <TextBlock Text="{Binding ViewedPlanetInfo, TargetNullValue='Click a planet in the list on the right to see its levels in the Actual column.'}"
-                               Foreground="#555" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+                        <Button DockPanel.Dock="Right" Content="↻" MinWidth="0" Padding="6,0" Margin="6,0,0,0"
+                                Command="{Binding RefreshViewedPlanetCommand}" ToolTip="Read the selected planet again" />
+                        <TextBlock Text="{Binding ViewedPlanetInfo, TargetNullValue='Click a planet in the list on the right to see its levels in the Actual column.'}"
+                                   Foreground="#555" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </DockPanel>
+
+                    <DataGrid ItemsSource="{Binding Rules}" AutoGenerateColumns="False" CanUserAddRows="False"
+                              CanUserDeleteRows="False" CanUserSortColumns="False" HeadersVisibility="Column"
+                              SelectionUnit="Cell" Background="Transparent">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="On">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
+                                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Building" Binding="{Binding DisplayName}" IsReadOnly="True" Width="*" MinWidth="140" />
+                            <DataGridTextColumn Header="Category" Binding="{Binding Category}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Actual" Binding="{Binding Actual}" IsReadOnly="True" Width="55" Foreground="#2b5797" />
+                            <DataGridTemplateColumn Header="Mode" Width="90">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{x:Static vm:BuildingRuleItemViewModel.Modes}"
+                                                  SelectedItem="{Binding Mode, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Offset" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRelative}"
+                                                 Margin="0" ToolTip="Relative rules: target = reference level + offset (e.g. 2 or -2)" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Target" Width="60">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBox Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsRelative}"
+                                                 Margin="0" ToolTip="Absolute rules: the level to reach. Relative rules: calculated from the reference level">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsRelative}" Value="True">
+                                                            <Setter Property="Background" Value="Transparent" />
+                                                            <Setter Property="BorderThickness" Value="0" />
+                                                            <Setter Property="Foreground" Value="#555" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
                 </DockPanel>
-
-                <DataGrid ItemsSource="{Binding Rules}" AutoGenerateColumns="False" CanUserAddRows="False"
-                          CanUserDeleteRows="False" CanUserSortColumns="False" HeadersVisibility="Column"
-                          SelectionUnit="Cell" Background="Transparent">
-                    <DataGrid.Columns>
-                        <DataGridTemplateColumn Header="On">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Building" Binding="{Binding DisplayName}" IsReadOnly="True" Width="*" />
-                        <DataGridTextColumn Header="Category" Binding="{Binding Category}" IsReadOnly="True" />
-                        <DataGridTextColumn Header="Actual" Binding="{Binding Actual}" IsReadOnly="True" Width="70" Foreground="#2b5797" />
-                        <DataGridTemplateColumn Header="Mode" Width="90">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <ComboBox ItemsSource="{x:Static vm:BuildingRuleItemViewModel.Modes}"
-                                              SelectedItem="{Binding Mode, UpdateSourceTrigger=PropertyChanged}" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Offset" Width="60">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBox Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsRelative}"
-                                             Margin="0" ToolTip="Relative rules: target = reference level + offset (e.g. 2 or -2)" />
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Target" Width="60">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <TextBox Text="{Binding Target, UpdateSourceTrigger=PropertyChanged}" IsReadOnly="{Binding IsRelative}"
-                                             Margin="0" ToolTip="Absolute rules: the level to reach. Relative rules: calculated from the reference level">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsRelative}" Value="True">
-                                                        <Setter Property="Background" Value="Transparent" />
-                                                        <Setter Property="BorderThickness" Value="0" />
-                                                        <Setter Property="Foreground" Value="#555" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </DockPanel>
+            </ScrollViewer>
         </GroupBox>
 
-        <GroupBox Grid.Column="1" Header="Run">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top">
-                    <TextBlock Text="Mode" FontWeight="SemiBold" Margin="0,0,0,2" />
-                    <RadioButton Content="Single – fill free queue slots once per planet" Margin="0,0,0,2"
-                                 IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Single}" />
-                    <RadioButton Content="Auto – one item per planet per pass until all are done" Margin="0,0,0,8"
-                                 IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Auto}" />
+        <GridSplitter Grid.Column="1" />
 
-                    <DockPanel Margin="0,0,0,4">
-                        <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshPlanetsCommand}" Margin="0" MinWidth="60"
-                                ToolTip="Reads your planets from the game and stores them (also done before every run)" />
-                        <Button DockPanel.Dock="Right" Content="None" Command="{Binding SelectNoPlanetsCommand}" Margin="0,0,4,0" MinWidth="50" />
-                        <Button DockPanel.Dock="Right" Content="All" Command="{Binding SelectAllPlanetsCommand}" Margin="0,0,4,0" MinWidth="50" />
-                        <TextBlock Text="Planets" FontWeight="SemiBold" VerticalAlignment="Center" />
-                    </DockPanel>
-                    <ListBox ItemsSource="{Binding Planets}" SelectedItem="{Binding ViewedPlanet}" MaxHeight="180" Margin="0,0,0,2"
-                             HorizontalContentAlignment="Stretch"
-                             ToolTip="Tick the planets to automate; click a planet to see its levels in the Actual column">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:PlanetSelectionItemViewModel}">
-                                <StackPanel Orientation="Horizontal" Margin="0,1">
-                                    <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0"
-                                              ToolTip="Run automation on this planet" />
-                                    <TextBlock Text="{Binding Name}" Width="140" TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{Binding Coordinates}" Foreground="#555" />
-                                </StackPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-                    <TextBlock Text="{Binding PlanetsInfo}" Foreground="#555" Margin="0,0,0,6"
-                               ToolTip="New planets are ticked automatically; unticked planets are remembered" />
+        <GroupBox Grid.Column="2" Header="Run">
+            <ScrollViewer Style="{StaticResource PanelScroll}">
+                <DockPanel Style="{StaticResource FillViewport}" MinHeight="330" MinWidth="250">
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="Mode" FontWeight="SemiBold" Margin="0,0,0,2" />
+                        <RadioButton Margin="0,0,0,2" IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Single}">
+                            <TextBlock Text="Single – fill free queue slots once per planet" TextWrapping="Wrap" />
+                        </RadioButton>
+                        <RadioButton Margin="0,0,0,8" IsChecked="{Binding Mode, Converter={StaticResource EnumEquals}, ConverterParameter=Auto}">
+                            <TextBlock Text="Auto – one item per planet per pass until all are done" TextWrapping="Wrap" />
+                        </RadioButton>
 
-                    <StackPanel Orientation="Horizontal">
-                        <Button Content="Start" Command="{Binding RunCommand}" />
-                        <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                        <DockPanel Margin="0,0,0,4">
+                            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshPlanetsCommand}" Margin="0" MinWidth="0" Padding="8,2"
+                                    ToolTip="Reads your planets from the game and stores them (also done before every run)" />
+                            <Button DockPanel.Dock="Right" Content="None" Command="{Binding SelectNoPlanetsCommand}" Margin="0,0,4,0" MinWidth="0" Padding="8,2" />
+                            <Button DockPanel.Dock="Right" Content="All" Command="{Binding SelectAllPlanetsCommand}" Margin="0,0,4,0" MinWidth="0" Padding="8,2" />
+                            <TextBlock Text="Planets" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <ListBox ItemsSource="{Binding Planets}" SelectedItem="{Binding ViewedPlanet}" MaxHeight="180" Margin="0,0,0,2"
+                                 HorizontalContentAlignment="Stretch"
+                                 ToolTip="Tick the planets to automate; click a planet to see its levels in the Actual column">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:PlanetSelectionItemViewModel}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,1">
+                                        <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0"
+                                                  ToolTip="Run automation on this planet" />
+                                        <TextBlock Text="{Binding Name}" Width="120" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Text="{Binding Coordinates}" Foreground="#555" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <TextBlock Text="{Binding PlanetsInfo}" Foreground="#555" Margin="0,0,0,6"
+                                   ToolTip="New planets are ticked automatically; unticked planets are remembered" />
+
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Start" Command="{Binding RunCommand}" />
+                            <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" />
                     </StackPanel>
-                    <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" />
-                </StackPanel>
-                <ListBox ItemsSource="{Binding Log}" />
-            </DockPanel>
+                    <ListBox ItemsSource="{Binding Log}" MinHeight="60" />
+                </DockPanel>
+            </ScrollViewer>
         </GroupBox>
     </Grid>
 </UserControl>

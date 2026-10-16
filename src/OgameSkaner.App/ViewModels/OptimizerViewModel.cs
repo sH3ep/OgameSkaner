@@ -91,6 +91,10 @@ public sealed partial class OptimizerViewModel : PageViewModel
     [ObservableProperty]
     private string? _bonusesText;
 
+    /// <summary>One line for the collapsed bonuses panel.</summary>
+    [ObservableProperty]
+    private string? _bonusesSummary;
+
     public IReadOnlyList<int> Slots { get; } = Enumerable.Range(1, PlanetConditions.SlotCount).ToList();
 
     public string ModelInfo =>
@@ -117,7 +121,7 @@ public sealed partial class OptimizerViewModel : PageViewModel
     protected override void OnPropertyChanged(System.ComponentModel.PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
-        if (_loading || e.PropertyName is nameof(Result) or nameof(SelectedSaved) or nameof(ResultInfo) or nameof(StatusText) or nameof(ProgressPercent) or nameof(BonusesText) or nameof(CpuInfo))
+        if (_loading || e.PropertyName is nameof(Result) or nameof(SelectedSaved) or nameof(ResultInfo) or nameof(StatusText) or nameof(ProgressPercent) or nameof(BonusesText) or nameof(BonusesSummary) or nameof(CpuInfo))
             return;
 
         if (e.PropertyName == nameof(CpuPercent))
@@ -280,6 +284,8 @@ public sealed partial class OptimizerViewModel : PageViewModel
         _bonuses = bonuses;
         var source = bonuses.ReadAt is { } readAt ? $"Read from the game {readAt:yyyy-MM-dd HH:mm}" : bonuses.Details;
         BonusesText = $"{bonuses}\n{(bonuses.ReadAt is null ? string.Empty : bonuses.Details + "\n")}{source}";
+        var read = bonuses.ReadAt is { } at ? $"read {at:HH:mm}" : "not read yet";
+        BonusesSummary = $"{bonuses.ClassName} · metal +{bonuses.Metal.Total:P0} · build +{bonuses.ConstructionSpeed:P0} · {read}";
     }
 
     private void ApplySetup(OptimizerSetup setup)

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Schemas;
 
@@ -105,7 +106,11 @@ public sealed class OptimizedOrder
 
     public DateTimeOffset FoundAt { get; set; }
 
+    [JsonIgnore]
     public TimeSpan Total => TimeSpan.FromSeconds(TotalSeconds);
+
+    [JsonIgnore]
+    public string TotalText => FormatDuration(TotalSeconds);
 
     /// <summary>
     /// The order as a schema: every building level as a step (satellites are left to the schema's satellite rule).

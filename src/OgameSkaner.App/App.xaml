@@ -27,6 +27,28 @@
             <Setter Property="Margin" Value="0,0,10,10" />
             <Setter Property="Background" Value="{StaticResource PanelBackground}" />
         </Style>
+        <!--
+            Scrolling panels. A panel inside a PanelScroll fills the visible area like before (lists stretch and
+            scroll on their own), but never gets smaller than its MinWidth/MinHeight: below that the ScrollViewer
+            shows scrollbars instead of squeezing the lists to nothing.
+        -->
+        <Style x:Key="PanelScroll" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+            <Setter Property="HorizontalScrollBarVisibility" Value="Auto" />
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+        <Style x:Key="FillViewport" TargetType="FrameworkElement">
+            <Setter Property="Height" Value="{Binding ViewportHeight, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
+            <Setter Property="Width" Value="{Binding ViewportWidth, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" />
+        </Style>
+        <Style TargetType="GridSplitter">
+            <Setter Property="Width" Value="6" />
+            <Setter Property="Margin" Value="-6,0,4,10" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="ResizeBehavior" Value="PreviousAndNext" />
+            <Setter Property="ToolTip" Value="Drag to resize" />
+        </Style>
         <Style x:Key="StatusDot" TargetType="Ellipse">
             <Setter Property="Width" Value="12" />
             <Setter Property="Height" Value="12" />
