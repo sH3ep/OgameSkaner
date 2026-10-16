@@ -82,6 +82,24 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
     public Task<OwnPlanetsSnapshot> GetOwnPlanetsAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult(new OwnPlanetsSnapshot(OwnPlanets.ToList(), CurrentPlanet ?? OwnPlanets.FirstOrDefault()?.Id ?? default));
 
+    public Dictionary<PlanetId, ShipyardState> Shipyards { get; } = new();
+
+    public List<(PlanetId Planet, string ShipType, int Quantity)> OrderedShips { get; } = [];
+
+    public Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        CurrentPlanet = planet;
+        return Task.FromResult(Shipyards.TryGetValue(planet, out var shipyard)
+            ? shipyard
+            : new ShipyardState(planet, 0, 0, ResourceSet.Zero, SatellitesLocked: true));
+    }
+
+    public Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default)
+    {
+        OrderedShips.Add((planet, shipType, quantity));
+        return Task.FromResult(EnqueueOutcome.Queued);
+    }
+
     public Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default)
     {
         SelectedPlanets.Add(planet);

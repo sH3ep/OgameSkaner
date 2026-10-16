@@ -135,6 +135,35 @@ public class OgamexClientBuildingTests
     }
 
     [Fact]
+    public async Task Build_state_carries_durations_and_production()
+    {
+        _handler.Respond = _ => Fixture("building_resource.html");
+
+        var state = await CreateClient().GetPlanetBuildStateAsync(PlanetId, includeFacilities: false);
+
+        Assert.Equal(new TimeSpan(0, 15, 25), state.NextLevelDurations[BuildingType.MetalMine]);
+        Assert.Equal(new ResourceSet(141_571_560, 106_870_723, 4_677_763), state.ProductionPerHour);
+    }
+
+    [Fact]
+    public async Task Shipyard_state_and_ship_orders()
+    {
+        _handler.Respond = r => r.Method == HttpMethod.Post
+            ? """{"IsSuccess":true,"Message":null,"ValidationErrors":null}"""
+            : Fixture("hangar.html");
+        var client = CreateClient();
+
+        var shipyard = await client.GetShipyardStateAsync(PlanetId);
+        var outcome = await client.BuildShipsAsync(PlanetId, "SOLAR_SATELLITE", 12);
+
+        Assert.Equal(300, shipyard.Satellites);
+        Assert.Equal(EnqueueOutcome.Queued, outcome);
+        Assert.Equal("/hangar?planet=" + PlanetId.Value, _handler.Requests[0].Uri.PathAndQuery);
+        Assert.Equal("/hangar/createship", _handler.Requests[1].Uri.PathAndQuery);
+        Assert.Equal("""{"ShipType":"SOLAR_SATELLITE","Quantity":12,"__PlanetId":"11111111-1111-1111-1111-111111111111"}""", _handler.Requests[1].Body);
+    }
+
+    [Fact]
     public async Task Enqueue_treats_html_as_an_expired_session()
     {
         _handler.Respond = _ => "<html><body>login</body></html>";

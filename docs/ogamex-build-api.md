@@ -78,6 +78,20 @@ Consequences for the client:
   links with a class containing "moon" and the client refuses a page without `METAL_MINE`.
 - Research lab / shipyard upgrades do not block research or ship production on OgameX (user), so no special handling.
 
+## Shipyard and build schemas (2026-10-16)
+- Shipyard page is **`/hangar`** (`?planet=` works). Solar satellite block `div.hangar-detail#detail-SOLAR_SATELLITE`:
+  count in the page script `ships['SOLAR_SATELLITE'] = 300`, cost in `.required-resource-item` and
+  `a.upgrade-max-btn[data-required-metal|crystal|deuterium]` (0 / 2,000 / 500), energy in the text
+  "Every solar satellite on this planet produces <span>55.97</span> energy" (depends on the planet), production
+  duration "00:06". Without a shipyard: "Required technologies" (Shipyard 0/1), no cost.
+- Order ships: `POST /hangar/createship {"ShipType":"SOLAR_SATELLITE","Quantity":n,"__PlanetId":…}` → `{IsSuccess, Message}`
+  (from `/assets/js/app/pages/hangar.js`; also `cancelhangarproduction {ProductionId}`, `dmcomplete`).
+- Construction durations: "Construction duration : 06:57" in every building block, for the next level after the queue.
+  Format from the game's `ConvertToTimeString`: `[Nd ][hh:]mm:ss` (hours only when > 0) → "06:57" is 6 min 57 s.
+  Durations are not proportional to cost on OgameX (metal 25→27: cost ×2.13, time ×2.22).
+- Production per second in `var resources` (`metalProduction` etc.); ×3600 matches the tooltip "Production per hour".
+- User: when a queued item's turn comes and its resources are missing, the game **removes** it.
+
 ## 1. List of own planets
 Need for each planet: **server id**, **name**, **coordinates**. Moons must be recognisable so we can skip them.
 - The result is stored per universe in `own-planets.json` (`OwnPlanetService`); the Builder page has a refresh button and every build run refreshes it first.

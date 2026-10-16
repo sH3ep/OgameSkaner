@@ -12,6 +12,17 @@ public sealed record OwnPlanet(PlanetId Id, string Name, Coordinates Coordinates
     public override string ToString() => $"{Name} [{Coordinates}]";
 }
 
+/// <summary>Solar satellites on a planet, from the shipyard page.</summary>
+/// <param name="SatellitesLocked">The shipyard is missing (needs level 1), so no satellites can be built.</param>
+/// <param name="SatelliteDuration">Production time of one satellite.</param>
+public sealed record ShipyardState(
+    PlanetId Planet,
+    int Satellites,
+    double EnergyPerSatellite,
+    ResourceSet SatelliteCost,
+    bool SatellitesLocked,
+    TimeSpan? SatelliteDuration = null);
+
 /// <summary>The player's planets and the one that is currently selected in the game.</summary>
 public sealed record OwnPlanetsSnapshot(IReadOnlyList<OwnPlanet> Planets, PlanetId CurrentPlanet);
 
@@ -37,6 +48,12 @@ public sealed record PlanetBuildState(
     /// the game page. Buildings missing here fall back to the catalog formula.
     /// </summary>
     public IReadOnlyDictionary<BuildingType, ResourceSet> NextLevelCosts { get; init; } = new Dictionary<BuildingType, ResourceSet>();
+
+    /// <summary>Construction time of each building's next level (after the queue), as shown on the game page.</summary>
+    public IReadOnlyDictionary<BuildingType, TimeSpan> NextLevelDurations { get; init; } = new Dictionary<BuildingType, TimeSpan>();
+
+    /// <summary>Resource production per hour; null when unknown.</summary>
+    public ResourceSet? ProductionPerHour { get; init; }
 
     /// <summary>Storage capacity per resource; null when unknown (then storages are not planned).</summary>
     public ResourceSet? StorageCapacity { get; init; }

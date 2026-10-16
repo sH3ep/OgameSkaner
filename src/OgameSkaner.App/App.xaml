@@ -7,6 +7,7 @@
         <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
         <converters:StatusToBrushConverter x:Key="StatusToBrush" />
         <converters:EnumEqualsConverter x:Key="EnumEquals" />
+        <converters:NotNullConverter x:Key="NotNull" />
 
         <SolidColorBrush x:Key="PanelBackground" Color="White" Opacity="0.82" />
         <SolidColorBrush x:Key="SidebarBackground" Color="#101826" Opacity="0.78" />

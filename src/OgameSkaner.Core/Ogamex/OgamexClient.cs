@@ -117,6 +117,24 @@ internal sealed class OgamexClient : IOgamexClient
         return new OwnPlanetsSnapshot(page.Planets, page.CurrentPlanet);
     }
 
+    public async Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"hangar?planet={Uri.EscapeDataString(planet.Value)}", referer: "hangar");
+        var state = HangarPageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        if (state.Planet != planet)
+            throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
+        return state;
+    }
+
+    public async Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Post, "hangar/createship", referer: "hangar");
+        request.Content = JsonContent.Create(new CreateShipRequest(shipType, quantity, planet.Value), options: JsonOptions);
+
+        var response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        return response.IsSuccess ? EnqueueOutcome.Queued : new EnqueueOutcome(EnqueueResult.Rejected, response.Message);
+    }
+
     public Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default) =>
         GetBuildingPageAsync("building/resource", planet, cancellationToken);
 
@@ -148,6 +166,8 @@ internal sealed class OgamexClient : IOgamexClient
             NextLevelCosts = buildings.Where(b => b.NextLevelCost is not null).ToDictionary(b => b.Building, b => b.NextLevelCost!.Value),
             Locked = buildings.Where(b => b.Locked).Select(b => b.Building).ToHashSet(),
             StorageCapacity = latest.StorageCapacity,
+            ProductionPerHour = latest.ProductionPerHour,
+            NextLevelDurations = buildings.Where(b => b.Duration is not null).ToDictionary(b => b.Building, b => b.Duration!.Value),
             FreeFields = pages.Select(p => p.FreeFields).LastOrDefault(f => f is not null),
             VacationMode = latest.VacationMode
         };

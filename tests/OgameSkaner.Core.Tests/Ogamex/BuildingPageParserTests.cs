@@ -10,6 +10,8 @@ public class BuildingPageParserTests
 {
     private static readonly PlanetId PlanetId = new("11111111-1111-1111-1111-111111111111");
 
+    private static TimeSpan T(int minutes, int seconds) => new(0, minutes, seconds);
+
     private static BuildingPage Load(string name) =>
         BuildingPageParser.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name)));
 
@@ -31,6 +33,30 @@ public class BuildingPageParserTests
         Assert.Equal(13_594.76, page.EnergyProduction, precision: 2);
         Assert.Equal(4_942.17, page.EnergyConsumption, precision: 2);
     }
+
+    [Fact]
+    public void Reads_production_per_hour_from_the_per_second_values()
+    {
+        // metalProduction: 39325.43… per second etc. on the page with the queue
+        var page = Load("building_resource.html");
+
+        Assert.Equal(new ResourceSet(141_571_560, 106_870_723, 4_677_763), page.ProductionPerHour);
+    }
+
+    [Theory]
+    [InlineData("06:57", 0, 0, 6, 57)]
+    [InlineData("00:00", 0, 0, 0, 0)]
+    [InlineData("01:02:03", 0, 1, 2, 3)]
+    [InlineData(" 2d 01:02:03 ", 2, 1, 2, 3)]
+    [InlineData("3d 04:05", 3, 0, 4, 5)]
+    public void Parses_the_games_time_format(string text, int days, int hours, int minutes, int seconds) =>
+        Assert.Equal(new TimeSpan(days, hours, minutes, seconds), BuildingPageParser.ParseDuration(text));
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("Level: 24")]
+    [InlineData("1.234")]
+    public void Ignores_text_that_is_not_a_time(string text) => Assert.Null(BuildingPageParser.ParseDuration(text));
 
     [Fact]
     public void Reads_storage_capacity_free_fields_and_vacation_mode()
@@ -66,14 +92,14 @@ public class BuildingPageParserTests
 
         Assert.Equal(
         [
-            new BuildingOnPage(BuildingType.MetalMine, 24, new ResourceSet(1_943_267, 485_817, 0)),
-            new BuildingOnPage(BuildingType.CrystalMine, 23, new ResourceSet(1_064_802, 532_406, 0)),
-            new BuildingOnPage(BuildingType.DeuteriumSynthesizer, 10, new ResourceSet(82_251, 24_192, 0)),
-            new BuildingOnPage(BuildingType.SolarPlant, 7, new ResourceSet(2_563, 1_025, 0)),
-            new BuildingOnPage(BuildingType.FusionReactor, 0, new ResourceSet(900, 360, 180)),
-            new BuildingOnPage(BuildingType.MetalStorage, 5, new ResourceSet(151_875, 0, 0)),
-            new BuildingOnPage(BuildingType.CrystalStorage, 4, new ResourceSet(101_250, 50_625, 0)),
-            new BuildingOnPage(BuildingType.DeuteriumTank, 3, new ResourceSet(67_500, 67_500, 0))
+            new BuildingOnPage(BuildingType.MetalMine, 24, new ResourceSet(1_943_267, 485_817, 0), T(15, 25)),
+            new BuildingOnPage(BuildingType.CrystalMine, 23, new ResourceSet(1_064_802, 532_406, 0), T(9, 56)),
+            new BuildingOnPage(BuildingType.DeuteriumSynthesizer, 10, new ResourceSet(82_251, 24_192, 0), T(0, 31)),
+            new BuildingOnPage(BuildingType.SolarPlant, 7, new ResourceSet(2_563, 1_025, 0), T(0, 0)),
+            new BuildingOnPage(BuildingType.FusionReactor, 0, new ResourceSet(900, 360, 180), T(0, 0)),
+            new BuildingOnPage(BuildingType.MetalStorage, 5, new ResourceSet(151_875, 0, 0), T(0, 45)),
+            new BuildingOnPage(BuildingType.CrystalStorage, 4, new ResourceSet(101_250, 50_625, 0), T(0, 43)),
+            new BuildingOnPage(BuildingType.DeuteriumTank, 3, new ResourceSet(67_500, 67_500, 0), T(0, 36))
         ], page.Buildings);
     }
 
@@ -113,13 +139,13 @@ public class BuildingPageParserTests
 
         Assert.Equal(
         [
-            new BuildingOnPage(BuildingType.RoboticsFactory, 10, new ResourceSet(409_600, 122_880, 204_800)),
-            new BuildingOnPage(BuildingType.NaniteFactory, 0, null),
-            new BuildingOnPage(BuildingType.Shipyard, 11, new ResourceSet(819_200, 409_600, 204_800)),
-            new BuildingOnPage(BuildingType.ResearchLab, 8, new ResourceSet(51_200, 102_400, 51_200)),
-            new BuildingOnPage(BuildingType.University, 0, null),
-            new BuildingOnPage(BuildingType.Terraformer, 0, null),
-            new BuildingOnPage(BuildingType.MissileSilo, 0, new ResourceSet(20_000, 20_000, 1_000))
+            new BuildingOnPage(BuildingType.RoboticsFactory, 10, new ResourceSet(409_600, 122_880, 204_800), T(4, 41)),
+            new BuildingOnPage(BuildingType.NaniteFactory, 0, null, T(6, 15)),
+            new BuildingOnPage(BuildingType.Shipyard, 11, new ResourceSet(819_200, 409_600, 204_800), T(9, 34)),
+            new BuildingOnPage(BuildingType.ResearchLab, 8, new ResourceSet(51_200, 102_400, 51_200), T(1, 10)),
+            new BuildingOnPage(BuildingType.University, 0, null, T(8, 35)),
+            new BuildingOnPage(BuildingType.Terraformer, 0, null, T(2, 44)),
+            new BuildingOnPage(BuildingType.MissileSilo, 0, new ResourceSet(20_000, 20_000, 1_000), T(0, 9))
         ], page.Buildings);
         Assert.True(page.Buildings[1].Locked);
     }

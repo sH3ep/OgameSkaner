@@ -24,6 +24,12 @@ public interface IOgamexClient : IDisposable
     /// <summary>The player's own planets (moons excluded) and the planet currently selected in the game.</summary>
     Task<OwnPlanetsSnapshot> GetOwnPlanetsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Solar satellites of a planet (shipyard page). Selects the planet in the game.</summary>
+    Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default);
+
+    /// <summary>Orders ships in the planet's shipyard, e.g. <c>SOLAR_SATELLITE</c>.</summary>
+    Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default);
+
     /// <summary>Makes <paramref name="planet"/> the current planet in the game (also for the browser).</summary>
     Task SelectPlanetAsync(PlanetId planet, CancellationToken cancellationToken = default);
 

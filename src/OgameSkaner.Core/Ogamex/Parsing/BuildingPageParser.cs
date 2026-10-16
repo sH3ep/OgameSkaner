@@ -8,13 +8,15 @@ namespace OgameSkaner.Core.Ogamex.Parsing;
 
 /// <summary>A building as shown on <c>/building/resource</c> or <c>/building/facility</c>.</summary>
 /// <param name="NextLevelCost">Cost of the next level to queue (after the queue); null when the building is locked.</param>
-public sealed record BuildingOnPage(BuildingType Building, int Level, ResourceSet? NextLevelCost)
+/// <param name="Duration">Construction time of that next level with the planet's current factories.</param>
+public sealed record BuildingOnPage(BuildingType Building, int Level, ResourceSet? NextLevelCost, TimeSpan? Duration = null)
 {
     public bool Locked => NextLevelCost is null;
 }
 
 /// <summary>Everything read from one building page.</summary>
 /// <param name="FreeFields">Free planet fields with the queue already counted; only on the resources page.</param>
+/// <param name="ProductionPerHour">Resource production per hour (the page script gives it per second).</param>
 public sealed record BuildingPage(
     PlanetId CurrentPlanet,
     IReadOnlyList<OwnPlanet> Planets,
@@ -25,7 +27,8 @@ public sealed record BuildingPage(
     IReadOnlyList<BuildingOnPage> Buildings,
     IReadOnlyList<QueuedBuilding> Queue,
     int? FreeFields,
-    bool VacationMode);
+    bool VacationMode,
+    ResourceSet ProductionPerHour);
 
 /// <summary>
 /// Parses the building pages. Resources and energy come from the page's <c>var resources = {…}</c> script
@@ -39,18 +42,14 @@ public static partial class BuildingPageParser
     public static BuildingPage Parse(string? html)
     {
         html ??= string.Empty;
-        var planetId = CurrentPlanetPattern().Match(html);
-        var resources = ResourcesScriptPattern().Match(html);
-        if (!planetId.Success || !resources.Success || !html.Contains("buildings-container", StringComparison.Ordinal))
+        if (!TryReadPage(html, out var planetId, out var script) || !html.Contains("buildings-container", StringComparison.Ordinal))
             throw new SessionExpiredException("The server did not return a building page. Check the token and session id.");
-
-        var script = resources.Groups[1].Value;
 
         var document = new HtmlDocument();
         document.LoadHtml(html);
 
         return new BuildingPage(
-            new PlanetId(planetId.Groups[1].Value),
+            planetId,
             ParsePlanets(document),
             new ResourceSet((long)ReadNumber(script, "metal"), (long)ReadNumber(script, "crystal"), (long)ReadNumber(script, "deuterium")),
             new ResourceSet((long)ReadNumber(script, "metalStorageCapacity"), (long)ReadNumber(script, "crystalStorageCapacity"), (long)ReadNumber(script, "deuteriumStorageCapacity")),
@@ -59,8 +58,43 @@ public static partial class BuildingPageParser
             ParseBuildings(document),
             ParseQueue(document),
             FreeFieldsPattern().Match(html) is { Success: true } fields ? Int(fields.Groups[1].Value) : null,
-            VacationPattern().Match(html) is { Success: true } vacation && vacation.Groups[1].Value == "true");
+            VacationPattern().Match(html) is { Success: true } vacation && vacation.Groups[1].Value == "true",
+            new ResourceSet(
+                (long)Math.Round(ReadNumber(script, "metalProduction") * 3600),
+                (long)Math.Round(ReadNumber(script, "crystalProduction") * 3600),
+                (long)Math.Round(ReadNumber(script, "deuteriumProduction") * 3600)));
     }
+
+    /// <summary>Reads the current planet id and the body of the <c>var resources</c> object present on every game page.</summary>
+    internal static bool TryReadPage(string html, out PlanetId planet, out string resourcesScript)
+    {
+        var planetId = CurrentPlanetPattern().Match(html);
+        var resources = ResourcesScriptPattern().Match(html);
+        planet = planetId.Success ? new PlanetId(planetId.Groups[1].Value) : default;
+        resourcesScript = resources.Success ? resources.Groups[1].Value : string.Empty;
+        return planetId.Success && resources.Success;
+    }
+
+    /// <summary>
+    /// Parses the game's time format <c>[Nd ][hh:]mm:ss</c> (see <c>ConvertToTimeString</c> in the game's default.js):
+    /// "06:57" is 6 minutes 57 seconds, "01:02:03" one hour, "2d 01:02:03" two days more.
+    /// </summary>
+    internal static TimeSpan? ParseDuration(string? text)
+    {
+        var match = DurationPattern().Match(text?.Trim() ?? string.Empty);
+        if (!match.Success)
+            return null;
+
+        int Part(string group) => match.Groups[group].Success ? Int(match.Groups[group].Value) : 0;
+        return new TimeSpan(Part("d"), Part("h"), Part("m"), Part("s"));
+    }
+
+    /// <summary>The first time value in the block's <c>div.production-info</c> ("Construction/Production duration : 06:57").</summary>
+    internal static TimeSpan? ParseInfoDuration(HtmlNode detail) =>
+        ByClass(detail, "div", "info-item")
+            .SelectMany(item => item.Descendants("span"))
+            .Select(span => ParseDuration(span.InnerText))
+            .FirstOrDefault(d => d is not null);
 
     /// <summary>
     /// Only the planets from the sidebar (present on every game page). Moons have different buildings and get
@@ -97,14 +131,14 @@ public static partial class BuildingPageParser
 
             var levelText = ByClass(detail, "h3", "building-level").FirstOrDefault()?.InnerText ?? string.Empty;
             var level = int.TryParse(Digits(levelText), NumberStyles.None, CultureInfo.InvariantCulture, out var l) ? l : 0;
-            buildings.Add(new BuildingOnPage(building, level, ParseCost(detail)));
+            buildings.Add(new BuildingOnPage(building, level, ParseCost(detail), ParseInfoDuration(detail)));
         }
 
         return buildings;
     }
 
     /// <summary>Reads the "Required resources" items; null when there are none (locked building).</summary>
-    private static ResourceSet? ParseCost(HtmlNode detail)
+    internal static ResourceSet? ParseCost(HtmlNode detail)
     {
         var items = ByClass(detail, "div", "required-resource-item").ToList();
         if (items.Count == 0)
@@ -148,7 +182,7 @@ public static partial class BuildingPageParser
             : null;
 
     /// <summary>Reads <c>name: 123.45</c> from the body of the <c>var resources</c> object.</summary>
-    private static double ReadNumber(string script, string name)
+    internal static double ReadNumber(string script, string name)
     {
         var match = Regex.Match(script,$@"\b{name}:\s*(-?[0-9.]+)", RegexOptions.CultureInvariant);
         return match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
@@ -156,15 +190,18 @@ public static partial class BuildingPageParser
             : throw new OgamexException($"Building page is missing the '{name}' value.");
     }
 
-    private static IEnumerable<HtmlNode> ByClass(HtmlNode root, string tag, string cssClass) =>
+    internal static IEnumerable<HtmlNode> ByClass(HtmlNode root, string tag, string cssClass) =>
         root.Descendants(tag).Where(n => n.GetClasses().Contains(cssClass));
 
     private static string Digits(string text) => new(text.Where(char.IsAsciiDigit).ToArray());
 
-    private static int Int(string text) => int.Parse(text, NumberStyles.None, CultureInfo.InvariantCulture);
+    internal static int Int(string text) => int.Parse(text, NumberStyles.None, CultureInfo.InvariantCulture);
 
     [GeneratedRegex(@"window\.currentPlanetId\s*=\s*['`""]([^'`""]+)['`""]")]
     private static partial Regex CurrentPlanetPattern();
+
+    [GeneratedRegex(@"^(?:(?<d>\d+)d\s+)?(?:(?<h>\d{1,2}):)?(?<m>\d{1,2}):(?<s>\d{2})$")]
+    private static partial Regex DurationPattern();
 
     [GeneratedRegex(@"remainingFieldsQueueIncluded\s*=\s*['`""]?(\d+)")]
     private static partial Regex FreeFieldsPattern();

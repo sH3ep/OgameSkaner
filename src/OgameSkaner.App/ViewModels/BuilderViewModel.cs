@@ -18,6 +18,7 @@ public sealed partial class BuilderViewModel : PageViewModel
     private readonly OwnPlanetService _ownPlanets;
     private readonly IBuildSettingsStore _store;
     private readonly IDialogService _dialogs;
+    private readonly AutomationActivity _activity;
     private string? _loadedUniverse;
     private HashSet<string> _excludedPlanetIds = [];
     private bool _loading;
@@ -28,8 +29,10 @@ public sealed partial class BuilderViewModel : PageViewModel
         BuildAutomationService automation,
         OwnPlanetService ownPlanets,
         IBuildSettingsStore store,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        AutomationActivity activity)
     {
+        _activity = activity;
         _context = context;
         _automation = automation;
         _ownPlanets = ownPlanets;
@@ -258,8 +261,23 @@ public sealed partial class BuilderViewModel : PageViewModel
             StatusText = $"Running… {p.TotalQueued} items queued";
         });
 
-        AddLog($"{Mode} build started on {string.Join(", ", selected.Select(p => p.Name))}");
-        var result = await _automation.RunAsync(client, request, progress, cancellationToken);
+        if (!_activity.TryStart(ActivityName))
+        {
+            _dialogs.ShowError($"{_activity.Running} is running and feeds the same build queue. Stop it first.");
+            return;
+        }
+
+        BuildRunResult result;
+        try
+        {
+            AddLog($"{Mode} build started on {string.Join(", ", selected.Select(p => p.Name))}");
+            result = await _automation.RunAsync(client, request, progress, cancellationToken);
+        }
+        finally
+        {
+            _activity.Stop(ActivityName);
+        }
+
         ShowPlanets(_ownPlanets.GetStored(client.Universe.Name));
 
         StatusText = result.Outcome switch
@@ -273,6 +291,8 @@ public sealed partial class BuilderViewModel : PageViewModel
         if (result.Outcome == BuildOutcome.Failed)
             _dialogs.ShowError(result.Error ?? "Build automation failed.");
     }
+
+    private const string ActivityName = "The Builder";
 
     private void LoadSettings()
     {

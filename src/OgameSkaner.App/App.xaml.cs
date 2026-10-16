@@ -70,6 +70,7 @@ public partial class App : Application
         builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<IUniverseContext, UniverseContext>();
+        builder.Services.AddSingleton<AutomationActivity>();
 
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
@@ -79,6 +80,7 @@ public partial class App : Application
         builder.Services.AddPage<ScannerViewModel, ScannerView>("Scanner");
         builder.Services.AddPage<PlayersViewModel, PlayersView>("Players");
         builder.Services.AddPage<BuilderViewModel, BuilderView>("Builder");
+        builder.Services.AddPage<SchemasViewModel, SchemasView>("Schemas");
         builder.Services.AddPage<UtilitiesViewModel, UtilitiesView>("Utilities");
 
         return builder.Build();
