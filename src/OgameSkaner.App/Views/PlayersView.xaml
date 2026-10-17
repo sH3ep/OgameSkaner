@@ -25,6 +25,7 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" MinWidth="140" />
                             <ColumnDefinition Width="90" />
+                            <ColumnDefinition Width="80" />
                             <ColumnDefinition Width="30" />
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="Auto" />
@@ -35,15 +36,17 @@
                         <TextBlock Text="{Binding PlayerName}" VerticalAlignment="Center" FontWeight="SemiBold"
                                    TextTrimming="CharacterEllipsis" ToolTip="{Binding ScannedAt}" />
                         <TextBlock Grid.Column="1" Text="{Binding Coordinates}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="☾" ToolTip="Has a moon" VerticalAlignment="Center"
+                        <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#555" VerticalAlignment="Center"
+                                   ToolTip="Status letters (i/I inactive, v vacation, n noob, s strong, p protection, b banned) and rank" />
+                        <TextBlock Grid.Column="3" Text="☾" ToolTip="Has a moon" VerticalAlignment="Center"
                                    Visibility="{Binding HasMoon, Converter={StaticResource BoolToVisibility}}" />
 
-                        <Button Grid.Column="3" Content="Spy planet" Command="{Binding SpyPlanetCommand}" Margin="0,2,4,2" />
-                        <Ellipse Grid.Column="4" Style="{StaticResource StatusDot}" Margin="0,0,12,0"
+                        <Button Grid.Column="4" Content="Spy planet" Command="{Binding SpyPlanetCommand}" Margin="0,2,4,2" />
+                        <Ellipse Grid.Column="5" Style="{StaticResource StatusDot}" Margin="0,0,12,0"
                                  Fill="{Binding PlanetSpyStatus, Converter={StaticResource StatusToBrush}}"
                                  ToolTip="{Binding PlanetSpyMessage}" />
-                        <Button Grid.Column="5" Content="Spy moon" Command="{Binding SpyMoonCommand}" Margin="0,2,4,2" />
-                        <Ellipse Grid.Column="6" Style="{StaticResource StatusDot}" Margin="0,0,4,0"
+                        <Button Grid.Column="6" Content="Spy moon" Command="{Binding SpyMoonCommand}" Margin="0,2,4,2" />
+                        <Ellipse Grid.Column="7" Style="{StaticResource StatusDot}" Margin="0,0,4,0"
                                  Fill="{Binding MoonSpyStatus, Converter={StaticResource StatusToBrush}}"
                                  ToolTip="{Binding MoonSpyMessage}" />
                     </Grid>

@@ -16,6 +16,9 @@ public sealed partial class PlayerPlanetItemViewModel(PlayerPlanet planet, IOgam
 
     public bool HasMoon => Planet.HasMoon;
 
+    /// <summary>The game's status letters ("i", "v", …) with the rank, e.g. "i #909".</summary>
+    public string Status => string.Join(" ", new[] { Planet.Status.ToLetters(), Planet.Rank is { } rank ? $"#{rank:N0}" : "" }.Where(t => t.Length > 0));
+
     public string ScannedAt => $"Scanned {Planet.ScannedAt:g}";
 
     [ObservableProperty]

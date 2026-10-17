@@ -1,6 +1,7 @@
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Optimizer;
+using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 
@@ -53,12 +54,55 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public Task SendSpyAsync(Coordinates target, PlanetType targetType, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
-    public Task<FleetSnapshot> GetFleetAsync(CancellationToken cancellationToken = default) => Task.FromResult(Fleet);
+    /// <summary>Fleets of the planets read with an id; <see cref="Fleet"/> for the others.</summary>
+    public Dictionary<PlanetId, FleetSnapshot> Fleets { get; } = new();
 
-    public Task SendFleetAsync(FleetMission mission, CancellationToken cancellationToken = default)
+    public List<PlanetId?> FleetReads { get; } = [];
+
+    public Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default)
     {
-        SentMissions.Add(mission);
-        return Task.CompletedTask;
+        FleetReads.Add(planet);
+        return Task.FromResult(planet is { } id && Fleets.TryGetValue(id, out var fleet) ? fleet : Fleet);
+    }
+
+    public Func<FleetMission, FleetBriefing> Briefing { get; set; } = mission => new FleetBriefing(
+        [MissionType.Transport, MissionType.Attack, MissionType.Spy], TimeSpan.FromMinutes(5), 10, 3650,
+        "player", "Target", 10, 1_000_000, 0, PlayerStatus.Inactive, null);
+
+    public Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Briefing(mission));
+
+    public Func<FleetMission, FleetSendOutcome> SendAnswer { get; set; } = _ => new FleetSendOutcome(true);
+
+    /// <summary>The origin of each mission in <see cref="SentMissions"/>.</summary>
+    public List<PlanetId?> SentOrigins { get; } = [];
+
+    public Task<FleetSendOutcome> SendFleetAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default)
+    {
+        var outcome = SendAnswer(mission);
+        if (outcome.Sent)
+        {
+            SentMissions.Add(mission);
+            SentOrigins.Add(origin);
+        }
+        return Task.FromResult(outcome);
+    }
+
+    /// <summary>The espionage report list, newest first; one page holds them all.</summary>
+    public List<EspionageReport> EspionageReports { get; } = [];
+
+    /// <summary>Details by report id; a report without one comes back unchanged.</summary>
+    public Dictionary<string, EspionageReport> ReportDetails { get; } = new();
+
+    public List<string> DetailReads { get; } = [];
+
+    public Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<EspionageReport>>(page == 1 ? EspionageReports.ToList() : []);
+
+    public Task<EspionageReport> GetEspionageReportDetailAsync(EspionageReport report, CancellationToken cancellationToken = default)
+    {
+        DetailReads.Add(report.Id);
+        return Task.FromResult(ReportDetails.GetValueOrDefault(report.Id) ?? report);
     }
 
     public Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
@@ -159,6 +203,29 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
     public void Dispose()
     {
     }
+}
+
+/// <summary>In-memory raid store.</summary>
+public sealed class FakeRaidStore : IRaidStore
+{
+    public RaidSettings Settings { get; set; } = RaidSettings.Default;
+
+    public List<EspionageReport> Reports { get; set; } = [];
+
+    public List<RaidRecord> Raids { get; set; } = [];
+
+    public RaidSettings LoadSettings(string universe) => Settings;
+
+    public void SaveSettings(string universe, RaidSettings settings) => Settings = settings;
+
+    public IReadOnlyList<EspionageReport> LoadReports(string universe) => Reports.ToList();
+
+    public void SaveReports(string universe, IEnumerable<EspionageReport> reports) =>
+        Reports = reports.GroupBy(r => (r.Target, r.TargetType)).Select(g => g.MaxBy(r => r.Time)!).ToList();
+
+    public IReadOnlyList<RaidRecord> LoadRaids(string universe) => Raids.ToList();
+
+    public void SaveRaids(string universe, IEnumerable<RaidRecord> raids) => Raids = raids.ToList();
 }
 
 /// <summary>In-memory planet list store.</summary>

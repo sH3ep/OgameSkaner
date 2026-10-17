@@ -3,6 +3,7 @@ using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Optimizer;
+using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Schemas;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
@@ -27,6 +28,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOwnPlanetStore, JsonOwnPlanetStore>();
         services.AddSingleton<ISchemaStore, JsonSchemaStore>();
         services.AddSingleton<IOptimizerResultStore, JsonOptimizerResultStore>();
+        services.AddSingleton<IRaidStore, JsonRaidStore>();
         services.AddSingleton<LegacyImporter>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
@@ -38,6 +40,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SchemaRunner>();
         services.AddSingleton<SimulatedBuildRunner>();
         services.AddSingleton<BuildOrderOptimizer>();
+        services.AddSingleton<RaidRunner>();
 
         return services;
     }

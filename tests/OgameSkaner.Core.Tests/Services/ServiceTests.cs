@@ -104,7 +104,7 @@ public class FleetEscapeServiceTests
         var mission = Assert.Single(client.SentMissions);
         Assert.Equal(new Coordinates(2, 50, 7), mission.Target);
         Assert.Equal(PlanetType.Moon, mission.TargetType);
-        Assert.Equal(MissionType.Hold, mission.Mission);
+        Assert.Equal(MissionType.Deploy, mission.Mission);
         Assert.Equal(client.Fleet.Ships, mission.Ships);
     }
 

@@ -4,6 +4,7 @@ using System.Text.Json;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Optimizer;
+using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Storage;
 
@@ -23,7 +24,17 @@ internal sealed class OgamexClient : IOgamexClient
     private readonly ISessionStore _sessions;
     private readonly OgamexOptions _options;
     private readonly TimeProvider _timeProvider;
+
+    /// <summary>
+    /// Held while a request switches the game's current planet (<c>?planet=</c>), and for a fleet send from its
+    /// planet switch to the submit: <c>/fleet/submitfleet</c> has no origin and leaves from the current planet.
+    /// </summary>
+    private readonly SemaphoreSlim _planetSwitch = new(1, 1);
+
     private long _cacheBuster;
+
+    /// <summary>Time zone the game shows dates in, learned from the fleet page's clock; null until then.</summary>
+    private TimeSpan? _displayOffset;
 
     public OgamexClient(
         UniverseProfile universe,
@@ -53,7 +64,8 @@ internal sealed class OgamexClient : IOgamexClient
 
         var scannedAt = _timeProvider.GetLocalNow();
         return GalaxyPageParser.Parse(html)
-            .Select(row => new PlayerPlanet(row.PlayerName, new Coordinates(address.Galaxy, address.System, row.Position), row.HasMoon, scannedAt))
+            .Select(row => new PlayerPlanet(
+                row.PlayerName, new Coordinates(address.Galaxy, address.System, row.Position), row.HasMoon, scannedAt, row.Status, row.PlayerId, row.Rank))
             .ToList();
     }
 
@@ -68,14 +80,116 @@ internal sealed class OgamexClient : IOgamexClient
             throw new OgamexException($"Spy on {target} was rejected by the server.");
     }
 
-    public async Task<FleetSnapshot> GetFleetAsync(CancellationToken cancellationToken = default)
+    public async Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Get, "fleet", referer: "galaxy");
-        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
-        return FleetPageParser.Parse(html);
+        if (planet is null)
+            return await ReadFleetPageAsync(null, cancellationToken).ConfigureAwait(false);
+
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await ReadFleetPageAsync(planet, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
     }
 
-    public async Task SendFleetAsync(FleetMission mission, CancellationToken cancellationToken = default)
+    public async Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Post, "fleet/fleetpage3data", referer: "fleet");
+        request.Content = JsonContent.Create(
+            new FleetBriefingRequest(
+                mission.Ships.Select(s => new ShipRequest(s.ShipType, s.Quantity)).ToList(),
+                mission.Target.Galaxy,
+                mission.Target.System,
+                mission.Target.Position,
+                (int)mission.TargetType,
+                mission.SpeedPercentage),
+            options: JsonOptions);
+
+        var response = Deserialize<FleetBriefingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        if (!response.IsSuccess)
+            throw new OgamexException(response.Message ?? $"The server refused the fleet briefing for {mission.Target}.");
+
+        var status = PlayerStatus.None;
+        if (response.PlayerIsInactive7) status |= PlayerStatus.Inactive;
+        if (response.PlayerIsInactive28) status |= PlayerStatus.LongInactive;
+        if (response.PlayerIsVacation) status |= PlayerStatus.Vacation;
+        if (response.PlayerIsBanned) status |= PlayerStatus.Banned;
+        if (response.PlayerIsNoob) status |= PlayerStatus.Noob;
+        if (response.PlayerIsStrong) status |= PlayerStatus.Strong;
+        if (response.PlayerIsUnderProtection) status |= PlayerStatus.Protection;
+
+        return new FleetBriefing(
+            (response.AvailableMissions ?? []).Select(m => (MissionType)m).ToList(),
+            TimeSpan.FromSeconds(response.FleetOneWayTimeOnSeconds),
+            response.DeuteriumConsumption,
+            response.Distance,
+            response.PlayerId,
+            response.PlayerName,
+            response.PlayerRanking,
+            response.PlayerPoints,
+            response.PlayerFleetPoints,
+            status,
+            response.ShowWarning ? response.WarningMessage : null);
+    }
+
+    public async Task<FleetSendOutcome> SendFleetAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default)
+    {
+        if (origin is null)
+            return await SubmitFleetAsync(mission, cancellationToken).ConfigureAwait(false);
+
+        // The submit has no origin: the planet switch and the submit must not be split by another switch.
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await ReadFleetPageAsync(origin, cancellationToken).ConfigureAwait(false);
+            return await SubmitFleetAsync(mission, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+    }
+
+    public async Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"messages/messagedata?MessageCategoryType=FLEET_ESPIONAGE&page={page}", referer: "messages");
+        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        return EspionageReportParser.ParseList(html, _displayOffset ?? TimeSpan.FromMinutes(_options.TimeZoneOffsetMinutes));
+    }
+
+    public async Task<EspionageReport> GetEspionageReportDetailAsync(EspionageReport report, CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"messages/spyreportdetail?reportid={Uri.EscapeDataString(report.Id)}", referer: "messages");
+        var (ships, defenses) = EspionageReportParser.ParseDetail(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        return report with { Ships = ships, Defenses = defenses };
+    }
+
+    /// <summary>Reads the fleet page (switching to <paramref name="planet"/> when given); the caller holds the planet lock for a switch.</summary>
+    private async Task<FleetSnapshot> ReadFleetPageAsync(PlanetId? planet, CancellationToken cancellationToken)
+    {
+        var uri = planet is { } id ? $"fleet?planet={Uri.EscapeDataString(id.Value)}" : "fleet";
+        using var request = CreateRequest(HttpMethod.Get, uri, referer: "fleet");
+        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        var fleet = FleetPageParser.Parse(html);
+
+        // An unknown planet id is ignored and the current planet is shown instead.
+        if (planet is { } expected && BuildingPageParser.TryReadPage(html, out var shown, out _) && shown != expected)
+            throw new OgamexException($"Planet {expected} is not available on {Universe.Name}. Refresh the planet list.");
+
+        if (fleet.ServerClock is { } clock)
+        {
+            var offset = clock - _timeProvider.GetUtcNow().UtcDateTime;
+            _displayOffset = TimeSpan.FromMinutes(Math.Round(offset.TotalMinutes / 15) * 15);
+        }
+
+        return fleet;
+    }
+
+    private async Task<FleetSendOutcome> SubmitFleetAsync(FleetMission mission, CancellationToken cancellationToken)
     {
         var body = new SendFleetRequest(
             mission.Ships.Select(s => new ShipRequest(s.ShipType, s.Quantity)).ToList(),
@@ -91,7 +205,8 @@ internal sealed class OgamexClient : IOgamexClient
 
         using var request = CreateRequest(HttpMethod.Post, "fleet/submitfleet", referer: "fleet");
         request.Content = JsonContent.Create(body, options: JsonOptions);
-        await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        var response = Deserialize<SubmitFleetResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        return new FleetSendOutcome(response.IsSuccess, response.Message);
     }
 
     public async Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default)
@@ -121,7 +236,7 @@ internal sealed class OgamexClient : IOgamexClient
     public async Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Get, $"hangar?planet={Uri.EscapeDataString(planet.Value)}", referer: "hangar");
-        var state = HangarPageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        var state = HangarPageParser.Parse(await SendSwitchingPlanetAsync(request, cancellationToken).ConfigureAwait(false));
         if (state.Planet != planet)
             throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
         return state;
@@ -150,7 +265,7 @@ internal sealed class OgamexClient : IOgamexClient
     public async Task<(int Min, int Max)> GetPlanetTemperatureAsync(PlanetId planet, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Get, $"home?planet={Uri.EscapeDataString(planet.Value)}", referer: "home");
-        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        var html = await SendSwitchingPlanetAsync(request, cancellationToken).ConfigureAwait(false);
         var temperature = OverviewPageParser.ParseTemperature(html);
         if (BuildingPageParser.TryReadPage(html, out var shown, out _) && shown != planet)
             throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
@@ -216,7 +331,10 @@ internal sealed class OgamexClient : IOgamexClient
     {
         var uri = planet is { } id ? $"{path}?planet={Uri.EscapeDataString(id.Value)}" : path;
         using var request = CreateRequest(HttpMethod.Get, uri, referer: path);
-        var page = BuildingPageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        var html = planet is null
+            ? await SendForStringAsync(request, cancellationToken).ConfigureAwait(false)
+            : await SendSwitchingPlanetAsync(request, cancellationToken).ConfigureAwait(false);
+        var page = BuildingPageParser.Parse(html);
 
         // An unknown planet id is silently ignored and the current planet is returned instead.
         if (planet is { } expected && page.CurrentPlanet != expected)
@@ -225,7 +343,25 @@ internal sealed class OgamexClient : IOgamexClient
         return page;
     }
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose()
+    {
+        _http.Dispose();
+        _planetSwitch.Dispose();
+    }
+
+    /// <summary>Sends a request that switches the current planet, so it can't split another caller's switch and fleet send.</summary>
+    private async Task<string> SendSwitchingPlanetAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+    }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUri, string referer)
     {

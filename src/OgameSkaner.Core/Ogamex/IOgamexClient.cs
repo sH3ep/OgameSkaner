@@ -1,6 +1,7 @@
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Optimizer;
+using OgameSkaner.Core.Domain.Raiding;
 
 namespace OgameSkaner.Core.Ogamex;
 
@@ -15,9 +16,26 @@ public interface IOgamexClient : IDisposable
 
     Task SendSpyAsync(Coordinates target, PlanetType targetType, CancellationToken cancellationToken = default);
 
-    Task<FleetSnapshot> GetFleetAsync(CancellationToken cancellationToken = default);
+    /// <summary>Ships, cargo capacities and fleet slots of the current planet, or of <paramref name="planet"/> (which then becomes the current planet).</summary>
+    Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default);
 
-    Task SendFleetAsync(FleetMission mission, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// What the fleet page shows before sending <paramref name="mission"/> from the current planet: flight time, possible
+    /// missions and the target player's state (<c>/fleet/fleetpage3data</c>). Nothing is sent.
+    /// </summary>
+    Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Sends a fleet from <paramref name="origin"/> (switching to it first) or from the current planet. A refusal comes
+    /// back as an outcome with the server's message.
+    /// </summary>
+    Task<FleetSendOutcome> SendFleetAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default);
+
+    /// <summary>One page of espionage reports, newest first, without ships and defenses.</summary>
+    Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default);
+
+    /// <summary>The report with the ships and defenses of its detail page.</summary>
+    Task<EspionageReport> GetEspionageReportDetailAsync(EspionageReport report, CancellationToken cancellationToken = default);
 
     /// <summary>Returns true when the stored session cookies are accepted by the server.</summary>
     Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default);

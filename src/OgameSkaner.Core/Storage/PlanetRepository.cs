@@ -16,7 +16,8 @@ public interface IPlanetRepository
 /// <summary>Stores each universe in <c>universes/{name}/planets.json</c>.</summary>
 public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
 {
-    private const int CurrentVersion = 1;
+    /// <summary>2 added the player status, id and rank; version 1 files load with none.</summary>
+    private const int CurrentVersion = 2;
 
     private readonly SemaphoreSlim _sync = new(1, 1);
     private readonly Dictionary<string, PlanetDatabase> _cache = new();
@@ -71,11 +72,20 @@ public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
     }
 
     /// <summary>Flat on-disk shape, decoupled from the domain model.</summary>
-    private sealed record PlanetRecord(string Player, int Galaxy, int System, int Position, bool Moon, DateTimeOffset ScannedAt)
+    private sealed record PlanetRecord(
+        string Player,
+        int Galaxy,
+        int System,
+        int Position,
+        bool Moon,
+        DateTimeOffset ScannedAt,
+        PlayerStatus Status = PlayerStatus.None,
+        string? PlayerId = null,
+        int? Rank = null)
     {
-        public PlayerPlanet ToDomain() => new(Player, new Coordinates(Galaxy, System, Position), Moon, ScannedAt);
+        public PlayerPlanet ToDomain() => new(Player, new Coordinates(Galaxy, System, Position), Moon, ScannedAt, Status, PlayerId, Rank);
 
         public static PlanetRecord FromDomain(PlayerPlanet p) =>
-            new(p.PlayerName, p.Coordinates.Galaxy, p.Coordinates.System, p.Coordinates.Position, p.HasMoon, p.ScannedAt);
+            new(p.PlayerName, p.Coordinates.Galaxy, p.Coordinates.System, p.Coordinates.Position, p.HasMoon, p.ScannedAt, p.Status, p.PlayerId, p.Rank);
     }
 }

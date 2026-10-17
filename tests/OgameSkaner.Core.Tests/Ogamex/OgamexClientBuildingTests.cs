@@ -173,6 +173,73 @@ public class OgamexClientBuildingTests
 
     private sealed record RecordedRequest(HttpMethod Method, Uri Uri, string? Body);
 
+    private const string MinimalFleetPage = """
+        <div id="fleet1_content_container"></div>
+        <span class="info-item info_item_active_fleets">Fleets: 0/11</span>
+        <input id="fleet2_target_x" value="8" /><input id="fleet2_target_y" value="260" /><input id="fleet2_target_z" value="3" />
+        """;
+
+    private static readonly FleetMission Attack =
+        new(new Coordinates(8, 250, 10), PlanetType.Planet, MissionType.Attack, [new ShipStack("HEAVY_CARGO", 12)]);
+
+    [Fact]
+    public async Task Sending_from_an_origin_switches_to_it_then_submits()
+    {
+        _handler.Respond = r => r.Method == HttpMethod.Get ? MinimalFleetPage : """{"IsSuccess":true,"Message":null,"ValidationErrors":null}""";
+
+        var outcome = await CreateClient().SendFleetAsync(Attack, PlanetId);
+
+        Assert.True(outcome.Sent);
+        Assert.Equal(["/fleet?planet=" + PlanetId.Value, "/fleet/submitfleet"], _handler.Requests.Select(r => r.Uri.PathAndQuery));
+        var body = _handler.Requests[1].Body!;
+        Assert.Contains("\"missionType\":8", body);
+        Assert.Contains("\"shipType\":\"HEAVY_CARGO\",\"quantity\":12", body);
+        Assert.Contains("\"targetX\":8,\"targetY\":250,\"targetZ\":10,\"targetPlanetType\":1", body);
+    }
+
+    [Fact]
+    public async Task A_refused_send_returns_the_server_message()
+    {
+        _handler.Respond = _ => """{"IsSuccess":false,"Message":"Not enough fleet slots.","ValidationErrors":null}""";
+
+        var outcome = await CreateClient().SendFleetAsync(Attack);
+
+        Assert.Equal(new FleetSendOutcome(false, "Not enough fleet slots."), outcome);
+        Assert.Equal("/fleet/submitfleet", Assert.Single(_handler.Requests).Uri.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task Briefing_reads_flight_time_missions_and_the_target_player()
+    {
+        _handler.Respond = _ => """
+            {"AvailableMissions":[4,8,6],"FleetOneWayTimeOnSeconds":15,"DeuteriumConsumption":2,"Distance":3650,"CargoCapacity":0,
+             "PlayerId":"p1","PlayerName":"MoE","PlayerAllianceId":null,"PlayerRanking":909,"PlayerPoints":127914033447,"PlayerFleetPoints":0,
+             "PlayerIsVacation":false,"PlayerIsBanned":false,"PlayerIsNoob":false,"PlayerIsStrong":true,"PlayerIsInactive7":true,
+             "PlayerIsInactive28":false,"PlayerIsUnderProtection":false,"TargetX":8,"TargetY":250,"TargetZ":10,"TargetPlanetType":1,
+             "ShowWarning":false,"WarningMessage":null,"IsSuccess":true,"Message":null,"ValidationErrors":null}
+            """;
+
+        var briefing = await CreateClient().GetFleetBriefingAsync(Attack);
+
+        Assert.Equal([MissionType.Transport, MissionType.Attack, MissionType.Spy], briefing.AvailableMissions);
+        Assert.Equal(TimeSpan.FromSeconds(15), briefing.OneWayFlight);
+        Assert.Equal(3650, briefing.Distance);
+        Assert.Equal(909, briefing.PlayerRank);
+        Assert.Equal(PlayerStatus.Inactive | PlayerStatus.Strong, briefing.PlayerStatus);
+        Assert.Equal("/fleet/fleetpage3data", Assert.Single(_handler.Requests).Uri.PathAndQuery);
+    }
+
+    [Fact]
+    public async Task Espionage_reports_come_from_the_espionage_category()
+    {
+        _handler.Respond = _ => Fixture("espionage_list.html");
+
+        var reports = await CreateClient().GetEspionageReportsAsync(2);
+
+        Assert.Equal(2, reports.Count);
+        Assert.Equal("/messages/messagedata?MessageCategoryType=FLEET_ESPIONAGE&page=2", Assert.Single(_handler.Requests).Uri.PathAndQuery);
+    }
+
     private sealed class StubHandler : HttpMessageHandler
     {
         public Func<HttpRequestMessage, string> Respond { get; set; } = _ => string.Empty;

@@ -1,3 +1,4 @@
+using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Ogamex.Parsing;
 
@@ -18,6 +19,20 @@ public class GalaxyPageParserTests
             new GalaxyRow(2, "Bartolo", true),
             new GalaxyRow(4, "Tom & Jerry", true),
             new GalaxyRow(15, "LastOne", false)
+        ], rows);
+    }
+
+    [Fact]
+    public void Parse_reads_status_player_id_and_rank_from_the_player_tooltip()
+    {
+        var rows = GalaxyPageParser.Parse(Fixture("galaxy_statuses.html"));
+
+        Assert.Equal(
+        [
+            new GalaxyRow(6, "Arthur Dayne", false, PlayerStatus.Vacation, "aaaaaaaa-0000-0000-0000-000000000006", 1204),
+            new GalaxyRow(10, "MoE", true, PlayerStatus.Inactive, "aaaaaaaa-0000-0000-0000-000000000010", 909),
+            new GalaxyRow(12, "Disruptor Hector & Co", false, PlayerStatus.Strong | PlayerStatus.LongInactive, "aaaaaaaa-0000-0000-0000-000000000012", 72),
+            new GalaxyRow(13, "Priest Sandy", false, PlayerStatus.None, "aaaaaaaa-0000-0000-0000-000000000013", 2471)
         ], rows);
     }
 
