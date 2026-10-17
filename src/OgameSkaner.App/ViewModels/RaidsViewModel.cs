@@ -101,6 +101,25 @@ public sealed partial class RaidsViewModel : PageViewModel
     private string? _targetsInfo;
 
     [ObservableProperty]
+    private string? _defenseRankingInfo;
+
+    // Grid filters (empty = no limit); they only change what the grid shows and aren't saved.
+    [ObservableProperty]
+    private int? _galaxyFrom;
+
+    [ObservableProperty]
+    private int? _galaxyTo;
+
+    [ObservableProperty]
+    private int? _systemFrom;
+
+    [ObservableProperty]
+    private int? _systemTo;
+
+    [ObservableProperty]
+    private long? _maxRankingDefensePoints;
+
+    [ObservableProperty]
     private string? _statusText;
 
     [ObservableProperty]
@@ -119,10 +138,10 @@ public sealed partial class RaidsViewModel : PageViewModel
         base.OnPropertyChanged(e);
         switch (e.PropertyName)
         {
-            case nameof(HideRejected):
+            case nameof(HideRejected) or nameof(GalaxyFrom) or nameof(GalaxyTo) or nameof(SystemFrom) or nameof(SystemTo) or nameof(MaxRankingDefensePoints):
                 ShowTargets();
                 break;
-            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy):
+            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo):
                 break;
             default:
                 if (!_loading && _loadedUniverse is not null)
@@ -147,6 +166,9 @@ public sealed partial class RaidsViewModel : PageViewModel
         try
         {
             _targets = await _runner.GetTargetsAsync(universe.Name, CurrentSettings());
+            DefenseRankingInfo = _runner.DefenseRankingReadAt(universe.Name) is { } readAt
+                ? $"Read every player's defense points from the game's ranking (34 pages on genesis; the raider reads it again when it is {RaidRunner.RankingMaxAge.TotalHours:0} hours old). Last read {readAt.ToLocalTime():g}."
+                : "Read every player's defense points from the game's ranking (34 pages on genesis). Not read yet.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
@@ -174,6 +196,10 @@ public sealed partial class RaidsViewModel : PageViewModel
     [RelayCommand(CanExecute = nameof(CanAct))]
     private Task ReadReportsAsync() =>
         ActAsync(client => _runner.ReadReportsAsync(client, CurrentSettings(), Progress(), all: true), n => $"{n} report(s) loaded from the messages");
+
+    [RelayCommand(CanExecute = nameof(CanAct))]
+    private Task ReadDefenseRankingAsync() =>
+        ActAsync(client => _runner.ReadDefenseRankingAsync(client, Progress()), n => $"Defense ranking read: {n:N0} players");
 
     [RelayCommand(CanExecute = nameof(CanAct))]
     private Task SpySelectedAsync() =>
@@ -253,9 +279,10 @@ public sealed partial class RaidsViewModel : PageViewModel
     {
         var selected = Targets.Where(t => t.IsSelected).Select(t => t.Target.Planet.Coordinates).ToHashSet();
         var now = DateTimeOffset.Now;
-        var visible = HideRejected
+        var filter = new RaidTargetFilter(GalaxyFrom, GalaxyTo, SystemFrom, SystemTo, MaxRankingDefensePoints);
+        var visible = (HideRejected
             ? _targets.Where(t => t.State is RaidTargetState.Ready or RaidTargetState.NeedsSpy or RaidTargetState.SpyPending or RaidTargetState.UnderAttack)
-            : _targets;
+            : _targets).Where(filter.Matches).ToList();
 
         Targets.Clear();
         foreach (var target in visible)
@@ -265,12 +292,14 @@ public sealed partial class RaidsViewModel : PageViewModel
         var spy = _targets.Count(t => t.State == RaidTargetState.NeedsSpy);
         TargetsInfo = _targets.Count == 0
             ? "No raidable inactive planets in the galaxy database. Scan the galaxy first (the scan stores each player's status and rank)."
-            : $"{_targets.Count} inactive planets: {ready} ready, {spy} to spy, {_targets.Count - ready - spy} other";
+            : $"{_targets.Count} inactive planets: {ready} ready, {spy} to spy, {_targets.Count - ready - spy} other"
+              + (visible.Count < _targets.Count ? $"; {visible.Count} shown" : "");
     }
 
     private void NotifyManualCommands()
     {
         ReadReportsCommand.NotifyCanExecuteChanged();
+        ReadDefenseRankingCommand.NotifyCanExecuteChanged();
         SpySelectedCommand.NotifyCanExecuteChanged();
         AttackSelectedCommand.NotifyCanExecuteChanged();
     }

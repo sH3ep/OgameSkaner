@@ -42,6 +42,12 @@ public sealed class RaidRunner(
 
     /// <summary>Pages read when every report in the messages is loaded.</summary>
     private const int AllReportPages = 20;
+
+    /// <summary>A run reads the defense ranking again when it's older (the game updates it every few minutes to hours).</summary>
+    public static readonly TimeSpan RankingMaxAge = TimeSpan.FromHours(6);
+
+    /// <summary>Guard against a ranking that never ends (34 pages on genesis).</summary>
+    private const int MaxRankingPages = 200;
     private static readonly TimeSpan MinWait = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan MaxWait = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan IdleWait = TimeSpan.FromMinutes(5);
@@ -54,7 +60,34 @@ public sealed class RaidRunner(
         var own = ownPlanets.GetStored(universe).Planets.Select(p => p.Coordinates).ToHashSet();
         var reports = store.LoadReports(universe);
         var candidates = RaidPlanner.Candidates(database.Snapshot(), own, settings, reports);
-        return RaidPlanner.Evaluate(candidates, reports, store.LoadRaids(universe), timeProvider.GetUtcNow(), settings);
+        var targets = RaidPlanner.Evaluate(candidates, reports, store.LoadRaids(universe), timeProvider.GetUtcNow(), settings);
+        var defense = store.LoadRanking(universe, RankingCategory.Defense);
+        return defense.PointsByPlayerId.Count == 0
+            ? targets
+            : targets.Select(t => t with { RankingDefensePoints = defense.PointsOf(t.Planet.PlayerId) }).ToList();
+    }
+
+    /// <summary>When the defense ranking was read last (null: never).</summary>
+    public DateTimeOffset? DefenseRankingReadAt(string universe) => store.LoadRanking(universe, RankingCategory.Defense).ReadAt;
+
+    /// <summary>
+    /// Reads the whole defense ranking (every page) and stores each player's points: 0 means no defenses worth a point,
+    /// so the player's planets are safe from defenses. Returns the number of players read.
+    /// </summary>
+    public async Task<int> ReadDefenseRankingAsync(IOgamexClient client, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default)
+    {
+        var first = await client.GetRankingPageAsync(RankingCategory.Defense, 1, cancellationToken).ConfigureAwait(false);
+        var entries = new List<RankingEntry>(first.Entries);
+        var pages = Math.Min(first.PageCount, MaxRankingPages);
+        for (var page = 2; page <= pages; page++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            entries.AddRange((await client.GetRankingPageAsync(RankingCategory.Defense, page, cancellationToken).ConfigureAwait(false)).Entries);
+        }
+
+        store.SaveRanking(client.Universe.Name, RankingCategory.Defense, entries, timeProvider.GetUtcNow());
+        Report(progress, $"Read the defense ranking: {entries.Count:N0} players, {entries.Count(e => e.Points == 0):N0} without defenses");
+        return entries.Count;
     }
 
     public IReadOnlyList<RaidRecord> GetRaids(string universe) => store.LoadRaids(universe);
@@ -106,8 +139,7 @@ public sealed class RaidRunner(
         IOgamexClient client, RaidSettings settings, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default, bool all = false)
     {
         var universe = client.Universe.Name;
-        var stored = store.LoadReports(universe);
-        var known = stored.Where(r => !all || r.Ships is not null || r.Defenses is not null).Select(r => r.Id).ToHashSet();
+        var known = store.LoadReportIds(universe, withDetailsOnly: all).ToHashSet();
         var cutoff = all ? DateTimeOffset.MinValue : timeProvider.GetUtcNow() - settings.ReportMaxAge;
         var fresh = new List<EspionageReport>();
 
@@ -141,7 +173,7 @@ public sealed class RaidRunner(
 
         if (fresh.Count > 0)
         {
-            store.SaveReports(universe, stored.Where(r => fresh.All(f => f.Id != r.Id)).Concat(fresh));
+            store.AddReports(universe, fresh);
             Report(progress, $"Read {fresh.Count} new espionage report(s)");
         }
         else if (all)
@@ -201,6 +233,8 @@ public sealed class RaidRunner(
             var budget = RaidPlanner.SlotBudget(slots, settings);
 
             await ReadReportsAsync(client, settings, progress, cancellationToken).ConfigureAwait(false);
+            if (DefenseRankingReadAt(client.Universe.Name) is not { } rankingAt || timeProvider.GetUtcNow() - rankingAt >= RankingMaxAge)
+                await ReadDefenseRankingAsync(client, progress, cancellationToken).ConfigureAwait(false);
             var targets = await GetTargetsAsync(client.Universe.Name, settings, cancellationToken).ConfigureAwait(false);
             Report(progress, Summary(targets, slots, budget));
 
@@ -421,7 +455,7 @@ public sealed class RaidRunner(
     {
         if (sent.Count == 0)
             return;
-        store.SaveRaids(universe, store.LoadRaids(universe).Concat(sent));
+        store.AddRaids(universe, sent);
     }
 
     private async Task SwitchBackAsync(IOgamexClient client, PlanetId planet, IProgress<RaidProgress>? progress)

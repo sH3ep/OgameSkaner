@@ -102,5 +102,32 @@ Body `{TargetX, TargetY, TargetZ, TargetPlanetType, SpeedPercentage, Ships:[{Shi
   - A hidden section has no number, and its content is only the sentence "We were unable to retrieve any reliable information of this type from the scan." Both 1 and 20 probes left Defenses hidden on 8:250:10.
 - Other actions: `POST /messages/deletemessage`, `POST /messages/sendplundermessages {Id}` (the game's own "send plunder fleet"), `POST /messages/sendspymessages {Id}`.
 
+## Ranking: `GET /statistics/statisticsdata?Category=PLAYER&SubCategory=DEFENSE&Page=<n>&Rel=`
+Seen on genesis on 2026-10-17. The statistics page (`/statistics`) loads this HTML fragment when a category is clicked; the
+categories are Points, Building, Research, Fleet and Defense (`SubCategory=DEFENSE`; the others' names weren't checked).
+Without `Page` it opens on the page with your own player.
+
+- 100 players per page, 34 pages on genesis. The pagination is `div.pagination` with `a[data-page-target="<n>"]` and a
+  `select.x-pagination-select` (options `1-100`, `101-200`, …).
+- Each `tbody tr` has 7 cells: rank, change (`-5` with a chevron), flag, status (`span.player-status.isInactive28` with
+  `(I)`; the same classes as the galaxy), the player, the message button and the points:
+
+```html
+<td>
+    <a href="/alliance/allianceinfo?allianceId=<guid>" class="alliance-tag tooltip" ...>[Euro]</a>   (only in an alliance)
+    <a onclick="ShowPlayerBadgeDialog('<player guid>');">ALMIRANTE STORN</a>
+</td>
+...
+<td style="text-align:right;padding:1px;">
+    <div style="font-weight:700;font-size:12px;">5.054.976</div>
+    <div class="x-points-change" ...><i class="fas fa-arrow-up"></i> 0</div>
+</td>
+```
+
+- The player id is the same GUID as in the galaxy (`ShowPlayerBadgeDialog`), so the ranking joins the scanned planets.
+- Points use thousands dots. Defense points are 1 per 1,000 resources of defenses, so **0 means no defenses**: the end of
+  the defense ranking lists the players who are safe to attack (the last page on genesis: all 0, mostly `isInactive28`).
+- `StatisticsPageParser` reads it; `RaidRunner.ReadDefenseRankingAsync` reads every page and stores the points.
+
 ## Loot
 The share an attack takes isn't documented on the server. `RaidSettings.LootPercent` defaults to 50% (classic OGame).

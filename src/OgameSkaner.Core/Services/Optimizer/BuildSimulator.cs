@@ -15,7 +15,8 @@ namespace OgameSkaner.Core.Services.Optimizer;
 /// <para>
 /// Not thread-safe: the optimizer gives every worker its own simulator. Genes the setup doesn't allow (above a max
 /// level, requirements missing, a satellite order with no energy shortage) are skipped; a storage is inserted when a
-/// cost exceeds the capacity.
+/// cost exceeds the capacity. With <see cref="OptimizerSetup.MineBalancePercent"/> a mine gene may build another mine
+/// (<see cref="MineFor"/>).
 /// </para>
 /// <para>
 /// The whole state is one value type (<see cref="SimState"/>), so it can be saved every
@@ -34,6 +35,8 @@ public sealed class BuildSimulator
     private readonly int[] _targetGenes;
     private readonly double _metalCorrection = 1, _crystalCorrection = 1, _deuteriumCorrection = 1, _extraEnergy;
     private readonly double _storageFill;
+    private readonly double _mineBalance;
+    private readonly int _earlyRobotics, _earlyRoboticsMineLevel;
     private bool _finishingQueue;
     private SimState _start;
 
@@ -57,6 +60,9 @@ public sealed class BuildSimulator
             _targets[b] = Math.Min(GameModel.MaxLevel, setup.TargetOf((Gene)b));
         _targetGenes = Enumerable.Range(0, GameModel.BuildingCount).Where(b => _targets[b] > 0).ToArray();
         _storageFill = Math.Clamp(setup.StorageFillPercent, 0, 100) / 100.0;
+        _mineBalance = Math.Clamp(setup.MineBalancePercent, 0, 100) / 100.0;
+        _earlyRobotics = Math.Clamp(setup.EarlyRoboticsLevel, 0, GameModel.MaxLevel);
+        _earlyRoboticsMineLevel = setup.EarlyRoboticsMineLevel;
 
         _start.Metal = setup.StartResources.Metal;
         _start.Crystal = setup.StartResources.Crystal;
@@ -228,9 +234,9 @@ public sealed class BuildSimulator
             {
                 var next = NextMine(genes, i + 1);
                 reach = next < 0 ? genes.Length : next;
-                ok = OrderSatellites(next < 0 ? null : genes[next]);
+                ok = OrderSatellites(next < 0 ? null : MineFor(genes[next]));
             }
-            else if (CanBuild(gene))
+            else if (CanBuild(gene = MineFor(gene)))
                 ok = Build(gene, forced: false);
             else
             {
@@ -260,9 +266,44 @@ public sealed class BuildSimulator
         if (gene == Gene.SolarSatellites)
         {
             var next = NextMine(ahead, 0);
-            return OrderSatellites(next < 0 ? null : ahead[next]);
+            return OrderSatellites(next < 0 ? null : MineFor(ahead[next]));
         }
+        gene = MineFor(gene);
         return !CanBuild(gene) || Build(gene, forced: false);
+    }
+
+    /// <summary>
+    /// The mine a gene builds. With <see cref="OptimizerSetup.MineBalancePercent"/>: the lowest mine still below its target
+    /// while its next level costs less than that share of the dearest next mine level; otherwise the gene's own mine, or,
+    /// once that one is at its target, the cheapest mine still below its target (so every mine gene still builds a level
+    /// and the order keeps reaching all targets). Other genes and the rule turned off: the gene itself.
+    /// </summary>
+    private Gene MineFor(Gene gene)
+    {
+        if (_mineBalance <= 0 || gene > Gene.DeuteriumSynthesizer)
+            return gene;
+
+        int lowest = -1, cheapest = -1;
+        double lowestCost = 0, cheapestCost = double.PositiveInfinity, dearest = 0;
+        for (var mine = 0; mine <= (int)Gene.DeuteriumSynthesizer; mine++)
+        {
+            var level = _s.Levels[mine];
+            if (level >= _targets[mine])
+                continue;
+
+            var cost = Model.MetalCost((Gene)mine, level + 1) + Model.CrystalCost((Gene)mine, level + 1) + Model.DeuteriumCost((Gene)mine, level + 1);
+            dearest = Math.Max(dearest, cost);
+            if (cost < cheapestCost)
+                (cheapest, cheapestCost) = (mine, cost);
+            if (lowest < 0 || level < _s.Levels[lowest] || (level == _s.Levels[lowest] && cost < lowestCost))
+                (lowest, lowestCost) = (mine, cost);
+        }
+
+        if (lowest < 0)
+            return gene;
+        if (lowestCost < _mineBalance * dearest)
+            return (Gene)lowest;
+        return _s.Levels[(int)gene] < _targets[(int)gene] ? gene : (Gene)cheapest;
     }
 
     /// <summary>
@@ -295,7 +336,7 @@ public sealed class BuildSimulator
         if (lowest >= 0)
             return;
 
-        var count = (int)Math.Ceiling(-lowest / Model.SatelliteEnergy);
+        var count = Math.Max(Setup.MinSatelliteOrder, (int)Math.Ceiling(-lowest / Model.SatelliteEnergy));
         var (_, crystalEach, deuteriumEach) = GameModel.SatelliteCost;
         if (_s.Crystal - reservedCrystal < count * crystalEach || _s.Deuterium - reservedDeuterium < count * deuteriumEach)
             return; // the game couldn't take the order now either; the plan adds energy later
@@ -360,6 +401,20 @@ public sealed class BuildSimulator
     {
         var index = (int)gene;
         var level = _s.Levels[index] + 1;
+
+        // Robotics first when this mine level would pass the mine level it must be there by (OptimizerSetup.EarlyRoboticsLevel).
+        if (!forced && !_finishingQueue && index <= (int)Gene.DeuteriumSynthesizer && level > _earlyRoboticsMineLevel)
+        {
+            while (_s.Levels[(int)Gene.RoboticsFactory] < _earlyRobotics && CanBuild(Gene.RoboticsFactory))
+            {
+                if (!Build(Gene.RoboticsFactory, forced: true))
+                    return false;
+            }
+        }
+
+        if (!forced && !_finishingQueue && index <= (int)Gene.DeuteriumSynthesizer && Setup.KeepMinesPowered && !PowerFor(gene))
+            return false;
+
         var metal = Model.MetalCost(gene, level);
         var crystal = Model.CrystalCost(gene, level);
         var deuterium = Model.DeuteriumCost(gene, level);
@@ -395,11 +450,52 @@ public sealed class BuildSimulator
         return true;
     }
 
-    /// <summary>The storage whose resource would stay fullest at or above the fill share once the item is paid; −1 if none.</summary>
+    /// <summary>
+    /// <see cref="OptimizerSetup.KeepMinesPowered"/>: energy for the mine's next level before it starts. Solar Plant levels
+    /// while allowed, then satellites (after the Robotics and Shipyard levels they need); when neither is possible the mine
+    /// is built short of energy. False when the plan gets stuck.
+    /// </summary>
+    private bool PowerFor(Gene mine)
+    {
+        for (var guard = 0; guard < 2 * GameModel.MaxLevel && EnergyBalanceAfter(mine) < 0; guard++)
+        {
+            if (CanBuild(Gene.SolarPlant))
+            {
+                if (!Build(Gene.SolarPlant, forced: true))
+                    return false;
+            }
+            else if (!Setup.UseSatellites || Model.SatelliteEnergy <= 0)
+                return true;
+            else if (_s.Levels[(int)Gene.RoboticsFactory] < GameModel.SatelliteRoboticsLevel)
+            {
+                if (!CanBuild(Gene.RoboticsFactory))
+                    return true;
+                if (!Build(Gene.RoboticsFactory, forced: true))
+                    return false;
+            }
+            else if (_s.Levels[(int)Gene.Shipyard] < GameModel.SatelliteShipyardLevel)
+            {
+                if (!CanBuild(Gene.Shipyard))
+                    return true;
+                if (!Build(Gene.Shipyard, forced: true))
+                    return false;
+            }
+            else
+                return OrderSatellites(mine);
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// The storage whose resource would stay fullest at or above the fill share once the item is paid; −1 if none. A
+    /// storage that its resource would fill to the share of the new capacity again while it's being built doesn't count:
+    /// it can't help, and raising it again and again (each level slower than the last) only delays the plan.
+    /// </summary>
     private int FullStorage(double metal, double crystal, double deuterium)
     {
         var storage = -1;
         var fullest = _storageFill;
+        UpdateRates();
         Check(MetalStorageIndex, _s.Metal - metal);
         Check(CrystalStorageIndex, _s.Crystal - crystal);
         Check(DeuteriumTankIndex, _s.Deuterium - deuterium);
@@ -407,13 +503,28 @@ public sealed class BuildSimulator
 
         void Check(int index, double left)
         {
-            var share = left / Model.Capacity[_s.Levels[index]];
-            if (share >= fullest && _s.Levels[index] < _maxLevels[index] && _s.Levels[index] < GameModel.MaxLevel)
+            var level = _s.Levels[index];
+            var share = left / Model.Capacity[level];
+            if (share >= fullest && level < _maxLevels[index] && level < GameModel.MaxLevel && RefillsWhileBuilt(index, left) < _storageFill)
             {
                 storage = index;
                 fullest = share;
             }
         }
+    }
+
+    /// <summary>The share of the next capacity its resource would have once the storage's next level is built.</summary>
+    private double RefillsWhileBuilt(int storage, double left)
+    {
+        var level = _s.Levels[storage] + 1;
+        var rate = storage switch
+        {
+            MetalStorageIndex => _metalRate,
+            CrystalStorageIndex => _crystalRate,
+            _ => _deuteriumRate
+        };
+        var seconds = Model.Seconds((Gene)storage, level, _s.Levels[(int)Gene.RoboticsFactory], _s.Levels[(int)Gene.NaniteFactory]);
+        return Math.Min(Model.Capacity[level - 1], left + rate * seconds) / Model.Capacity[level];
     }
 
     private bool EnsureCapacity(int storage, double amount)
@@ -441,7 +552,7 @@ public sealed class BuildSimulator
         if (shortage <= 0)
             return true;
 
-        var count = (int)Math.Ceiling(shortage / Model.SatelliteEnergy);
+        var count = Math.Max(Setup.MinSatelliteOrder, (int)Math.Ceiling(shortage / Model.SatelliteEnergy));
         var (_, crystalEach, deuteriumEach) = GameModel.SatelliteCost;
         var crystal = count * crystalEach;
         var deuterium = count * deuteriumEach;

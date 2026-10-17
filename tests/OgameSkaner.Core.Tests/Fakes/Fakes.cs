@@ -14,6 +14,8 @@ public sealed class TempDirectory : IDisposable
 
     public void Dispose()
     {
+        // Pooled SQLite connections keep the database files open.
+        Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
         try
         {
             Directory.Delete(Path, recursive: true);
@@ -103,6 +105,20 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
     {
         DetailReads.Add(report.Id);
         return Task.FromResult(ReportDetails.GetValueOrDefault(report.Id) ?? report);
+    }
+
+    /// <summary>The defense ranking, cut into pages of <see cref="RankingPageSize"/>.</summary>
+    public List<RankingEntry> DefenseRanking { get; } = [];
+
+    public int RankingPageSize { get; set; } = 100;
+
+    public List<int> RankingPageReads { get; } = [];
+
+    public Task<RankingPage> GetRankingPageAsync(RankingCategory category, int page, CancellationToken cancellationToken = default)
+    {
+        RankingPageReads.Add(page);
+        var pages = Math.Max(1, (DefenseRanking.Count + RankingPageSize - 1) / RankingPageSize);
+        return Task.FromResult(new RankingPage(DefenseRanking.Skip((page - 1) * RankingPageSize).Take(RankingPageSize).ToList(), pages));
     }
 
     public Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default) => Task.FromResult(true);
@@ -218,14 +234,32 @@ public sealed class FakeRaidStore : IRaidStore
 
     public void SaveSettings(string universe, RaidSettings settings) => Settings = settings;
 
-    public IReadOnlyList<EspionageReport> LoadReports(string universe) => Reports.ToList();
+    /// <summary>All reports, like the database keeps them; <see cref="LoadReports"/> returns the newest per target.</summary>
+    public IReadOnlyList<EspionageReport> LoadReports(string universe) =>
+        Reports.GroupBy(r => (r.Target, r.TargetType)).Select(g => g.MaxBy(r => r.Time)!).ToList();
 
-    public void SaveReports(string universe, IEnumerable<EspionageReport> reports) =>
-        Reports = reports.GroupBy(r => (r.Target, r.TargetType)).Select(g => g.MaxBy(r => r.Time)!).ToList();
+    public IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false) =>
+        Reports.Where(r => !withDetailsOnly || r.Ships is not null || r.Defenses is not null).Select(r => r.Id).ToHashSet();
+
+    public void AddReports(string universe, IEnumerable<EspionageReport> reports)
+    {
+        foreach (var report in reports)
+        {
+            Reports.RemoveAll(r => r.Id == report.Id);
+            Reports.Add(report);
+        }
+    }
 
     public IReadOnlyList<RaidRecord> LoadRaids(string universe) => Raids.ToList();
 
-    public void SaveRaids(string universe, IEnumerable<RaidRecord> raids) => Raids = raids.ToList();
+    public void AddRaids(string universe, IEnumerable<RaidRecord> raids) => Raids.AddRange(raids);
+
+    public RankingSnapshot DefenseRanking { get; set; } = RankingSnapshot.Empty;
+
+    public RankingSnapshot LoadRanking(string universe, RankingCategory category) => DefenseRanking;
+
+    public void SaveRanking(string universe, RankingCategory category, IReadOnlyList<RankingEntry> entries, DateTimeOffset readAt) =>
+        DefenseRanking = new RankingSnapshot(readAt, entries.ToDictionary(e => e.PlayerId, e => e.Points));
 }
 
 /// <summary>In-memory planet list store.</summary>
@@ -259,6 +293,12 @@ public sealed class FakePlanetRepository : IPlanetRepository
     }
 
     public bool Exists(string universe) => _databases.ContainsKey(universe);
+
+    public Task<IReadOnlyList<SlotObservation>> GetSlotHistoryAsync(string universe, Coordinates coordinates, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<SlotObservation>>([]);
+
+    public Task<IReadOnlyList<PlayerObservation>> GetPlayerHistoryAsync(string universe, string? playerId, string playerName, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PlayerObservation>>([]);
 }
 
 public static class TestData

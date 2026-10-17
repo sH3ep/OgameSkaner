@@ -32,7 +32,8 @@ public sealed class GameModel
     /// <summary>Changes whenever a formula changes, so results simulated with an older model aren't compared.</summary>
     public const string Version = "genesis-2026-10-16b";
 
-    public const int MaxLevel = 60;
+    /// <summary>Highest level the model has costs and times for; targets above it are capped (<see cref="OptimizerSetup.TargetOf"/>).</summary>
+    public const int MaxLevel = 180;
     public const int BuildingCount = 10;
 
     /// <summary>Satellites need these levels (user: Robotics 3 and Shipyard 3).</summary>
@@ -163,8 +164,11 @@ public sealed class GameModel
     public double CrystalCost(Gene gene, int level) => _crystal[(int)gene][level];
     public double DeuteriumCost(Gene gene, int level) => _deuterium[(int)gene][level];
 
+    /// <summary>The cost as whole resources; costs beyond <see cref="long"/> (factories near level 180) saturate.</summary>
     public ResourceSet CostOf(Gene gene, int level) =>
-        new((long)_metal[(int)gene][level], (long)_crystal[(int)gene][level], (long)_deuterium[(int)gene][level]);
+        new(Whole(_metal[(int)gene][level]), Whole(_crystal[(int)gene][level]), Whole(_deuterium[(int)gene][level]));
+
+    private static long Whole(double amount) => amount >= long.MaxValue ? long.MaxValue : (long)amount;
 
     /// <summary>Construction time in whole seconds, like the game shows it (at least one second).</summary>
     public double Seconds(Gene gene, int level, int robotics, int nanite) =>

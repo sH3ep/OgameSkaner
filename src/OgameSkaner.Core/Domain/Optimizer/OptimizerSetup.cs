@@ -62,6 +62,34 @@ public sealed record OptimizerSetup
     /// </summary>
     public int StorageFillPercent { get; init; }
 
+    /// <summary>
+    /// Keeps the mines level: while the lowest mine still below its target has a next level that costs (metal + crystal +
+    /// deuterium) less than this share of the dearest next mine level, every mine step builds that mine instead
+    /// (0 = off). Avoids e.g. Metal 50 with Crystal 35.
+    /// </summary>
+    public int MineBalancePercent { get; init; }
+
+    /// <summary>
+    /// Robotics Factory level that must be built before any mine goes above <see cref="EarlyRoboticsMineLevel"/>; the
+    /// simulator inserts the missing levels (0 = off). The search alone builds Robotics late: early mines take seconds and
+    /// the factory's resources only come back slowly.
+    /// </summary>
+    public int EarlyRoboticsLevel { get; init; }
+
+    /// <summary>
+    /// Every mine level is powered when it starts: before a level that would leave energy short, the simulator inserts
+    /// Solar Plant levels (up to <see cref="SolarMaxLevel"/>), then satellites (with the Robotics and Shipyard levels they
+    /// need). Without it the fastest order can leave the mines unpowered until the end when construction time, not
+    /// production, limits the plan.
+    /// </summary>
+    public bool KeepMinesPowered { get; init; }
+
+    /// <summary>Satellites are ordered at least this many at a time (0 = exactly what the shortage needs).</summary>
+    public int MinSatelliteOrder { get; init; }
+
+    /// <summary>The mine level from which <see cref="EarlyRoboticsLevel"/> must be there (mines may reach it, not pass it).</summary>
+    public int EarlyRoboticsMineLevel { get; init; } = 10;
+
     /// <summary>A real planet to start from; null = a fresh planet with <see cref="StartResources"/>.</summary>
     [JsonIgnore]
     public PlanetStart? Start { get; init; }
@@ -83,11 +111,16 @@ public sealed record OptimizerSetup
         ? string.Empty
         : FormattableString.Invariant($" | robotics {RoboticsTarget} nanite {NaniteTarget} shipyard {ShipyardTarget}"))
         + (CoverEnergy ? " | energy covered" : string.Empty)
-        + (StorageFillPercent > 0 ? FormattableString.Invariant($" | storage at {StorageFillPercent}%") : string.Empty);
+        + (StorageFillPercent > 0 ? FormattableString.Invariant($" | storage at {StorageFillPercent}%") : string.Empty)
+        + (MineBalancePercent > 0 ? FormattableString.Invariant($" | mines within {MineBalancePercent}%") : string.Empty)
+        + (EarlyRoboticsLevel > 0 ? FormattableString.Invariant($" | robotics {EarlyRoboticsLevel} by mines {EarlyRoboticsMineLevel}") : string.Empty)
+        + (KeepMinesPowered ? " | mines powered" : string.Empty)
+        + (MinSatelliteOrder > 0 ? FormattableString.Invariant($" | satellites ≥{MinSatelliteOrder}") : string.Empty);
 
     public string ShortName => $"M{MetalMine} C{CrystalMine} D{DeuteriumSynthesizer}";
 
-    public int TargetOf(Gene gene) => gene switch
+    /// <summary>The level the order must reach, at most <see cref="GameModel.MaxLevel"/>.</summary>
+    public int TargetOf(Gene gene) => Math.Min(GameModel.MaxLevel, gene switch
     {
         Gene.MetalMine => MetalMine,
         Gene.CrystalMine => CrystalMine,
@@ -96,14 +129,14 @@ public sealed record OptimizerSetup
         Gene.NaniteFactory => NaniteTarget,
         Gene.Shipyard => ShipyardTarget,
         _ => 0
-    };
+    });
 
     /// <summary>Highest level the search may build of a helper building; mines go exactly to their target.</summary>
     public int MaxLevelOf(Gene gene) => Math.Min(GameModel.MaxLevel, gene switch
     {
         Gene.MetalMine or Gene.CrystalMine or Gene.DeuteriumSynthesizer => TargetOf(gene),
         Gene.SolarPlant => SolarMaxLevel,
-        Gene.RoboticsFactory => Math.Max(RoboticsMaxLevel, RoboticsTarget),
+        Gene.RoboticsFactory => Math.Max(Math.Max(RoboticsMaxLevel, RoboticsTarget), EarlyRoboticsLevel),
         Gene.NaniteFactory => Math.Max(NaniteMaxLevel, NaniteTarget),
         Gene.Shipyard => Math.Max(UseSatellites ? ShipyardMaxLevel : 0, ShipyardTarget),
         _ => GameModel.MaxLevel

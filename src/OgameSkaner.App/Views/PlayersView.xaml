@@ -16,42 +16,78 @@
             <CheckBox Content="Exact name" IsChecked="{Binding ExactMatch}" VerticalAlignment="Center" Margin="0,0,0,6" />
         </DockPanel>
 
-        <ListBox ItemsSource="{Binding Results}" Margin="8,0,8,8" HorizontalContentAlignment="Stretch"
-                 VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
-                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-            <ListBox.ItemTemplate>
-                <DataTemplate DataType="{x:Type vm:PlayerPlanetItemViewModel}">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" MinWidth="140" />
-                            <ColumnDefinition Width="90" />
-                            <ColumnDefinition Width="80" />
-                            <ColumnDefinition Width="30" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="300" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="320" MinWidth="200" />
+            </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="{Binding PlayerName}" VerticalAlignment="Center" FontWeight="SemiBold"
-                                   TextTrimming="CharacterEllipsis" ToolTip="{Binding ScannedAt}" />
-                        <TextBlock Grid.Column="1" Text="{Binding Coordinates}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#555" VerticalAlignment="Center"
-                                   ToolTip="Status letters (i/I inactive, v vacation, n noob, s strong, p protection, b banned) and rank" />
-                        <TextBlock Grid.Column="3" Text="☾" ToolTip="Has a moon" VerticalAlignment="Center"
-                                   Visibility="{Binding HasMoon, Converter={StaticResource BoolToVisibility}}" />
+            <ListBox ItemsSource="{Binding Results}" SelectedItem="{Binding SelectedResult}" Margin="8,0,8,8" HorizontalContentAlignment="Stretch"
+                     VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                <ListBox.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:PlayerPlanetItemViewModel}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="140" />
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="80" />
+                                <ColumnDefinition Width="30" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <Button Grid.Column="4" Content="Spy planet" Command="{Binding SpyPlanetCommand}" Margin="0,2,4,2" />
-                        <Ellipse Grid.Column="5" Style="{StaticResource StatusDot}" Margin="0,0,12,0"
-                                 Fill="{Binding PlanetSpyStatus, Converter={StaticResource StatusToBrush}}"
-                                 ToolTip="{Binding PlanetSpyMessage}" />
-                        <Button Grid.Column="6" Content="Spy moon" Command="{Binding SpyMoonCommand}" Margin="0,2,4,2" />
-                        <Ellipse Grid.Column="7" Style="{StaticResource StatusDot}" Margin="0,0,4,0"
-                                 Fill="{Binding MoonSpyStatus, Converter={StaticResource StatusToBrush}}"
-                                 ToolTip="{Binding MoonSpyMessage}" />
-                    </Grid>
-                </DataTemplate>
-            </ListBox.ItemTemplate>
-        </ListBox>
+                            <TextBlock Text="{Binding PlayerName}" VerticalAlignment="Center" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding ScannedAt}" />
+                            <TextBlock Grid.Column="1" Text="{Binding Coordinates}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="{Binding Status}" Foreground="#555" VerticalAlignment="Center"
+                                       ToolTip="Status letters (i/I inactive, v vacation, n noob, s strong, p protection, b banned) and rank" />
+                            <TextBlock Grid.Column="3" Text="☾" ToolTip="Has a moon" VerticalAlignment="Center"
+                                       Visibility="{Binding HasMoon, Converter={StaticResource BoolToVisibility}}" />
+
+                            <Button Grid.Column="4" Content="Spy planet" Command="{Binding SpyPlanetCommand}" Margin="0,2,4,2" />
+                            <Ellipse Grid.Column="5" Style="{StaticResource StatusDot}" Margin="0,0,12,0"
+                                     Fill="{Binding PlanetSpyStatus, Converter={StaticResource StatusToBrush}}"
+                                     ToolTip="{Binding PlanetSpyMessage}" />
+                            <Button Grid.Column="6" Content="Spy moon" Command="{Binding SpyMoonCommand}" Margin="0,2,4,2" />
+                            <Ellipse Grid.Column="7" Style="{StaticResource StatusDot}" Margin="0,0,4,0"
+                                     Fill="{Binding MoonSpyStatus, Converter={StaticResource StatusToBrush}}"
+                                     ToolTip="{Binding MoonSpyMessage}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <GridSplitter Grid.Column="1" />
+
+            <GroupBox Grid.Column="2" Header="History" Margin="0,0,8,8">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid.Resources>
+                        <DataTemplate x:Key="HistoryEntryTemplate">
+                            <StackPanel Margin="0,1">
+                                <TextBlock Text="{Binding At, StringFormat=g}" Foreground="#555" FontSize="11" />
+                                <TextBlock Text="{Binding Text}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </Grid.Resources>
+
+                    <TextBlock Text="{Binding SlotHistoryTitle}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <ListBox Grid.Row="1" ItemsSource="{Binding SlotHistory}" ItemTemplate="{StaticResource HistoryEntryTemplate}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" Margin="0,0,0,8" />
+                    <TextBlock Grid.Row="2" Text="{Binding PlayerHistoryTitle}" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,0,0,4" />
+                    <ListBox Grid.Row="3" ItemsSource="{Binding PlayerHistory}" ItemTemplate="{StaticResource HistoryEntryTemplate}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+                </Grid>
+            </GroupBox>
+        </Grid>
     </DockPanel>
 </UserControl>

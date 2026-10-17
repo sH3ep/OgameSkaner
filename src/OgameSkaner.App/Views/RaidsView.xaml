@@ -23,11 +23,26 @@
                               ToolTip="Show only planets to spy on, waiting for a report, ready or under attack" />
                     <TextBlock Text="{Binding TargetsInfo}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,0,6" />
                 </DockPanel>
+                <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,4">
+                    <TextBlock Text="Galaxy" VerticalAlignment="Center" Margin="0,0,6,6" />
+                    <TextBox Width="36" Text="{Binding GalaxyFrom, UpdateSourceTrigger=PropertyChanged, Delay=250, TargetNullValue=''}" />
+                    <TextBlock Text="–" VerticalAlignment="Center" Margin="0,0,6,6" />
+                    <TextBox Width="36" Text="{Binding GalaxyTo, UpdateSourceTrigger=PropertyChanged, Delay=250, TargetNullValue=''}" />
+                    <TextBlock Text="System" VerticalAlignment="Center" Margin="10,0,6,6" />
+                    <TextBox Width="44" Text="{Binding SystemFrom, UpdateSourceTrigger=PropertyChanged, Delay=250, TargetNullValue=''}" />
+                    <TextBlock Text="–" VerticalAlignment="Center" Margin="0,0,6,6" />
+                    <TextBox Width="44" Text="{Binding SystemTo, UpdateSourceTrigger=PropertyChanged, Delay=250, TargetNullValue=''}" />
+                    <TextBlock Text="Def. rank ≤" VerticalAlignment="Center" Margin="10,0,6,6" />
+                    <TextBox Width="60" Text="{Binding MaxRankingDefensePoints, UpdateSourceTrigger=PropertyChanged, Delay=250, TargetNullValue=''}"
+                             ToolTip="Show only players with at most this many defense points in the ranking (0 = no defenses). Players not in the ranking are hidden while this is set. Empty = no limit." />
+                </WrapPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
                     <Button Content="Select ready" Command="{Binding SelectReadyCommand}" MinWidth="0" />
                     <Button Content="Select to spy" Command="{Binding SelectNeedingSpyCommand}" MinWidth="0" />
                     <Button Content="Load reports" Command="{Binding ReadReportsCommand}" MinWidth="0"
                             ToolTip="Load every espionage report from the game's messages, with ships and defenses. Reported planets show up here even before the galaxy is scanned." />
+                    <Button Content="Defense ranking" Command="{Binding ReadDefenseRankingCommand}" MinWidth="0"
+                            ToolTip="{Binding DefenseRankingInfo}" />
                     <Button Content="Spy selected" Command="{Binding SpySelectedCommand}" MinWidth="0"
                             ToolTip="Send the configured number of probes from the current planet to each selected planet (as far as free fleet slots allow)" />
                     <Button Content="Attack selected" Command="{Binding AttackSelectedCommand}" MinWidth="0"
@@ -49,10 +64,25 @@
                         <DataGridTextColumn Header="Player" Binding="{Binding PlayerName}" IsReadOnly="True" Width="*" MinWidth="110" />
                         <DataGridTextColumn Header="Rank" Binding="{Binding Rank, StringFormat=N0}" IsReadOnly="True" />
                         <DataGridTextColumn Header="" Binding="{Binding Status}" IsReadOnly="True" Foreground="#555" />
-                        <DataGridTextColumn Header="Coordinates" Binding="{Binding Coordinates}" IsReadOnly="True" />
-                        <DataGridTextColumn Header="Report" Binding="{Binding ReportAge}" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Coordinates" Binding="{Binding Coordinates}" SortMemberPath="CoordinatesSortKey" IsReadOnly="True" />
+                        <DataGridTextColumn Header="Report" Binding="{Binding ReportAge}" SortMemberPath="ReportAgeSortKey" IsReadOnly="True" />
                         <DataGridTextColumn Header="Resources" Binding="{Binding Resources, StringFormat=N0}" IsReadOnly="True" />
                         <DataGridTextColumn Header="Defense" Binding="{Binding DefensePoints, StringFormat=N0}" IsReadOnly="True" />
+                        <DataGridTextColumn Binding="{Binding RankingDefensePoints, StringFormat=N0}" IsReadOnly="True">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Text="Def. rank" ToolTip="Defense points from the game's ranking (1 point per 1,000 resources of defenses). 0 = no defenses: safe to attack, even without a report." />
+                            </DataGridTextColumn.Header>
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RankingDefensePoints}" Value="0">
+                                            <Setter Property="Foreground" Value="Green" />
+                                            <Setter Property="FontWeight" Value="Bold" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="Fleet" Binding="{Binding FleetPoints, StringFormat=N0}" IsReadOnly="True" />
                         <DataGridTextColumn Header="Loot" Binding="{Binding Loot, StringFormat=N0}" IsReadOnly="True" />
                         <DataGridTextColumn Header="State" Binding="{Binding StateText}" IsReadOnly="True" MinWidth="90" />

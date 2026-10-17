@@ -111,15 +111,20 @@ public class BuildSimulatorTests
         Assert.True(double.IsPositiveInfinity(Simulator(Targets(3)).Evaluate([Gene.MetalMine, Gene.MetalMine])));
     }
 
-    [Fact]
-    public void Resuming_from_a_checkpoint_gives_exactly_the_full_result()
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(30, true)] // the Builder's rules change which mine a gene builds and insert levels; resuming must still match
+    public void Resuming_from_a_checkpoint_gives_exactly_the_full_result(int mineBalancePercent, bool builderRules)
     {
         // Satellites and factories in the order, so look-ahead (satellites size their order for the next mine) matters.
         var setup = new OptimizerSetup
         {
             MetalMine = 30, CrystalMine = 27, DeuteriumSynthesizer = 25, SolarMaxLevel = 12, RoboticsMaxLevel = 12,
             NaniteMaxLevel = 2, ShipyardMaxLevel = 8, PlanetSlot = 8, MinTemperature = 28, MaxTemperature = 32,
-            StartResources = new ResourceSet(50_000, 50_000, 50_000)
+            StartResources = new ResourceSet(50_000, 50_000, 50_000),
+            MineBalancePercent = mineBalancePercent,
+            EarlyRoboticsLevel = builderRules ? 6 : 0,
+            KeepMinesPowered = builderRules
         };
         // A weak account (no bonuses, slow economy): resources and energy limit the mines, so every satellite counts.
         var simulator = new BuildSimulator(new GameModel(new AccountBonuses { EconomySpeed = 5 }, setup.Planet), setup);
@@ -195,6 +200,167 @@ public class BuildSimulatorTests
     }
 
     private static OptimizerSetup FromPlanet(OptimizerSetup setup, PlanetStart start) => setup with { Start = start };
+
+    /// <summary>Metal 50, Crystal 35, Deuterium 40 with the Builder's targets for reference level 50 (+2 / 0 / −6).</summary>
+    private static OptimizerSetup Unbalanced(int mineBalancePercent) => FromPlanet(
+        Targets(52, 50, 44) with { MineBalancePercent = mineBalancePercent, SolarMaxLevel = 60, RoboticsMaxLevel = 0, UseSatellites = false },
+        new PlanetStart
+        {
+            Levels = new Dictionary<Gene, int> { [Gene.MetalMine] = 50, [Gene.CrystalMine] = 35, [Gene.DeuteriumSynthesizer] = 40, [Gene.SolarPlant] = 45 },
+            Resources = new ResourceSet(1_000_000_000_000, 1_000_000_000_000, 1_000_000_000_000)
+        });
+
+    /// <summary>Metal genes first, then crystal, then deuterium: the order the balance has to correct.</summary>
+    private static Gene[] MetalFirst(OptimizerSetup setup) =>
+    [
+        .. Enumerable.Repeat(Gene.MetalMine, setup.MetalMine - setup.Start!.Levels[Gene.MetalMine]),
+        .. Enumerable.Repeat(Gene.CrystalMine, setup.CrystalMine - setup.Start.Levels[Gene.CrystalMine]),
+        .. Enumerable.Repeat(Gene.DeuteriumSynthesizer, setup.DeuteriumSynthesizer - setup.Start.Levels[Gene.DeuteriumSynthesizer])
+    ];
+
+    private static double NextMineCost(Gene mine, int level) =>
+        Model.MetalCost(mine, level + 1) + Model.CrystalCost(mine, level + 1) + Model.DeuteriumCost(mine, level + 1);
+
+    [Fact]
+    public void The_storage_rule_doesnt_raise_storages_its_resource_refills_while_they_are_built()
+    {
+        // High mines, empty storages: every resource fills its storage long before the next one (each slower than the
+        // last) is done. Raising them one after another used to run up to the model's highest level.
+        var setup = Targets(33, 31, 26) with
+        {
+            SolarMaxLevel = 40, StorageFillPercent = 70,
+            Start = new PlanetStart
+            {
+                Levels = new Dictionary<Gene, int> { [Gene.MetalMine] = 30, [Gene.CrystalMine] = 28, [Gene.DeuteriumSynthesizer] = 23, [Gene.SolarPlant] = 35 }
+            }
+        };
+        Gene[] genes = [Gene.MetalMine, Gene.CrystalMine, Gene.DeuteriumSynthesizer, Gene.MetalMine, Gene.CrystalMine, Gene.DeuteriumSynthesizer,
+            Gene.MetalMine, Gene.CrystalMine, Gene.DeuteriumSynthesizer];
+
+        var (withRule, steps) = Simulator(setup).Trace(genes);
+        var withoutRule = Simulator(setup with { StorageFillPercent = 0 }).Evaluate(genes);
+
+        Assert.True(withRule <= withoutRule * 1.5, $"{withRule:N0} s with the rule, {withoutRule:N0} s without");
+        Assert.All(steps.Where(s => s.Gene is Gene.MetalStorage or Gene.CrystalStorage or Gene.DeuteriumTank), s => Assert.True(s.Level <= 15, $"{s}"));
+    }
+
+    [Fact]
+    public void Robotics_gets_its_early_level_before_a_mine_passes_the_mine_level()
+    {
+        var setup = Targets(12, 11, 8) with { EarlyRoboticsLevel = 6, EarlyRoboticsMineLevel = 10, StartResources = new ResourceSet(10_000_000, 10_000_000, 10_000_000) };
+        Gene[] mines =
+        [
+            .. Enumerable.Repeat(Gene.MetalMine, 12), .. Enumerable.Repeat(Gene.CrystalMine, 11), .. Enumerable.Repeat(Gene.DeuteriumSynthesizer, 8)
+        ];
+
+        var (_, steps) = Simulator(setup).Trace(mines);
+
+        var robotics6 = steps.Single(s => s.Gene == Gene.RoboticsFactory && s.Level == 6);
+        Assert.True(robotics6.Forced);
+        Assert.All(steps.Where(s => s.Gene <= Gene.DeuteriumSynthesizer && s.Level > 10), s => Assert.True(s.StartSeconds >= robotics6.FinishSeconds));
+        Assert.Contains(steps, s => s.Gene == Gene.MetalMine && s.Level == 10 && s.FinishSeconds <= robotics6.StartSeconds); // mines may reach 10 first
+        Assert.DoesNotContain(steps, s => s.Gene == Gene.RoboticsFactory && s.Level > 6); // only what the rule needs
+    }
+
+    [Fact]
+    public void Kept_powered_every_mine_starts_with_enough_energy()
+    {
+        // Solar plant up to 5, then satellites: the order has no energy genes at all.
+        var setup = Targets(16, 14, 10) with
+        {
+            KeepMinesPowered = true, SolarMaxLevel = 5, RoboticsMaxLevel = 3, ShipyardMaxLevel = 3, UseSatellites = true,
+            StartResources = new ResourceSet(10_000_000, 10_000_000, 10_000_000)
+        };
+        Gene[] mines =
+        [
+            .. Enumerable.Repeat(Gene.MetalMine, 16), .. Enumerable.Repeat(Gene.CrystalMine, 14), .. Enumerable.Repeat(Gene.DeuteriumSynthesizer, 10)
+        ];
+
+        var (seconds, steps) = Simulator(setup).Trace(mines);
+
+        Assert.False(double.IsPositiveInfinity(seconds));
+        int solar = 0, satellites = 0, metal = 0, crystal = 0, deuterium = 0;
+        foreach (var step in steps)
+        {
+            switch (step.Gene)
+            {
+                case Gene.SolarPlant: solar = step.Level; break;
+                case Gene.SolarSatellites: satellites += step.Level; break;
+                case Gene.MetalMine: metal = step.Level; break;
+                case Gene.CrystalMine: crystal = step.Level; break;
+                case Gene.DeuteriumSynthesizer: deuterium = step.Level; break;
+                default: continue;
+            }
+            if (step.Gene > Gene.DeuteriumSynthesizer)
+                continue;
+
+            // Ordered satellites count from the order on, like the game's energy once they fly.
+            var energy = Model.SolarEnergy[solar] + satellites * Model.SatelliteEnergy
+                         - Model.MetalConsumption[metal] - Model.CrystalConsumption[crystal] - Model.DeuteriumConsumption[deuterium];
+            Assert.True(energy >= 0, $"{step} started with energy {energy:N0}");
+        }
+
+        Assert.Equal(5, steps.Where(s => s.Gene == Gene.SolarPlant).Max(s => s.Level));
+        Assert.True(steps.FindIndex(s => s.Gene == Gene.SolarPlant && s.Level == 5) < steps.FindIndex(s => s.IsSatellites), "the solar plant goes first");
+        Assert.Contains(steps, s => s.Gene == Gene.Shipyard && s.Level == 3 && s.Forced);
+    }
+
+    [Fact]
+    public void Satellites_are_ordered_at_least_the_minimum_at_a_time()
+    {
+        var setup = Targets(16, 14, 10) with
+        {
+            KeepMinesPowered = true, SolarMaxLevel = 5, RoboticsMaxLevel = 3, ShipyardMaxLevel = 3, UseSatellites = true,
+            StartResources = new ResourceSet(10_000_000, 10_000_000, 10_000_000)
+        };
+        Gene[] mines =
+        [
+            .. Enumerable.Repeat(Gene.MetalMine, 16), .. Enumerable.Repeat(Gene.CrystalMine, 14), .. Enumerable.Repeat(Gene.DeuteriumSynthesizer, 10)
+        ];
+
+        var (_, exact) = Simulator(setup).Trace(mines);
+        var (_, batched) = Simulator(setup with { MinSatelliteOrder = 30 }).Trace(mines);
+
+        Assert.Contains(exact, s => s.IsSatellites && s.Level < 30); // without the minimum: small orders
+        Assert.NotEmpty(batched.Where(s => s.IsSatellites));
+        Assert.All(batched.Where(s => s.IsSatellites), s => Assert.True(s.Level >= 30, $"{s}"));
+        Assert.True(batched.Count(s => s.IsSatellites) < exact.Count(s => s.IsSatellites));
+    }
+
+    [Fact]
+    public void Without_the_mine_balance_genes_build_their_own_mine()
+    {
+        var setup = Unbalanced(0);
+
+        var (_, steps) = Simulator(setup).Trace(MetalFirst(setup));
+
+        Assert.Equal([Gene.MetalMine, Gene.MetalMine, Gene.CrystalMine], steps.Where(s => !s.Forced).Take(3).Select(s => s.Gene));
+    }
+
+    [Fact]
+    public void The_lowest_mine_goes_first_while_it_costs_under_the_share_of_the_dearest()
+    {
+        var setup = Unbalanced(30);
+
+        var (seconds, steps) = Simulator(setup).Trace(MetalFirst(setup));
+
+        Assert.False(double.IsPositiveInfinity(seconds)); // every target is still reached
+        var levels = setup.Start!.Levels.ToDictionary(l => l.Key, l => l.Value);
+        var targets = new Dictionary<Gene, int> { [Gene.MetalMine] = 52, [Gene.CrystalMine] = 50, [Gene.DeuteriumSynthesizer] = 44 };
+        foreach (var step in steps.Where(s => s.Gene <= Gene.DeuteriumSynthesizer))
+        {
+            // Before every mine step: if the lowest mine below its target was cheap enough, this step built it.
+            var open = targets.Keys.Where(m => levels[m] < targets[m]).ToList();
+            var lowest = open.OrderBy(m => levels[m]).ThenBy(m => NextMineCost(m, levels[m])).First();
+            var dearest = open.Max(m => NextMineCost(m, levels[m]));
+            if (NextMineCost(lowest, levels[lowest]) < 0.3 * dearest)
+                Assert.Equal(lowest, step.Gene);
+            levels[step.Gene] = step.Level;
+        }
+
+        Assert.Equal(targets, levels.Where(l => l.Key <= Gene.DeuteriumSynthesizer).ToDictionary(l => l.Key, l => l.Value));
+        Assert.Equal(Gene.CrystalMine, steps.First(s => s.Gene <= Gene.DeuteriumSynthesizer).Gene); // Crystal 35 catches up first
+    }
 
     [Fact]
     public void A_real_planet_finishes_its_queue_first()

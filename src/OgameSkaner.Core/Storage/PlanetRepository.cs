@@ -11,11 +11,25 @@ public interface IPlanetRepository
     Task SaveAsync(PlanetDatabase database, CancellationToken cancellationToken = default);
 
     bool Exists(string universe);
+
+    /// <summary>The changes seen at a slot, oldest first; empty when the repository keeps no history.</summary>
+    Task<IReadOnlyList<SlotObservation>> GetSlotHistoryAsync(string universe, Coordinates coordinates, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The changes of a player's name, status and rank, oldest first; by <paramref name="playerId"/> when known,
+    /// otherwise by name. Empty when the repository keeps no history.
+    /// </summary>
+    Task<IReadOnlyList<PlayerObservation>> GetPlayerHistoryAsync(string universe, string? playerId, string playerName, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Stores each universe in <c>universes/{name}/planets.json</c>.</summary>
+/// <summary>
+/// The former storage, <c>universes/{name}/planets.json</c>; now only read to migrate it into the SQLite database
+/// (<see cref="Sqlite.SqlitePlanetRepository"/>). Keeps no history.
+/// </summary>
 public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
 {
+    public const string FileName = "planets.json";
+
     /// <summary>
     /// 2 added the player status, id and rank; version 1 files load with none.
     /// 3 added the scanned systems, so empty systems are known; older files know only systems with planets.
@@ -68,7 +82,13 @@ public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
         }
     }
 
-    private string FilePath(string universe) => Path.Combine(paths.UniverseDirectory(universe), "planets.json");
+    public Task<IReadOnlyList<SlotObservation>> GetSlotHistoryAsync(string universe, Coordinates coordinates, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<SlotObservation>>([]);
+
+    public Task<IReadOnlyList<PlayerObservation>> GetPlayerHistoryAsync(string universe, string? playerId, string playerName, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<PlayerObservation>>([]);
+
+    private string FilePath(string universe) => Path.Combine(paths.UniverseDirectory(universe), FileName);
 
     private sealed class PlanetsDocument
     {

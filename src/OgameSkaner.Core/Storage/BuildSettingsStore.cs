@@ -13,6 +13,14 @@ public sealed class BuildSettings
     /// <summary>Queue a storage when its resource reaches this share of capacity; 0 turns it off.</summary>
     public int StorageFillPercent { get; set; } = 70;
 
+    /// <summary>Simulated mode: the lowest mine goes first while its next level costs less than this share of the dearest one; 0 turns it off.</summary>
+    public int MineBalancePercent { get; set; } = BuildStrategy.DefaultMineBalancePercent;
+
+    /// <summary>Simulated mode: Robotics level built before any mine passes <see cref="EarlyRoboticsMineLevel"/>; 0 turns it off.</summary>
+    public int EarlyRoboticsLevel { get; set; } = BuildStrategy.DefaultEarlyRoboticsLevel;
+
+    public int EarlyRoboticsMineLevel { get; set; } = BuildStrategy.DefaultEarlyRoboticsMineLevel;
+
     public List<BuildingRule> Rules { get; set; } = [];
 
     /// <summary>Simulated mode: orders simulated per plan of one planet.</summary>
@@ -29,7 +37,7 @@ public sealed class BuildSettings
     /// </summary>
     public List<string> ExcludedPlanetIds { get; set; } = [];
 
-    public BuildStrategy ToStrategy() => new(ReferenceLevel, Rules, SolarMaxLevel, StorageFillPercent);
+    public BuildStrategy ToStrategy() => new(ReferenceLevel, Rules, SolarMaxLevel, StorageFillPercent, MineBalancePercent, EarlyRoboticsLevel, EarlyRoboticsMineLevel);
 
     public static BuildSettings CreateDefault() => new() { Rules = BuildingCatalog.All.Select(d => DefaultRule(d.Type)).OfType<BuildingRule>().ToList() };
 

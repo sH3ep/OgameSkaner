@@ -12,6 +12,7 @@ public sealed class PlanetDatabase
     private readonly object _sync = new();
     private readonly Dictionary<SolarSystemAddress, IReadOnlyList<PlayerPlanet>> _systems = new();
     private readonly Dictionary<SolarSystemAddress, DateTimeOffset> _scanned = new();
+    private readonly HashSet<SolarSystemAddress> _changed = new();
 
     /// <param name="scannedSystems">
     /// Systems known to be scanned. Systems with planets count as scanned anyway (older files have no list).
@@ -66,6 +67,7 @@ public sealed class PlanetDatabase
 
             _scanned[address] = scannedAt
                 ?? (normalized.Count > 0 ? normalized.Max(p => p.ScannedAt) : DateTimeOffset.UtcNow);
+            _changed.Add(address);
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
@@ -96,6 +98,33 @@ public sealed class PlanetDatabase
                 .ThenBy(s => s.Address.System)
                 .ToList();
         }
+    }
+
+    /// <summary>The planets of one system and when it was scanned (null when never scanned).</summary>
+    public (IReadOnlyList<PlayerPlanet> Planets, DateTimeOffset? ScannedAt) GetSystem(SolarSystemAddress address)
+    {
+        lock (_sync)
+        {
+            return (_systems.GetValueOrDefault(address) ?? [], _scanned.TryGetValue(address, out var at) ? at : null);
+        }
+    }
+
+    /// <summary>The systems replaced since the last call, for repositories that save only what changed.</summary>
+    public IReadOnlyList<SolarSystemAddress> TakeChangedSystems()
+    {
+        lock (_sync)
+        {
+            var changed = _changed.ToList();
+            _changed.Clear();
+            return changed;
+        }
+    }
+
+    /// <summary>Marks systems as changed again, e.g. after a save of them failed.</summary>
+    public void MarkChanged(IEnumerable<SolarSystemAddress> systems)
+    {
+        lock (_sync)
+            _changed.UnionWith(systems);
     }
 
     private static IReadOnlyList<PlayerPlanet> Normalize(IEnumerable<PlayerPlanet> planets) =>

@@ -37,6 +37,9 @@ public interface IOgamexClient : IDisposable
     /// <summary>The report with the ships and defenses of its detail page.</summary>
     Task<EspionageReport> GetEspionageReportDetailAsync(EspionageReport report, CancellationToken cancellationToken = default);
 
+    /// <summary>One page (1-based, 100 players) of a player ranking.</summary>
+    Task<RankingPage> GetRankingPageAsync(RankingCategory category, int page, CancellationToken cancellationToken = default);
+
     /// <summary>Returns true when the stored session cookies are accepted by the server.</summary>
     Task<bool> CheckSessionAsync(CancellationToken cancellationToken = default);
 

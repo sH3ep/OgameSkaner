@@ -7,6 +7,7 @@ using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Schemas;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
+using OgameSkaner.Core.Storage.Sqlite;
 
 namespace OgameSkaner.Core;
 
@@ -23,12 +24,13 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IProfileStore, JsonProfileStore>();
         services.AddSingleton<ISessionStore, JsonSessionStore>();
-        services.AddSingleton<IPlanetRepository, JsonPlanetRepository>();
+        services.AddSingleton<UniverseDatabases>();
+        services.AddSingleton<IPlanetRepository, SqlitePlanetRepository>();
         services.AddSingleton<IBuildSettingsStore, JsonBuildSettingsStore>();
         services.AddSingleton<IOwnPlanetStore, JsonOwnPlanetStore>();
         services.AddSingleton<ISchemaStore, JsonSchemaStore>();
         services.AddSingleton<IOptimizerResultStore, JsonOptimizerResultStore>();
-        services.AddSingleton<IRaidStore, JsonRaidStore>();
+        services.AddSingleton<IRaidStore, SqliteRaidStore>();
         services.AddSingleton<LegacyImporter>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();

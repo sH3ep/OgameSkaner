@@ -71,6 +71,15 @@ public sealed partial class BuilderViewModel : PageViewModel
     [ObservableProperty]
     private int _storageFillPercent;
 
+    [ObservableProperty]
+    private int _mineBalancePercent;
+
+    [ObservableProperty]
+    private int _earlyRoboticsLevel;
+
+    [ObservableProperty]
+    private int _earlyRoboticsMineLevel;
+
     /// <summary>Orders simulated per plan of one planet (Simulated mode).</summary>
     [ObservableProperty]
     private int _simulationsPerPlan;
@@ -109,6 +118,12 @@ public sealed partial class BuilderViewModel : PageViewModel
     partial void OnSolarMaxLevelChanged(int value) => SaveSettings();
 
     partial void OnStorageFillPercentChanged(int value) => SaveSettings();
+
+    partial void OnMineBalancePercentChanged(int value) => SaveSettings();
+
+    partial void OnEarlyRoboticsLevelChanged(int value) => SaveSettings();
+
+    partial void OnEarlyRoboticsMineLevelChanged(int value) => SaveSettings();
 
     partial void OnSimulationsPerPlanChanged(int value) => SaveSettings();
 
@@ -313,6 +328,9 @@ public sealed partial class BuilderViewModel : PageViewModel
             ReferenceLevel = settings.ReferenceLevel;
             SolarMaxLevel = settings.SolarMaxLevel;
             StorageFillPercent = settings.StorageFillPercent;
+            MineBalancePercent = settings.MineBalancePercent;
+            EarlyRoboticsLevel = settings.EarlyRoboticsLevel;
+            EarlyRoboticsMineLevel = settings.EarlyRoboticsMineLevel;
             SimulationsPerPlan = settings.SimulationsPerPlan;
             UseSolarSatellites = settings.UseSolarSatellites;
             _excludedPlanetIds = settings.ExcludedPlanetIds.ToHashSet();
@@ -374,6 +392,9 @@ public sealed partial class BuilderViewModel : PageViewModel
         ReferenceLevel = ReferenceLevel,
         SolarMaxLevel = SolarMaxLevel,
         StorageFillPercent = StorageFillPercent,
+        MineBalancePercent = Math.Clamp(MineBalancePercent, 0, 100),
+        EarlyRoboticsLevel = Math.Max(0, EarlyRoboticsLevel),
+        EarlyRoboticsMineLevel = Math.Max(0, EarlyRoboticsMineLevel),
         Rules = Rules.Select(r => r.ToRule()).ToList(),
         SimulationsPerPlan = SimulationsPerPlan,
         UseSolarSatellites = UseSolarSatellites,

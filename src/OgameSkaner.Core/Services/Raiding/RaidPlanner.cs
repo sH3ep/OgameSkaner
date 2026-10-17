@@ -29,7 +29,14 @@ public enum RaidTargetState
 }
 
 /// <summary>A candidate planet with what the raider knows and plans for it.</summary>
-public sealed record RaidTarget(PlayerPlanet Planet, EspionageReport? Report, RaidTargetState State, long ExpectedLoot, string? Note = null);
+/// <param name="RankingDefensePoints">The player's defense points in the ranking (0 = no defenses); null when not read.</param>
+public sealed record RaidTarget(
+    PlayerPlanet Planet,
+    EspionageReport? Report,
+    RaidTargetState State,
+    long ExpectedLoot,
+    string? Note = null,
+    long? RankingDefensePoints = null);
 
 /// <summary>
 /// Pure rules of the inactive farmer: which planets are candidates (raidable inactives from the galaxy database, best

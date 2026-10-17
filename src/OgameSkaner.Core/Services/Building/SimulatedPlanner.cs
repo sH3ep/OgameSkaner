@@ -59,6 +59,9 @@ public static class SimulatedPlanner
     public const int RoboticsHelperLevel = 10;
     public const int ShipyardHelperLevel = 8;
 
+    /// <summary>Satellites are ordered at least this many at a time, not one or two per mine level.</summary>
+    public const int MinSatelliteOrder = 30;
+
     /// <summary>A correction outside this range means the page and the model disagree on something else; it's ignored.</summary>
     private const double MinCorrection = 0.5, MaxCorrection = 2;
 
@@ -106,7 +109,12 @@ public static class SimulatedPlanner
             NaniteMaxLevel = naniteHelper,
             UseSatellites = options.UseSolarSatellites,
             CoverEnergy = true,
+            KeepMinesPowered = true,
+            MinSatelliteOrder = MinSatelliteOrder,
             StorageFillPercent = strategy.StorageFillPercent,
+            MineBalancePercent = strategy.MineBalancePercent,
+            EarlyRoboticsLevel = strategy.EarlyRoboticsLevel,
+            EarlyRoboticsMineLevel = strategy.EarlyRoboticsMineLevel,
             ShipyardMaxLevel = Math.Max(ShipyardHelperLevel, Planned(BuildingType.Shipyard))
         };
 

@@ -1,7 +1,9 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Storage;
+using OgameSkaner.Core.Storage.Sqlite;
 using OgameSkaner.Core.Tests.Fakes;
 
 namespace OgameSkaner.Core.Tests.Storage;
@@ -14,7 +16,11 @@ public class RaidStoreTests : IDisposable
 
     public void Dispose() => _temp.Dispose();
 
-    private JsonRaidStore Store() => new(new AppPaths(_temp.Path));
+    private SqliteRaidStore Store()
+    {
+        var paths = new AppPaths(_temp.Path);
+        return new SqliteRaidStore(new UniverseDatabases(paths, TimeProvider.System, NullLogger<UniverseDatabases>.Instance), paths);
+    }
 
     [Fact]
     public void Settings_default_until_saved_then_round_trip()
@@ -40,7 +46,7 @@ public class RaidStoreTests : IDisposable
         };
         var hidden = Report("c", new Coordinates(8, 250, 10), Now);
 
-        Store().SaveReports("tron", [older, newer, hidden]);
+        Store().AddReports("tron", [older, newer, hidden]);
         var loaded = Store().LoadReports("tron");
 
         Assert.Equal(2, loaded.Count);
@@ -52,6 +58,34 @@ public class RaidStoreTests : IDisposable
         Assert.Equal(newer.Resources, full.Resources);
         Assert.Equal(PlayerStatus.Inactive, full.PlayerStatus);
         Assert.Null(loaded.Single(r => r.Id == "c").Defenses);
+        Assert.Equal(["a", "b", "c"], Store().LoadReportIds("tron").Order()); // older reports stay as history
+        Assert.Equal(["b"], Store().LoadReportIds("tron", withDetailsOnly: true));
+    }
+
+    [Fact]
+    public void A_report_read_again_without_details_keeps_its_ships_and_defenses()
+    {
+        var target = new Coordinates(5, 288, 3);
+        var detailed = Report("a", target, Now) with { Defenses = new UnitSection(2_000, [new UnitCount("MISSILE_LAUNCHER", 1_000)]) };
+
+        Store().AddReports("tron", [detailed]);
+        Store().AddReports("tron", [Report("a", target, Now)]);
+
+        Assert.Equal(2_000, Assert.Single(Store().LoadReports("tron")).DefensePoints);
+    }
+
+    [Fact]
+    public void A_ranking_read_replaces_the_previous_one()
+    {
+        Assert.Equal(RankingSnapshot.Empty, Store().LoadRanking("tron", RankingCategory.Defense));
+
+        Store().SaveRanking("tron", RankingCategory.Defense, [new RankingEntry(1, "a", "A", 500, PlayerStatus.None), new RankingEntry(2, "b", "B", 0, PlayerStatus.Inactive)], Now);
+        Store().SaveRanking("tron", RankingCategory.Defense, [new RankingEntry(1, "b", "B", 7, PlayerStatus.Inactive)], Now.AddHours(1));
+
+        var ranking = Store().LoadRanking("tron", RankingCategory.Defense);
+        Assert.Equal(Now.AddHours(1), ranking.ReadAt);
+        Assert.Equal(new Dictionary<string, long> { ["b"] = 7 }, ranking.PointsByPlayerId);
+        Assert.Null(ranking.PointsOf("a"));
     }
 
     [Fact]
@@ -61,9 +95,13 @@ public class RaidStoreTests : IDisposable
             new Coordinates(5, 288, 3), PlanetType.Planet, "Kowalski", MissionType.Attack, new Coordinates(8, 260, 3),
             "HEAVY_CARGO", 120, 3_000_000_000, Now, Now.AddMinutes(10), Now.AddMinutes(20));
 
-        Store().SaveRaids("tron", [raid]);
+        var later = raid with { SentAt = Now.AddHours(1) };
 
-        Assert.Equal([raid], Store().LoadRaids("tron"));
+        Store().AddRaids("tron", [later]);
+        Store().AddRaids("tron", [raid]);
+
+        Assert.Equal([raid, later], Store().LoadRaids("tron")); // oldest first
+
     }
 
     [Fact]

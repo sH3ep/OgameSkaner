@@ -151,4 +151,41 @@ public class BuildOrderOptimizerTests
         Assert.Empty(order.Steps);
         Assert.Equal(0, order.TotalSeconds);
     }
+
+    [Fact]
+    public async Task High_targets_from_reference_level_70_are_planned_to_the_end()
+    {
+        // Reference level 70: Metal +2, Crystal 0, Deuterium −6. Used to index past the model's levels (max 60).
+        var setup = new OptimizerSetup
+        {
+            MetalMine = 72, CrystalMine = 70, DeuteriumSynthesizer = 64,
+            Start = new PlanetStart
+            {
+                Levels = new Dictionary<Gene, int> { [Gene.MetalMine] = 69, [Gene.CrystalMine] = 67, [Gene.DeuteriumSynthesizer] = 62, [Gene.SolarPlant] = 40 }
+            }
+        };
+
+        var order = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 200, Threads: 2));
+
+        Assert.NotNull(order);
+        Assert.Equal(72, order.Steps.Where(s => s.Gene == Gene.MetalMine).Max(s => s.Level));
+        Assert.Equal(70, order.Steps.Where(s => s.Gene == Gene.CrystalMine).Max(s => s.Level));
+        Assert.Equal(64, order.Steps.Where(s => s.Gene == Gene.DeuteriumSynthesizer).Max(s => s.Level));
+    }
+
+    [Fact]
+    public async Task Targets_above_the_models_levels_are_capped()
+    {
+        var setup = new OptimizerSetup
+        {
+            MetalMine = GameModel.MaxLevel + 20, CrystalMine = 0, DeuteriumSynthesizer = 0,
+            Start = new PlanetStart { Levels = new Dictionary<Gene, int> { [Gene.MetalMine] = GameModel.MaxLevel - 1, [Gene.SolarPlant] = 40 } }
+        };
+
+        Assert.Equal(GameModel.MaxLevel, setup.TargetOf(Gene.MetalMine));
+        var order = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 100, Threads: 2));
+
+        Assert.NotNull(order);
+        Assert.Equal(GameModel.MaxLevel, order.Steps.Where(s => s.Gene == Gene.MetalMine).Max(s => s.Level));
+    }
 }

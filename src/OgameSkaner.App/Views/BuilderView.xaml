@@ -27,15 +27,25 @@
                         <Grid.RowDefinitions>
                             <RowDefinition />
                             <RowDefinition />
+                            <RowDefinition />
                         </Grid.RowDefinitions>
                         <TextBlock Text="Reference level" VerticalAlignment="Center" Margin="0,0,6,6" />
                         <TextBox Grid.Column="1" Text="{Binding ReferenceLevel, UpdateSourceTrigger=PropertyChanged}" />
                         <TextBlock Grid.Column="2" Text="Solar plant max level" VerticalAlignment="Center" Margin="10,0,6,6" />
                         <TextBox Grid.Column="3" Text="{Binding SolarMaxLevel, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="Highest solar plant level the simulation may build (it also uses solar satellites when allowed); energy always covers the mines when a plan is done" />
+                        <TextBlock Grid.Row="1" Text="Mine balance %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MineBalancePercent, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Keeps the mines level: while the lowest mine's next level costs less than this share of the most expensive mine's next level, it is built first (e.g. no Metal 50 with Crystal 35). Only mines still below their target count. 0 turns it off." />
                         <TextBlock Grid.Row="1" Grid.Column="2" Text="Storage when full ≥ %" VerticalAlignment="Center" Margin="10,0,6,6" />
                         <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding StorageFillPercent, UpdateSourceTrigger=PropertyChanged}"
                                  ToolTip="The plan adds a storage level before an item that would leave its resource at this share of capacity or more, so production isn't lost while the queue runs. 0 turns it off." />
+                        <TextBlock Grid.Row="2" Text="Robotics early level" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EarlyRoboticsLevel, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="The plan builds the Robotics Factory to this level before any mine goes above the mine level on the right, so everything after builds faster. 0 turns it off." />
+                        <TextBlock Grid.Row="2" Grid.Column="2" Text="…before mines pass level" VerticalAlignment="Center" Margin="10,0,6,6" />
+                        <TextBox Grid.Row="2" Grid.Column="3" Text="{Binding EarlyRoboticsMineLevel, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Mines may reach this level; the next mine level waits until Robotics has the early level." />
                     </Grid>
                     <TextBlock DockPanel.Dock="Top" Foreground="#555" TextWrapping="Wrap" Margin="0,0,0,6"
                                Text="Relative: target = reference level + value (e.g. -2). Absolute: target = value. Each check simulates the fastest order from the planet's real state to the targets and queues what the planet can pay. The solar plant, storages, Robotics/Nanite Factory, Shipyard and solar satellites are placed by the simulation (Robotics/Nanite/Shipyard targets are minimum levels); other buildings are built by price afterwards." />

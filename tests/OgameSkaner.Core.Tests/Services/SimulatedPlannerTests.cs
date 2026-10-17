@@ -38,6 +38,10 @@ public class SimulatedPlannerTests
         Assert.Equal((8, 28, 32), (setup.PlanetSlot, setup.MinTemperature, setup.MaxTemperature));
         Assert.Equal(20, setup.SolarMaxLevel);
         Assert.Equal(strategy.StorageFillPercent, setup.StorageFillPercent);
+        Assert.Equal(BuildStrategy.DefaultMineBalancePercent, setup.MineBalancePercent);
+        Assert.Equal((6, 10), (setup.EarlyRoboticsLevel, setup.EarlyRoboticsMineLevel));
+        Assert.True(setup.KeepMinesPowered);
+        Assert.Equal(30, setup.MinSatelliteOrder);
         Assert.True(setup.CoverEnergy);
         Assert.Equal(2, setup.NaniteMaxLevel); // not locked: the search may add two levels
         var start = setup.Start!;

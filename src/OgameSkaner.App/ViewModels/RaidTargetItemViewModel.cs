@@ -21,13 +21,22 @@ public sealed partial class RaidTargetItemViewModel(RaidTarget target, DateTimeO
 
     public string Coordinates => Target.Planet.Coordinates.ToString();
 
+    /// <summary>Sorts the coordinates by galaxy, system and position (the text would sort "10:…" before "2:…").</summary>
+    public long CoordinatesSortKey => Target.Planet.Coordinates.Galaxy * 1_000_000L + Target.Planet.Coordinates.System * 100L + Target.Planet.Coordinates.Position;
+
     public string ReportAge => Target.Report is { } report ? Age(now - report.Time) : "";
+
+    /// <summary>Sorts the report age by time ("10 min" would sort before "2 h"); no report sorts last.</summary>
+    public double ReportAgeSortKey => Target.Report is { } report ? (now - report.Time).TotalSeconds : double.MaxValue;
 
     public long? Resources => Target.Report?.TotalResources;
 
     public long? DefensePoints => Target.Report?.DefensePoints;
 
     public long? FleetPoints => Target.Report?.FleetPoints;
+
+    /// <summary>The player's defense points in the ranking; 0 = no defenses, safe to attack. Null until the ranking is read.</summary>
+    public long? RankingDefensePoints => Target.RankingDefensePoints;
 
     public long? Loot => Target.Report is null ? null : Target.ExpectedLoot;
 

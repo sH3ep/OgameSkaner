@@ -11,24 +11,37 @@ public interface IRaidStore
 
     void SaveSettings(string universe, RaidSettings settings);
 
-    /// <summary>The newest report per target.</summary>
+    /// <summary>The newest report per target (planet or moon at coordinates).</summary>
     IReadOnlyList<EspionageReport> LoadReports(string universe);
 
-    /// <summary>Keeps the newest report per target (planet or moon at coordinates).</summary>
-    void SaveReports(string universe, IEnumerable<EspionageReport> reports);
+    /// <summary>The ids of the stored reports; with <paramref name="withDetailsOnly"/> only those whose detail page was read.</summary>
+    IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false);
 
+    /// <summary>Adds reports; a report already stored is updated (its ships and defenses are kept when the new one has none).</summary>
+    void AddReports(string universe, IEnumerable<EspionageReport> reports);
+
+    /// <summary>The fleets sent, oldest first.</summary>
     IReadOnlyList<RaidRecord> LoadRaids(string universe);
 
-    /// <summary>Keeps the newest <see cref="JsonRaidStore.MaxRaids"/> fleets.</summary>
-    void SaveRaids(string universe, IEnumerable<RaidRecord> raids);
+    void AddRaids(string universe, IEnumerable<RaidRecord> raids);
+
+    /// <summary>The ranking as last read (<see cref="RankingSnapshot.Empty"/> before the first read).</summary>
+    RankingSnapshot LoadRanking(string universe, RankingCategory category);
+
+    /// <summary>Replaces the stored ranking with a complete new read.</summary>
+    void SaveRanking(string universe, RankingCategory category, IReadOnlyList<RankingEntry> entries, DateTimeOffset readAt);
 }
 
 /// <summary>
-/// Stores <c>universes/{name}/raid-settings.json</c>, <c>espionage-reports.json</c> and <c>raids.json</c>.
+/// Stores <c>universes/{name}/raid-settings.json</c>. The reports (<c>espionage-reports.json</c>, newest per target) and
+/// fleets (<c>raids.json</c>, newest <see cref="MaxRaids"/>) are the former storage, now only read to migrate them into the
+/// SQLite database (<see cref="Sqlite.SqliteRaidStore"/>).
 /// </summary>
 public sealed class JsonRaidStore(IAppPaths paths) : IRaidStore
 {
     public const int MaxRaids = 1000;
+    public const string ReportsFileName = "espionage-reports.json";
+    public const string RaidsFileName = "raids.json";
 
     private readonly object _sync = new();
 
@@ -48,14 +61,18 @@ public sealed class JsonRaidStore(IAppPaths paths) : IRaidStore
     {
         lock (_sync)
         {
-            var document = JsonFile.Read<ReportsDocument>(FilePath(universe, "espionage-reports.json"));
+            var document = JsonFile.Read<ReportsDocument>(FilePath(universe, ReportsFileName));
             return document?.Reports.Select(r => r.ToDomain()).ToList() ?? [];
         }
     }
 
-    public void SaveReports(string universe, IEnumerable<EspionageReport> reports)
+    public IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false) =>
+        LoadReports(universe).Where(r => !withDetailsOnly || r.Ships is not null || r.Defenses is not null).Select(r => r.Id).ToHashSet();
+
+    public void AddReports(string universe, IEnumerable<EspionageReport> reports)
     {
-        var newest = reports
+        var added = reports.ToList();
+        var newest = LoadReports(universe).Where(r => added.All(a => a.Id != r.Id)).Concat(added)
             .GroupBy(r => (r.Target, r.TargetType))
             .Select(g => g.MaxBy(r => r.Time)!)
             .OrderBy(r => r.Target.Galaxy).ThenBy(r => r.Target.System).ThenBy(r => r.Target.Position)
@@ -63,23 +80,29 @@ public sealed class JsonRaidStore(IAppPaths paths) : IRaidStore
             .ToList();
 
         lock (_sync)
-            JsonFile.Write(FilePath(universe, "espionage-reports.json"), new ReportsDocument { Reports = newest });
+            JsonFile.Write(FilePath(universe, ReportsFileName), new ReportsDocument { Reports = newest });
     }
 
     public IReadOnlyList<RaidRecord> LoadRaids(string universe)
     {
         lock (_sync)
         {
-            var document = JsonFile.Read<RaidsDocument>(FilePath(universe, "raids.json"));
+            var document = JsonFile.Read<RaidsDocument>(FilePath(universe, RaidsFileName));
             return document?.Raids.Select(r => r.ToDomain()).ToList() ?? [];
         }
     }
 
-    public void SaveRaids(string universe, IEnumerable<RaidRecord> raids)
+    /// <summary>Rankings were never kept in JSON.</summary>
+    public RankingSnapshot LoadRanking(string universe, RankingCategory category) => RankingSnapshot.Empty;
+
+    public void SaveRanking(string universe, RankingCategory category, IReadOnlyList<RankingEntry> entries, DateTimeOffset readAt) =>
+        throw new NotSupportedException("Rankings are stored in the SQLite database.");
+
+    public void AddRaids(string universe, IEnumerable<RaidRecord> raids)
     {
-        var newest = raids.OrderByDescending(r => r.SentAt).Take(MaxRaids).Reverse().Select(RaidRow.FromDomain).ToList();
+        var newest = LoadRaids(universe).Concat(raids).OrderByDescending(r => r.SentAt).Take(MaxRaids).Reverse().Select(RaidRow.FromDomain).ToList();
         lock (_sync)
-            JsonFile.Write(FilePath(universe, "raids.json"), new RaidsDocument { Raids = newest });
+            JsonFile.Write(FilePath(universe, RaidsFileName), new RaidsDocument { Raids = newest });
     }
 
     private string FilePath(string universe, string name) => Path.Combine(paths.UniverseDirectory(universe), name);

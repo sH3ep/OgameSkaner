@@ -168,6 +168,17 @@ internal sealed class OgamexClient : IOgamexClient
         return report with { Ships = ships, Defenses = defenses };
     }
 
+    public async Task<RankingPage> GetRankingPageAsync(RankingCategory category, int page, CancellationToken cancellationToken = default)
+    {
+        var subCategory = category switch
+        {
+            RankingCategory.Defense => "DEFENSE",
+            _ => throw new ArgumentOutOfRangeException(nameof(category))
+        };
+        using var request = CreateRequest(HttpMethod.Get, $"statistics/statisticsdata?Category=PLAYER&SubCategory={subCategory}&Page={page}&Rel=", referer: "statistics");
+        return StatisticsPageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+    }
+
     /// <summary>Reads the fleet page (switching to <paramref name="planet"/> when given); the caller holds the planet lock for a switch.</summary>
     private async Task<FleetSnapshot> ReadFleetPageAsync(PlanetId? planet, CancellationToken cancellationToken)
     {

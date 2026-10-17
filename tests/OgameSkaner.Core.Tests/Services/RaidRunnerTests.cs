@@ -39,13 +39,16 @@ public class RaidRunnerTests
         new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), _planets, _store, TimeProvider.System, NullLogger<RaidRunner>.Instance);
 
     /// <summary>Runs one cycle: the run is cancelled when it announces the next check.</summary>
-    private Task<RaidRunResult> RunCycleAsync(RaidSettings settings) =>
-        Runner().RunAsync(_client, settings, new SyncProgress(p =>
+    private Task<RaidRunResult> RunCycleAsync(RaidSettings settings, CancellationTokenSource? cancellation = null)
+    {
+        cancellation ??= _cancellation;
+        return Runner().RunAsync(_client, settings, new SyncProgress(p =>
         {
             _log.Add(p.Message);
             if (p.Message.StartsWith("Next check", StringComparison.Ordinal))
-                _cancellation.Cancel();
-        }), _cancellation.Token);
+                cancellation.Cancel();
+        }), cancellation.Token);
+    }
 
     [Fact]
     public async Task Without_reports_the_best_ranked_inactives_are_spied_on_from_the_current_planet()
@@ -155,6 +158,49 @@ public class RaidRunnerTests
     private static FleetSnapshot Fleet(OwnPlanet planet, long heavyCargo, int slotsUsed) =>
         new([new ShipStack("HEAVY_CARGO", heavyCargo), new ShipStack(RaidRunner.ProbeType, 100)], planet.Coordinates,
             new FleetSlots(slotsUsed, 11), new Dictionary<string, long> { ["HEAVY_CARGO"] = 25_000 });
+
+    [Fact]
+    public async Task The_whole_defense_ranking_is_read_and_shown_with_the_targets()
+    {
+        _client.RankingPageSize = 2;
+        _client.DefenseRanking.AddRange(
+        [
+            new RankingEntry(1, "big", "Big", 90_000, PlayerStatus.None),
+            new RankingEntry(2, "rich", "Rich", 0, PlayerStatus.Inactive),
+            new RankingEntry(3, "x", "X", 0, PlayerStatus.None),
+            new RankingEntry(4, "y", "Y", 0, PlayerStatus.None),
+            new RankingEntry(5, "second", "Second", 12, PlayerStatus.Inactive)
+        ]);
+        var planets = await _planets.GetAsync("tron");
+        planets.ReplaceSystem(Rich.Coordinates.SolarSystem, [Rich with { PlayerId = "rich" }]);
+        planets.ReplaceSystem(Second.Coordinates.SolarSystem, [Second with { PlayerId = "second" }]);
+
+        var read = await Runner().ReadDefenseRankingAsync(_client);
+        var targets = await Runner().GetTargetsAsync("tron", RaidSettings.Default);
+
+        Assert.Equal(5, read);
+        Assert.Equal([1, 2, 3], _client.RankingPageReads);
+        Assert.Equal(0, targets.Single(t => t.Planet.PlayerName == "Rich").RankingDefensePoints);
+        Assert.Equal(12, targets.Single(t => t.Planet.PlayerName == "Second").RankingDefensePoints);
+        Assert.Null(targets.Single(t => t.Planet.PlayerName == "Third").RankingDefensePoints); // no id from the galaxy
+        Assert.NotNull(Runner().DefenseRankingReadAt("tron"));
+    }
+
+    [Fact]
+    public async Task A_run_reads_the_defense_ranking_only_when_it_is_old()
+    {
+        await RunCycleAsync(RaidSettings.Default, new CancellationTokenSource());
+        Assert.Equal([1], _client.RankingPageReads); // never read: read now
+
+        _client.RankingPageReads.Clear();
+        await RunCycleAsync(RaidSettings.Default, new CancellationTokenSource());
+        Assert.Contains(_log, l => l.StartsWith("Next check", StringComparison.Ordinal));
+        Assert.Empty(_client.RankingPageReads); // fresh: not again
+
+        _store.DefenseRanking = _store.DefenseRanking with { ReadAt = DateTimeOffset.UtcNow - RaidRunner.RankingMaxAge - TimeSpan.FromMinutes(1) };
+        await RunCycleAsync(RaidSettings.Default, new CancellationTokenSource());
+        Assert.Equal([1], _client.RankingPageReads); // old: read again
+    }
 
     private static PlayerPlanet Inactive(string name, Coordinates coordinates, int rank, PlayerStatus status = PlayerStatus.Inactive) =>
         new(name, coordinates, false, DateTimeOffset.UtcNow, status, null, rank);

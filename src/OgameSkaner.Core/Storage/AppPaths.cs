@@ -7,6 +7,10 @@ public interface IAppPaths
     string ProfilesFile { get; }
     string SessionsFile { get; }
     string LogsDirectory { get; }
+
+    /// <summary>Database backups and the data files saved before the move to SQLite.</summary>
+    string BackupsDirectory { get; }
+
     string UniverseDirectory(string universe);
 }
 
@@ -20,5 +24,6 @@ public sealed class AppPaths(string root) : IAppPaths
     public string ProfilesFile => Path.Combine(Root, "profiles.json");
     public string SessionsFile => Path.Combine(Root, "sessions.json");
     public string LogsDirectory => Path.Combine(Root, "logs");
+    public string BackupsDirectory => Path.Combine(Root, "backups");
     public string UniverseDirectory(string universe) => Path.Combine(Root, "universes", universe);
 }
