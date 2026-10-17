@@ -4,21 +4,33 @@ namespace OgameSkaner.Core.Storage;
 
 /// <summary>
 /// In-memory, thread-safe set of known player planets for one universe, organised by solar system.
+/// Also knows which systems were scanned, so an empty system differs from one never scanned.
 /// Persisted through <see cref="IPlanetRepository"/>.
 /// </summary>
 public sealed class PlanetDatabase
 {
     private readonly object _sync = new();
     private readonly Dictionary<SolarSystemAddress, IReadOnlyList<PlayerPlanet>> _systems = new();
+    private readonly Dictionary<SolarSystemAddress, DateTimeOffset> _scanned = new();
 
-    public PlanetDatabase(string universe, IEnumerable<PlayerPlanet>? planets = null)
+    /// <param name="scannedSystems">
+    /// Systems known to be scanned. Systems with planets count as scanned anyway (older files have no list).
+    /// </param>
+    public PlanetDatabase(string universe, IEnumerable<PlayerPlanet>? planets = null, IEnumerable<ScannedSystem>? scannedSystems = null)
     {
         Universe = universe;
-        if (planets is null)
-            return;
 
-        foreach (var system in planets.GroupBy(p => p.Coordinates.SolarSystem))
+        foreach (var system in planets?.GroupBy(p => p.Coordinates.SolarSystem) ?? [])
+        {
             _systems[system.Key] = Normalize(system);
+            _scanned[system.Key] = system.Max(p => p.ScannedAt);
+        }
+
+        foreach (var system in scannedSystems ?? [])
+        {
+            if (!_scanned.TryGetValue(system.Address, out var known) || known < system.ScannedAt)
+                _scanned[system.Address] = system.ScannedAt;
+        }
     }
 
     public string Universe { get; }
@@ -35,8 +47,11 @@ public sealed class PlanetDatabase
         }
     }
 
-    /// <summary>Replaces everything known about a solar system with the result of a fresh scan.</summary>
-    public void ReplaceSystem(SolarSystemAddress address, IEnumerable<PlayerPlanet> planets)
+    /// <summary>
+    /// Replaces everything known about a solar system with the result of a fresh scan and marks it as
+    /// scanned at <paramref name="scannedAt"/> (default: the newest planet's scan time, or now).
+    /// </summary>
+    public void ReplaceSystem(SolarSystemAddress address, IEnumerable<PlayerPlanet> planets, DateTimeOffset? scannedAt = null)
     {
         var normalized = Normalize(planets);
         if (normalized.Any(p => p.Coordinates.SolarSystem != address))
@@ -48,6 +63,9 @@ public sealed class PlanetDatabase
                 _systems.Remove(address);
             else
                 _systems[address] = normalized;
+
+            _scanned[address] = scannedAt
+                ?? (normalized.Count > 0 ? normalized.Max(p => p.ScannedAt) : DateTimeOffset.UtcNow);
         }
 
         Changed?.Invoke(this, EventArgs.Empty);
@@ -63,6 +81,19 @@ public sealed class PlanetDatabase
                 .OrderBy(p => p.Coordinates.Galaxy)
                 .ThenBy(p => p.Coordinates.System)
                 .ThenBy(p => p.Coordinates.Position)
+                .ToList();
+        }
+    }
+
+    /// <summary>All scanned systems ordered by address.</summary>
+    public IReadOnlyList<ScannedSystem> ScannedSystems()
+    {
+        lock (_sync)
+        {
+            return _scanned
+                .Select(s => new ScannedSystem(s.Key, s.Value))
+                .OrderBy(s => s.Address.Galaxy)
+                .ThenBy(s => s.Address.System)
                 .ToList();
         }
     }

@@ -16,8 +16,11 @@ public interface IPlanetRepository
 /// <summary>Stores each universe in <c>universes/{name}/planets.json</c>.</summary>
 public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
 {
-    /// <summary>2 added the player status, id and rank; version 1 files load with none.</summary>
-    private const int CurrentVersion = 2;
+    /// <summary>
+    /// 2 added the player status, id and rank; version 1 files load with none.
+    /// 3 added the scanned systems, so empty systems are known; older files know only systems with planets.
+    /// </summary>
+    private const int CurrentVersion = 3;
 
     private readonly SemaphoreSlim _sync = new(1, 1);
     private readonly Dictionary<string, PlanetDatabase> _cache = new();
@@ -34,7 +37,8 @@ public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
 
             var document = await JsonFile.ReadAsync<PlanetsDocument>(FilePath(universe), cancellationToken).ConfigureAwait(false);
             var planets = document?.Planets.Select(r => r.ToDomain()) ?? [];
-            var database = new PlanetDatabase(universe, planets);
+            var systems = document?.Systems.Select(r => r.ToDomain()) ?? [];
+            var database = new PlanetDatabase(universe, planets, systems);
             _cache[universe] = database;
             return database;
         }
@@ -49,7 +53,8 @@ public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
         var document = new PlanetsDocument
         {
             Version = CurrentVersion,
-            Planets = database.Snapshot().Select(PlanetRecord.FromDomain).ToList()
+            Planets = database.Snapshot().Select(PlanetRecord.FromDomain).ToList(),
+            Systems = database.ScannedSystems().Select(SystemRecord.FromDomain).ToList()
         };
 
         await _sync.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -69,6 +74,14 @@ public sealed class JsonPlanetRepository(IAppPaths paths) : IPlanetRepository
     {
         public int Version { get; set; }
         public List<PlanetRecord> Planets { get; set; } = [];
+        public List<SystemRecord> Systems { get; set; } = [];
+    }
+
+    private sealed record SystemRecord(int Galaxy, int System, DateTimeOffset ScannedAt)
+    {
+        public ScannedSystem ToDomain() => new(new SolarSystemAddress(Galaxy, System), ScannedAt);
+
+        public static SystemRecord FromDomain(ScannedSystem s) => new(s.Address.Galaxy, s.Address.System, s.ScannedAt);
     }
 
     /// <summary>Flat on-disk shape, decoupled from the domain model.</summary>

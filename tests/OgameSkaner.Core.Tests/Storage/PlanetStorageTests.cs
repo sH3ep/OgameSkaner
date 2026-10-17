@@ -67,6 +67,57 @@ public class PlanetStorageTests
     }
 
     [Fact]
+    public void ReplaceSystem_with_no_planets_keeps_the_system_as_scanned()
+    {
+        var database = new PlanetDatabase("tron", [Planet("A", 1, 1, 1)]);
+
+        database.ReplaceSystem(new SolarSystemAddress(1, 1), [], ScanTime.AddDays(1));
+
+        Assert.Equal([new ScannedSystem(new SolarSystemAddress(1, 1), ScanTime.AddDays(1))], database.ScannedSystems());
+    }
+
+    [Fact]
+    public void Systems_with_planets_count_as_scanned_at_their_newest_planet()
+    {
+        var database = new PlanetDatabase("tron", [Planet("A", 1, 1, 1), Planet("B", 1, 1, 2, at: ScanTime.AddHours(1))]);
+
+        Assert.Equal([new ScannedSystem(new SolarSystemAddress(1, 1), ScanTime.AddHours(1))], database.ScannedSystems());
+    }
+
+    [Fact]
+    public async Task Json_repository_round_trips_empty_scanned_systems()
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppPaths(temp.Path);
+
+        var writer = new JsonPlanetRepository(paths);
+        var database = await writer.GetAsync("tron");
+        database.ReplaceSystem(new SolarSystemAddress(1, 1), [Planet("A", 1, 1, 1)]);
+        database.ReplaceSystem(new SolarSystemAddress(1, 2), [], ScanTime);
+        await writer.SaveAsync(database);
+
+        var loaded = await new JsonPlanetRepository(paths).GetAsync("tron");
+
+        Assert.Equal(
+            [new ScannedSystem(new SolarSystemAddress(1, 1), ScanTime), new ScannedSystem(new SolarSystemAddress(1, 2), ScanTime)],
+            loaded.ScannedSystems());
+    }
+
+    [Fact]
+    public async Task Json_repository_loads_version_2_files_with_systems_of_their_planets()
+    {
+        using var temp = new TempDirectory();
+        var paths = new AppPaths(temp.Path);
+        Directory.CreateDirectory(paths.UniverseDirectory("tron"));
+        await File.WriteAllTextAsync(Path.Combine(paths.UniverseDirectory("tron"), "planets.json"),
+            """{"version":2,"planets":[{"player":"A","galaxy":1,"system":4,"position":2,"moon":false,"scannedAt":"2026-01-02T03:04:05+01:00"}]}""");
+
+        var loaded = await new JsonPlanetRepository(paths).GetAsync("tron");
+
+        Assert.Equal([new ScannedSystem(new SolarSystemAddress(1, 4), ScanTime)], loaded.ScannedSystems());
+    }
+
+    [Fact]
     public async Task Json_repository_returns_same_instance_per_universe()
     {
         using var temp = new TempDirectory();

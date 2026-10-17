@@ -43,7 +43,7 @@ public sealed class GalaxyScanService(IPlanetRepository repository, ILogger<Gala
                 cancellationToken.ThrowIfCancellationRequested();
 
                 var planets = await client.GetSolarSystemAsync(address, cancellationToken).ConfigureAwait(false);
-                database.ReplaceSystem(address, planets);
+                database.ReplaceSystem(address, planets, DateTimeOffset.UtcNow);
                 completed++;
                 progress?.Report(new ScanProgress(completed, range.Count, address, planets.Count));
 

@@ -79,6 +79,7 @@ public partial class App : Application
 
         builder.Services.AddPage<ScannerViewModel, ScannerView>("Scanner");
         builder.Services.AddPage<PlayersViewModel, PlayersView>("Players");
+        builder.Services.AddPage<ColonizationViewModel, ColonizationView>("Colonization");
         builder.Services.AddPage<BuilderViewModel, BuilderView>("Builder");
         builder.Services.AddPage<SchemasViewModel, SchemasView>("Schemas");
         builder.Services.AddPage<OptimizerViewModel, OptimizerView>("Optimizer");
