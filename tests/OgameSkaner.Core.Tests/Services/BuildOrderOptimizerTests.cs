@@ -31,6 +31,24 @@ public class BuildOrderOptimizerTests
     }
 
     [Fact]
+    public async Task Storage_targets_alone_make_an_order_of_only_those_storages()
+    {
+        // The Builder with every rule unticked except two storages: mines stay where they are.
+        var setup = new OptimizerSetup
+        {
+            MetalMine = 0, CrystalMine = 0, DeuteriumSynthesizer = 0, MetalStorageTarget = 3, DeuteriumTankTarget = 2,
+            StartResources = new ResourceSet(1_000_000, 1_000_000, 0)
+        };
+
+        var result = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 500, Threads: 2));
+
+        Assert.NotNull(result);
+        Assert.Equal(
+            [(Gene.MetalStorage, 1), (Gene.MetalStorage, 2), (Gene.MetalStorage, 3), (Gene.DeuteriumTank, 1), (Gene.DeuteriumTank, 2)],
+            result.Steps.Select(s => (s.Gene, s.Level)).OrderBy(s => s.Gene).ThenBy(s => s.Level));
+    }
+
+    [Fact]
     public async Task Same_seed_gives_the_same_order()
     {
         var setup = new OptimizerSetup { MetalMine = 10, CrystalMine = 8, DeuteriumSynthesizer = 5 };

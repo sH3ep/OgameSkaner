@@ -68,5 +68,10 @@ internal sealed record CreateShipRequest(
     [property: JsonPropertyName("Quantity")] int Quantity,
     [property: JsonPropertyName("__PlanetId")] string PlanetId);
 
+internal sealed record CreateDefenseRequest(
+    [property: JsonPropertyName("DefenseType")] string DefenseType,
+    [property: JsonPropertyName("Quantity")] int Quantity,
+    [property: JsonPropertyName("__PlanetId")] string PlanetId);
+
 /// <summary>Answer of the building endpoints: <c>{"IsSuccess":false,"Message":"Construction queue is full.","ValidationErrors":null}</c>.</summary>
 internal sealed record BuildingResponse(bool IsSuccess, string? Message);

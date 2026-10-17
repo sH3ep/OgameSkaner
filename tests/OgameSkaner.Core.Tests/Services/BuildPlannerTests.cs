@@ -31,6 +31,17 @@ public class BuildPlannerTests
         Strategy(5, rules: [Relative(BuildingType.MetalMine, 0), Relative(BuildingType.CrystalMine, 0)]);
 
     [Fact]
+    public void A_storage_target_is_planned_like_any_other_target()
+    {
+        var strategy = Strategy(0, rules: [new BuildingRule(BuildingType.MetalStorage, true, RuleMode.Absolute, 2)]) with { StorageFillPercent = 0 };
+
+        var plan = BuildPlanner.Plan(State(), strategy, maxItems: 5, requireAffordable: false);
+
+        Assert.Equal([(BuildingType.MetalStorage, 1), (BuildingType.MetalStorage, 2)], plan.Upgrades.Select(u => (u.Building, u.Level)));
+        Assert.Equal(BuildStopReason.TargetsReached, plan.Reason);
+    }
+
+    [Fact]
     public void Picks_the_cheapest_upgrade_below_target_by_weighted_value()
     {
         // metal 100 + 10×1.5 = 115, crystal 60 + 40×1.5 = 120 (raw totals 110 vs 100 would pick crystal)

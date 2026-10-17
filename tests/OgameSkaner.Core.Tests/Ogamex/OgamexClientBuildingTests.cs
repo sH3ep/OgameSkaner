@@ -159,8 +159,36 @@ public class OgamexClientBuildingTests
         Assert.Equal(300, shipyard.Satellites);
         Assert.Equal(EnqueueOutcome.Queued, outcome);
         Assert.Equal("/hangar?planet=" + PlanetId.Value, _handler.Requests[0].Uri.PathAndQuery);
-        Assert.Equal("/hangar/createship", _handler.Requests[1].Uri.PathAndQuery);
-        Assert.Equal("""{"ShipType":"SOLAR_SATELLITE","Quantity":12,"__PlanetId":"11111111-1111-1111-1111-111111111111"}""", _handler.Requests[1].Body);
+        // The order switches to the planet first, so it can't go to the server's current planet.
+        Assert.Equal("/hangar?planet=" + PlanetId.Value, _handler.Requests[1].Uri.PathAndQuery);
+        Assert.Equal("/hangar/createship", _handler.Requests[2].Uri.PathAndQuery);
+        Assert.Equal("""{"ShipType":"SOLAR_SATELLITE","Quantity":12,"__PlanetId":"11111111-1111-1111-1111-111111111111"}""", _handler.Requests[2].Body);
+    }
+
+    [Fact]
+    public async Task Defense_orders_switch_to_the_planet_first()
+    {
+        // Only the page's planet id is read; the hangar fixture carries it like every game page.
+        _handler.Respond = r => r.Method == HttpMethod.Post
+            ? """{"IsSuccess":true,"Message":null,"ValidationErrors":null}"""
+            : Fixture("hangar.html");
+
+        var outcome = await CreateClient().BuildDefensesAsync(PlanetId, "PLASMA_CANNON", 4);
+
+        Assert.Equal(EnqueueOutcome.Queued, outcome);
+        Assert.Equal("/defense?planet=" + PlanetId.Value, _handler.Requests[0].Uri.PathAndQuery);
+        Assert.Equal("/defense/createdefense", _handler.Requests[1].Uri.PathAndQuery);
+        Assert.Equal("""{"DefenseType":"PLASMA_CANNON","Quantity":4,"__PlanetId":"11111111-1111-1111-1111-111111111111"}""", _handler.Requests[1].Body);
+    }
+
+    [Fact]
+    public async Task A_unit_order_for_a_planet_the_game_doesnt_show_is_not_sent()
+    {
+        _handler.Respond = _ => Fixture("hangar.html");
+
+        await Assert.ThrowsAsync<OgamexException>(() => CreateClient().BuildShipsAsync(new PlanetId("99999999-9999-9999-9999-999999999999"), "BATTLESHIP", 1));
+
+        Assert.DoesNotContain(_handler.Requests, r => r.Method == HttpMethod.Post);
     }
 
     [Fact]

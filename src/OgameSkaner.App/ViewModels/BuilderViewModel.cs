@@ -87,6 +87,18 @@ public sealed partial class BuilderViewModel : PageViewModel
     [ObservableProperty]
     private bool _useSolarSatellites;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsSimulatedMode))]
+    private BuilderMode _mode;
+
+    public bool IsSimulatedMode => Mode == BuilderMode.Simulated;
+
+    public static IReadOnlyList<BuilderModeOption> Modes { get; } =
+    [
+        new(BuilderMode.Simulated, "Simulated (fastest order)"),
+        new(BuilderMode.ByPrice, "By price (cheapest first)")
+    ];
+
 
     [ObservableProperty]
     private string? _planetsInfo;
@@ -128,6 +140,8 @@ public sealed partial class BuilderViewModel : PageViewModel
     partial void OnSimulationsPerPlanChanged(int value) => SaveSettings();
 
     partial void OnUseSolarSatellitesChanged(bool value) => SaveSettings();
+
+    partial void OnModeChanged(BuilderMode value) => SaveSettings();
 
     partial void OnViewedPlanetChanged(PlanetSelectionItemViewModel? value)
     {
@@ -333,6 +347,7 @@ public sealed partial class BuilderViewModel : PageViewModel
             EarlyRoboticsMineLevel = settings.EarlyRoboticsMineLevel;
             SimulationsPerPlan = settings.SimulationsPerPlan;
             UseSolarSatellites = settings.UseSolarSatellites;
+            Mode = settings.Mode;
             _excludedPlanetIds = settings.ExcludedPlanetIds.ToHashSet();
             ShowPlanets(_loadedUniverse is null ? OwnPlanetList.Empty : _ownPlanets.GetStored(_loadedUniverse));
 
@@ -398,8 +413,11 @@ public sealed partial class BuilderViewModel : PageViewModel
         Rules = Rules.Select(r => r.ToRule()).ToList(),
         SimulationsPerPlan = SimulationsPerPlan,
         UseSolarSatellites = UseSolarSatellites,
+        Mode = Mode,
         ExcludedPlanetIds = _excludedPlanetIds.Order(StringComparer.Ordinal).ToList()
     };
 
     private void AddLog(string message) => Log.Insert(0, $"{DateTime.Now:T}  {message}");
 }
+
+public sealed record BuilderModeOption(BuilderMode Id, string Name);

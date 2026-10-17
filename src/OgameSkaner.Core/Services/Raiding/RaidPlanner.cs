@@ -71,19 +71,19 @@ public static class RaidPlanner
 
         return planets
             .Where(p => p.Status.IsRaidable() && !ownPlanets.Contains(p.Coordinates))
-            .Where(p => settings.MaxRank <= 0 || p.Rank is { } rank && rank <= settings.MaxRank)
             .OrderBy(p => p.Rank ?? int.MaxValue)
             .ThenBy(p => p.Coordinates.Galaxy).ThenBy(p => p.Coordinates.System).ThenBy(p => p.Coordinates.Position)
             .ToList();
     }
 
-    /// <summary>Evaluates every candidate against its newest report and the fleets sent.</summary>
+    /// <summary>Evaluates every candidate against its newest report, the fleets sent and the defense ranking.</summary>
     public static IReadOnlyList<RaidTarget> Evaluate(
         IReadOnlyList<PlayerPlanet> candidates,
         IEnumerable<EspionageReport> reports,
         IReadOnlyList<RaidRecord> raids,
         DateTimeOffset now,
-        RaidSettings settings)
+        RaidSettings settings,
+        RankingSnapshot? defenseRanking = null)
     {
         var newest = reports
             .Where(r => r.TargetType == PlanetType.Planet)
@@ -95,14 +95,21 @@ public static class RaidPlanner
             .ToDictionary(g => g.Key, g => (IReadOnlyList<RaidRecord>)g.ToList());
 
         return candidates
-            .Select(p => Evaluate(p, newest.GetValueOrDefault(p.Coordinates), fleets.GetValueOrDefault(p.Coordinates) ?? [], now, settings))
+            .Select(p => (Planet: p, Defense: defenseRanking?.PointsOf(p.PlayerId)))
+            .Where(c => settings.MaxRankingDefensePoints is not { } max || c.Defense <= max)
+            .Select(c => Evaluate(c.Planet, newest.GetValueOrDefault(c.Planet.Coordinates), fleets.GetValueOrDefault(c.Planet.Coordinates) ?? [], now, settings, c.Defense))
             .ToList();
     }
 
-    public static RaidTarget Evaluate(PlayerPlanet planet, EspionageReport? report, IReadOnlyList<RaidRecord> raids, DateTimeOffset now, RaidSettings settings)
+    /// <param name="rankingDefensePoints">
+    /// The player's defense points in the ranking. 0 means the player has no defenses, which stands in for defenses the
+    /// report hides.
+    /// </param>
+    public static RaidTarget Evaluate(
+        PlayerPlanet planet, EspionageReport? report, IReadOnlyList<RaidRecord> raids, DateTimeOffset now, RaidSettings settings, long? rankingDefensePoints = null)
     {
         var loot = report is null ? 0 : ExpectedLoot(report, settings);
-        RaidTarget Target(RaidTargetState state, string? note = null) => new(planet, report, state, loot, note);
+        RaidTarget Target(RaidTargetState state, string? note = null) => new(planet, report, state, loot, note, rankingDefensePoints);
 
         if (raids.Any(r => r.Mission == MissionType.Attack && r.ArrivesAt > now))
             return Target(RaidTargetState.UnderAttack);
@@ -114,27 +121,50 @@ public static class RaidPlanner
 
         if (report is null)
             return Target(RaidTargetState.NeedsSpy);
+
+        // Hidden sections: 0 in the defense ranking means no defenses, and an inactive player keeps no fleet, so with
+        // that ranking hidden ships count as none too (the probes see ships before defenses: both are hidden then).
+        var noDefenses = rankingDefensePoints == 0;
+        var defensePoints = report.Defenses?.Points ?? (noDefenses ? 0 : null);
+        var fleetPoints = report.Ships?.Points ?? (noDefenses ? 0 : null);
+        var hidden = fleetPoints is null ? "ships" : defensePoints is null ? "defenses" : null;
+
+        // Probes that didn't see it won't see it next time either: spying again only wastes them and a fleet slot.
+        if (hidden is not null && SpiedWith(raids, report) is { } probes && probes >= settings.ProbeCount)
+            return Target(RaidTargetState.Unseen, $"{hidden} not seen with {probes:N0} probes; spy with more");
+
+        var lastAttack = raids.Where(r => r.Mission == MissionType.Attack).MaxBy(r => r.ArrivesAt);
+        var attackedSince = lastAttack is not null && report.Time < lastAttack.ArrivesAt;
+
+        // Too little loot in the newest report: production won't make it worth an attack soon, so don't spy again yet.
+        if (loot < settings.MinLoot && !attackedSince && settings.LowLootRespyHours > 0
+            && report.Time + TimeSpan.FromHours(settings.LowLootRespyHours) is var respyAt && respyAt > now)
+            return Target(RaidTargetState.TooLittleLoot, $"spied again after {respyAt.ToLocalTime():g}");
+
         if (report.Time < now - settings.ReportMaxAge)
             return Target(RaidTargetState.NeedsSpy, "report too old");
 
-        var lastAttack = raids.Where(r => r.Mission == MissionType.Attack).MaxBy(r => r.ArrivesAt);
-        if (lastAttack is not null && report.Time < lastAttack.ArrivesAt)
+        if (attackedSince)
             return Target(RaidTargetState.NeedsSpy, "attacked since the report");
 
         if (report.PlayerStatus != PlayerStatus.None && !report.PlayerStatus.IsRaidable())
             return Target(RaidTargetState.NotRaidable, $"status ({report.PlayerStatus.ToLetters()})");
-        if (report.Ships is null || report.Defenses is null)
-            return Target(RaidTargetState.Unseen, report.Ships is null ? "ships not seen" : "defenses not seen");
+        if (fleetPoints is null || defensePoints is null)
+            return Target(RaidTargetState.Unseen, $"{hidden} not seen");
 
-        if (report.Defenses.Points > settings.MaxDefensePoints)
-            return Target(RaidTargetState.TooMuchDefense, $"{report.Defenses.Points:N0} defense points");
-        if (report.Ships.Points > settings.MaxFleetPoints)
-            return Target(RaidTargetState.TooMuchFleet, $"{report.Ships.Points:N0} fleet points");
+        if (defensePoints > settings.MaxDefensePoints)
+            return Target(RaidTargetState.TooMuchDefense, $"{defensePoints:N0} defense points");
+        if (fleetPoints > settings.MaxFleetPoints)
+            return Target(RaidTargetState.TooMuchFleet, $"{fleetPoints:N0} fleet points");
         if (loot < settings.MinLoot)
             return Target(RaidTargetState.TooLittleLoot);
 
-        return Target(RaidTargetState.Ready);
+        return Target(RaidTargetState.Ready, report.Ships is null || report.Defenses is null ? "hidden by the report, 0 in the defense ranking" : null);
     }
+
+    /// <summary>The probes of our last spy mission that the report answers; null when it answers none of ours.</summary>
+    private static long? SpiedWith(IReadOnlyList<RaidRecord> raids, EspionageReport report) =>
+        raids.Where(r => r.Mission == MissionType.Spy && r.SentAt - TimeSpan.FromMinutes(1) <= report.Time).MaxBy(r => r.SentAt)?.Ships;
 
     public static long ExpectedLoot(EspionageReport report, RaidSettings settings) =>
         (long)(report.TotalResources * (settings.LootPercent / 100.0));
@@ -147,9 +177,17 @@ public static class RaidPlanner
 
     private static long CeilingDivide(long dividend, long divisor) => (dividend + divisor - 1) / divisor;
 
-    /// <summary>Fleet slots the raider may still fill: the allowed share of all slots minus those in use.</summary>
+    /// <summary>Fleet slots attacks may still fill: the allowed share of all slots minus those in use.</summary>
     public static int SlotBudget(FleetSlots slots, RaidSettings settings) =>
         Math.Max(0, (int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0) - slots.Used);
+
+    /// <summary>
+    /// Fleet slots spy missions may still fill: every slot but one (kept free for the player), minus those in use and
+    /// the <paramref name="sentSince"/> fleets sent since the slots were read. Probes are back within minutes, so they
+    /// don't follow <see cref="RaidSettings.FleetSlotUsePercent"/>.
+    /// </summary>
+    public static int SpySlotBudget(FleetSlots slots, int sentSince = 0) =>
+        Math.Max(0, slots.Max - 1 - slots.Used - sentSince);
 
     /// <summary>The game's distance (the briefing's <c>Distance</c>), with galaxies and systems wrapping around.</summary>
     public static long Distance(Coordinates from, Coordinates to, UniverseProfile universe)
@@ -162,6 +200,15 @@ public static class RaidPlanner
             return 1_000 + 5L * Math.Abs(from.Position - to.Position);
         return 5;
     }
+
+    /// <summary>
+    /// <paramref name="targets"/> ordered by the distance from the nearest of <paramref name="from"/>; the sort is stable,
+    /// so targets at the same distance keep their order.
+    /// </summary>
+    public static IReadOnlyList<RaidTarget> NearestFirst(IEnumerable<RaidTarget> targets, IReadOnlyCollection<Coordinates> from, UniverseProfile universe) =>
+        from.Count == 0
+            ? targets.ToList()
+            : targets.OrderBy(t => from.Min(o => Distance(o, t.Planet.Coordinates, universe))).ToList();
 
     /// <summary>The nearest origin that has <paramref name="shipsNeeded"/>; otherwise the one with the most ships, or null without any.</summary>
     public static T? ChooseOrigin<T>(

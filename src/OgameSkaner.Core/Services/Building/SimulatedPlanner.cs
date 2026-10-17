@@ -4,7 +4,17 @@ using OgameSkaner.Core.Services.Optimizer;
 
 namespace OgameSkaner.Core.Services.Building;
 
-/// <summary>Settings of the Builder's Simulated mode.</summary>
+/// <summary>How the Builder decides what to build.</summary>
+public enum BuilderMode
+{
+    /// <summary>Plan each planet with the build simulation: the fastest order to the targets.</summary>
+    Simulated,
+
+    /// <summary>The cheapest next level of the ticked buildings first (metal 1, crystal 1.5, deuterium 3), until every target is reached.</summary>
+    ByPrice
+}
+
+/// <summary>Settings of the Builder (most only matter in the Simulated mode).</summary>
 /// <param name="SimulationsPerPlan">Orders the optimizer simulates for one plan of one planet.</param>
 /// <param name="UseSolarSatellites">Satellites (and the Shipyard levels they need) may provide energy.</param>
 /// <param name="MaxCheckInterval">Longest wait between two checks of the planets.</param>
@@ -12,7 +22,8 @@ public sealed record SimulatedBuildOptions(
     int SimulationsPerPlan = SimulatedBuildOptions.DefaultSimulations,
     bool UseSolarSatellites = true,
     int CpuPercent = OptimizerOptions.DefaultCpuPercent,
-    TimeSpan? MaxCheckInterval = null)
+    TimeSpan? MaxCheckInterval = null,
+    BuilderMode Mode = BuilderMode.Simulated)
 {
     public const int DefaultSimulations = 2_000_000;
 
@@ -99,6 +110,9 @@ public static class SimulatedPlanner
             RoboticsTarget = Target(BuildingType.RoboticsFactory),
             NaniteTarget = Target(BuildingType.NaniteFactory),
             ShipyardTarget = Target(BuildingType.Shipyard),
+            MetalStorageTarget = Target(BuildingType.MetalStorage),
+            CrystalStorageTarget = Target(BuildingType.CrystalStorage),
+            DeuteriumTankTarget = Target(BuildingType.DeuteriumTank),
             PlanetSlot = conditions.Slot,
             MinTemperature = conditions.MinTemperature,
             MaxTemperature = conditions.MaxTemperature,
@@ -112,6 +126,7 @@ public static class SimulatedPlanner
             KeepMinesPowered = true,
             MinSatelliteOrder = MinSatelliteOrder,
             StorageFillPercent = strategy.StorageFillPercent,
+            FillStorages = strategy.FillStorages,
             MineBalancePercent = strategy.MineBalancePercent,
             EarlyRoboticsLevel = strategy.EarlyRoboticsLevel,
             EarlyRoboticsMineLevel = strategy.EarlyRoboticsMineLevel,
@@ -195,6 +210,32 @@ public static class SimulatedPlanner
     }
 
     /// <summary>
+    /// The beginning of <paramref name="upgrades"/> (the price planner's order for the buildings the simulation doesn't
+    /// know) that can go to the game now: as in <see cref="Push"/>, each must be covered by the resources left after
+    /// every waiting queue item and the upgrades before it.
+    /// </summary>
+    public static IReadOnlyList<PlannedUpgrade> AffordablePrefix(PlanetBuildState state, IEnumerable<PlannedUpgrade> upgrades)
+    {
+        var available = Unreserved(state);
+        var result = new List<PlannedUpgrade>();
+        foreach (var upgrade in upgrades)
+        {
+            if (!available.CanAfford(upgrade.Cost))
+                break;
+            result.Add(upgrade);
+            available -= upgrade.Cost;
+        }
+        return result;
+    }
+
+    /// <summary>The planet's resources minus what the waiting queue items will take when they start.</summary>
+    private static ResourceSet Unreserved(PlanetBuildState state)
+    {
+        var costs = new CostModel(state);
+        return state.Resources - state.Queue.Where(q => !q.Started).Aggregate(ResourceSet.Zero, (sum, q) => sum + costs.CostOf(q.Building, q.Level));
+    }
+
+    /// <summary>
     /// The beginning of <paramref name="steps"/> (an optimized order from this state) that can go to the game now, in
     /// order: an item is pushed only when the planet's resources cover it plus every waiting queue item (the game takes
     /// the resources when an item starts and drops it when they are missing), satellites are paid at once. Stops at the
@@ -205,8 +246,7 @@ public static class SimulatedPlanner
     {
         var costs = new CostModel(state);
         var levels = PlanetLevels.Planned(state);
-        var reserved = state.Queue.Where(q => !q.Started).Aggregate(ResourceSet.Zero, (sum, q) => sum + costs.CostOf(q.Building, q.Level));
-        var available = state.Resources - reserved;
+        var available = Unreserved(state);
         var queued = state.Queue.Count;
         var fields = state.FreeFields;
         var actions = new List<SimulatedAction>();

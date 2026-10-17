@@ -52,6 +52,9 @@ public interface IOgamexClient : IDisposable
     /// <summary>Orders ships in the planet's shipyard, e.g. <c>SOLAR_SATELLITE</c>.</summary>
     Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default);
 
+    /// <summary>Orders defenses on the planet, e.g. <c>MISSILE_LAUNCHER</c>.</summary>
+    Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, int quantity, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// The account's production and speed bonuses (research, officers, academy, premium, ranking, class) from the
     /// resource settings, officers and academy pages. Read-only; doesn't change the selected planet.

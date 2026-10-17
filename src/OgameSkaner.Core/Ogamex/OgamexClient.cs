@@ -253,13 +253,34 @@ internal sealed class OgamexClient : IOgamexClient
         return state;
     }
 
-    public async Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default)
-    {
-        using var request = CreateRequest(HttpMethod.Post, "hangar/createship", referer: "hangar");
-        request.Content = JsonContent.Create(new CreateShipRequest(shipType, quantity, planet.Value), options: JsonOptions);
+    public Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default) =>
+        OrderUnitsAsync(planet, "hangar", "hangar/createship", new CreateShipRequest(shipType, quantity, planet.Value), cancellationToken);
 
-        var response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
-        return response.IsSuccess ? EnqueueOutcome.Queued : new EnqueueOutcome(EnqueueResult.Rejected, response.Message);
+    public Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, int quantity, CancellationToken cancellationToken = default) =>
+        OrderUnitsAsync(planet, "defense", "defense/createdefense", new CreateDefenseRequest(defenseType, quantity, planet.Value), cancellationToken);
+
+    private async Task<EnqueueOutcome> OrderUnitsAsync<TBody>(PlanetId planet, string page, string action, TBody body, CancellationToken cancellationToken)
+    {
+        // As the game does it: the planet's page first, so the order can't go to another (server-side current) planet,
+        // and no other switch between the two.
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            using var pageRequest = CreateRequest(HttpMethod.Get, $"{page}?planet={Uri.EscapeDataString(planet.Value)}", referer: page);
+            if (!BuildingPageParser.TryReadPage(await SendForStringAsync(pageRequest, cancellationToken).ConfigureAwait(false), out var shown, out _))
+                throw new SessionExpiredException($"The server did not return the {page} page. Check the token and session id.");
+            if (shown != planet)
+                throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
+
+            using var request = CreateRequest(HttpMethod.Post, action, referer: page);
+            request.Content = JsonContent.Create(body, options: JsonOptions);
+            var response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+            return response.IsSuccess ? EnqueueOutcome.Queued : new EnqueueOutcome(EnqueueResult.Rejected, response.Message);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
     }
 
     public async Task<AccountBonuses> GetAccountBonusesAsync(CancellationToken cancellationToken = default)

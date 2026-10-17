@@ -1,0 +1,70 @@
+<UserControl x:Class="OgameSkaner.App.Views.ShipyardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:ShipyardViewModel}"
+             d:DesignHeight="450" d:DesignWidth="760">
+    <Grid Background="{StaticResource PanelBackground}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" MinWidth="300" />
+            <ColumnDefinition Width="5" />
+            <ColumnDefinition Width="*" MinWidth="200" />
+        </Grid.ColumnDefinitions>
+
+        <GroupBox Header="Order ships and defenses">
+            <ScrollViewer Style="{StaticResource PanelScroll}">
+                <DockPanel Style="{StaticResource FillViewport}" MinHeight="250">
+                    <StackPanel DockPanel.Dock="Top">
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="Unit" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:ShipyardViewModel.Units}" DisplayMemberPath="Name"
+                                      SelectedValuePath="Id" SelectedValue="{Binding UnitType}" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="1" Text="Quantity per planet" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Quantity, Converter={StaticResource GroupedNumber}}" Margin="0,0,0,6" />
+                        </Grid>
+
+                        <DockPanel Margin="0,0,0,4">
+                            <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshPlanetsCommand}" Margin="0" MinWidth="0" Padding="8,2"
+                                    ToolTip="Read your planets from the game (also done before every order)" />
+                            <Button DockPanel.Dock="Right" Content="None" Command="{Binding SelectNoPlanetsCommand}" Margin="0,0,4,0" MinWidth="0" Padding="8,2" />
+                            <Button DockPanel.Dock="Right" Content="All" Command="{Binding SelectAllPlanetsCommand}" Margin="0,0,4,0" MinWidth="0" Padding="8,2" />
+                            <TextBlock Text="Planets" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        </DockPanel>
+                        <TextBlock Text="{Binding PlanetsInfo}" Foreground="#555" Margin="0,0,0,4" />
+                    </StackPanel>
+
+                    <Button DockPanel.Dock="Bottom" Content="Order on selected planets" Command="{Binding OrderCommand}" Margin="0,6,0,0"
+                            ToolTip="Orders the quantity on every ticked planet; a planet the game refuses (resources, shipyard, requirements, shield dome already built) is logged and skipped" />
+                    <ListBox ItemsSource="{Binding Planets}" HorizontalContentAlignment="Stretch" MinHeight="80">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:PlanetSelectionItemViewModel}">
+                                <StackPanel Orientation="Horizontal" Margin="0,1">
+                                    <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                    <TextBlock Text="{Binding Name}" Width="140" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Text="{Binding Coordinates}" Foreground="#555" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </ScrollViewer>
+        </GroupBox>
+
+        <GridSplitter Grid.Column="1" />
+
+        <GroupBox Grid.Column="2" Header="Log">
+            <ListBox ItemsSource="{Binding Log}" />
+        </GroupBox>
+    </Grid>
+</UserControl>

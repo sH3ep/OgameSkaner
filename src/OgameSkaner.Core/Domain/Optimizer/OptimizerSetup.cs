@@ -49,6 +49,13 @@ public sealed record OptimizerSetup
 
     public int ShipyardTarget { get; init; }
 
+    /// <summary>Storage levels the order must reach as well (0 = built only as needed, see <see cref="StorageFillPercent"/>).</summary>
+    public int MetalStorageTarget { get; init; }
+
+    public int CrystalStorageTarget { get; init; }
+
+    public int DeuteriumTankTarget { get; init; }
+
     /// <summary>
     /// The order is only done when energy covers the mines (satellites ordered count, the time includes building them),
     /// unless the solar plant is at its maximum and satellites aren't allowed. Without it, a server where construction
@@ -61,6 +68,9 @@ public sealed record OptimizerSetup
     /// capacity or more, so production isn't lost while long constructions run (0 = only when a cost needs the room).
     /// </summary>
     public int StorageFillPercent { get; init; }
+
+    /// <summary>The storages <see cref="StorageFillPercent"/> applies to; the others are built only when a cost needs the room.</summary>
+    public StorageKinds FillStorages { get; init; } = StorageKinds.All;
 
     /// <summary>
     /// Keeps the mines level: while the lowest mine still below its target has a next level that costs (metal + crystal +
@@ -110,8 +120,12 @@ public sealed record OptimizerSetup
     private string FactoryTargetsKey => (RoboticsTarget + NaniteTarget + ShipyardTarget == 0
         ? string.Empty
         : FormattableString.Invariant($" | robotics {RoboticsTarget} nanite {NaniteTarget} shipyard {ShipyardTarget}"))
+        + (MetalStorageTarget + CrystalStorageTarget + DeuteriumTankTarget == 0
+            ? string.Empty
+            : FormattableString.Invariant($" | storages {MetalStorageTarget}/{CrystalStorageTarget}/{DeuteriumTankTarget}"))
         + (CoverEnergy ? " | energy covered" : string.Empty)
         + (StorageFillPercent > 0 ? FormattableString.Invariant($" | storage at {StorageFillPercent}%") : string.Empty)
+        + (StorageFillPercent > 0 && FillStorages != StorageKinds.All ? $" ({FillStorages})" : string.Empty)
         + (MineBalancePercent > 0 ? FormattableString.Invariant($" | mines within {MineBalancePercent}%") : string.Empty)
         + (EarlyRoboticsLevel > 0 ? FormattableString.Invariant($" | robotics {EarlyRoboticsLevel} by mines {EarlyRoboticsMineLevel}") : string.Empty)
         + (KeepMinesPowered ? " | mines powered" : string.Empty)
@@ -128,6 +142,9 @@ public sealed record OptimizerSetup
         Gene.RoboticsFactory => RoboticsTarget,
         Gene.NaniteFactory => NaniteTarget,
         Gene.Shipyard => ShipyardTarget,
+        Gene.MetalStorage => MetalStorageTarget,
+        Gene.CrystalStorage => CrystalStorageTarget,
+        Gene.DeuteriumTank => DeuteriumTankTarget,
         _ => 0
     });
 
@@ -141,6 +158,17 @@ public sealed record OptimizerSetup
         Gene.Shipyard => Math.Max(UseSatellites ? ShipyardMaxLevel : 0, ShipyardTarget),
         _ => GameModel.MaxLevel
     });
+}
+
+/// <summary>A set of the three storages.</summary>
+[Flags]
+public enum StorageKinds
+{
+    None = 0,
+    Metal = 1,
+    Crystal = 2,
+    Deuterium = 4,
+    All = Metal | Crystal | Deuterium
 }
 
 /// <summary>One item of a simulated order: a building level, or satellites ordered in the shipyard.</summary>

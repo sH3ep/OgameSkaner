@@ -25,7 +25,8 @@ public class SimulatedPlannerTests
         var strategy = Strategy(10, solarMax: 20,
             Relative(BuildingType.MetalMine, 2), Relative(BuildingType.CrystalMine, 0), Relative(BuildingType.DeuteriumSynthesizer, -2),
             Absolute(BuildingType.RoboticsFactory, 3), Absolute(BuildingType.ResearchLab, 5),
-            new BuildingRule(BuildingType.Shipyard, false, RuleMode.Absolute, 6));
+            new BuildingRule(BuildingType.Shipyard, false, RuleMode.Absolute, 6),
+            Absolute(BuildingType.MetalStorage, 7), new BuildingRule(BuildingType.DeuteriumTank, false, RuleMode.Absolute, 4));
         var state = State(
             levels: new() { [BuildingType.MetalMine] = 9, [BuildingType.SolarPlant] = 8, [BuildingType.ResearchLab] = 2 },
             queue: [new QueuedBuilding(BuildingType.MetalMine, 10, Started: true), new QueuedBuilding(BuildingType.ResearchLab, 3, Started: false)],
@@ -35,6 +36,8 @@ public class SimulatedPlannerTests
 
         Assert.Equal((12, 10, 8), (setup.MetalMine, setup.CrystalMine, setup.DeuteriumSynthesizer));
         Assert.Equal((3, 0, 0), (setup.RoboticsTarget, setup.NaniteTarget, setup.ShipyardTarget));
+        Assert.Equal((7, 0, 0), (setup.MetalStorageTarget, setup.CrystalStorageTarget, setup.DeuteriumTankTarget));
+        Assert.Equal(StorageKinds.Metal | StorageKinds.Crystal, setup.FillStorages); // the tank's rule is off
         Assert.Equal((8, 28, 32), (setup.PlanetSlot, setup.MinTemperature, setup.MaxTemperature));
         Assert.Equal(20, setup.SolarMaxLevel);
         Assert.Equal(strategy.StorageFillPercent, setup.StorageFillPercent);

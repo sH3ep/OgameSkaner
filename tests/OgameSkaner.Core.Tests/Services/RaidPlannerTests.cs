@@ -29,7 +29,6 @@ public class RaidPlannerTests
         var candidates = RaidPlanner.Candidates(galaxy, [new Coordinates(3, 3, 3)], RaidSettings.Default);
 
         Assert.Equal(["Top", "Low", "Unranked"], candidates.Select(p => p.PlayerName));
-        Assert.Equal(["Top"], RaidPlanner.Candidates(galaxy, [new Coordinates(3, 3, 3)], RaidSettings.Default with { MaxRank = 100 }).Select(p => p.PlayerName));
     }
 
     [Fact]
@@ -81,11 +80,76 @@ public class RaidPlannerTests
     }
 
     [Fact]
+    public void The_defense_ranking_limit_skips_defended_and_unranked_players()
+    {
+        PlayerPlanet[] candidates =
+        [
+            Planet("NoDefense", new Coordinates(1, 1, 1), PlayerStatus.Inactive, 1) with { PlayerId = "a" },
+            Planet("Defended", new Coordinates(1, 1, 2), PlayerStatus.Inactive, 2) with { PlayerId = "b" },
+            Planet("Unranked", new Coordinates(1, 1, 3), PlayerStatus.Inactive, 3) with { PlayerId = "c" }
+        ];
+        var ranking = new RankingSnapshot(Now, new Dictionary<string, long> { ["a"] = 0, ["b"] = 500 });
+
+        string[] Names(long? max) =>
+            RaidPlanner.Evaluate(candidates, [], [], Now, Settings with { MaxRankingDefensePoints = max }, ranking).Select(t => t.Planet.PlayerName).ToArray();
+
+        Assert.Equal(["NoDefense"], Names(0));
+        Assert.Equal(["NoDefense", "Defended"], Names(500));
+        Assert.Equal(["NoDefense", "Defended", "Unranked"], Names(null));
+    }
+
+    [Fact]
+    public void Hidden_defenses_count_as_none_when_the_ranking_shows_no_defense_points()
+    {
+        var report = FullReport() with { Defenses = null };
+
+        Assert.Equal(RaidTargetState.Ready, RaidPlanner.Evaluate(Inactive, report, [], Now, Settings, rankingDefensePoints: 0).State);
+        Assert.Equal(RaidTargetState.Unseen, RaidPlanner.Evaluate(Inactive, report, [], Now, Settings, rankingDefensePoints: 5).State);
+    }
+
+    [Fact]
+    public void Hidden_ships_and_defenses_count_as_none_when_the_ranking_shows_no_defense_points()
+    {
+        var report = FullReport() with { Ships = null, Defenses = null };
+
+        Assert.Equal(RaidTargetState.Ready, RaidPlanner.Evaluate(Inactive, report, [], Now, Settings, rankingDefensePoints: 0).State);
+        Assert.Equal(RaidTargetState.Unseen, RaidPlanner.Evaluate(Inactive, report, [], Now, Settings, rankingDefensePoints: 5).State);
+        Assert.Equal(RaidTargetState.Unseen, Evaluate(report).State); // ranking not read
+    }
+
+    [Fact]
+    public void A_target_hidden_from_as_many_probes_is_not_spied_on_again()
+    {
+        var spy = Raid(MissionType.Spy, Now.AddHours(-2), Now.AddHours(-2).AddMinutes(5)) with { Ships = Settings.ProbeCount };
+        var oldHidden = FullReport(time: Now.AddHours(-2).AddMinutes(5)) with { Defenses = null };
+
+        Assert.Equal(RaidTargetState.Unseen, Evaluate(oldHidden, spy).State);
+        Assert.Equal(RaidTargetState.NeedsSpy, Evaluate(oldHidden, spy with { Ships = Settings.ProbeCount - 1 }).State); // more probes now
+        Assert.Equal(RaidTargetState.NeedsSpy, Evaluate(oldHidden).State); // not our spy: no idea how many probes
+        Assert.Equal(RaidTargetState.NeedsSpy, RaidPlanner.Evaluate(Inactive, oldHidden, [spy], Now, Settings, rankingDefensePoints: 0).State);
+    }
+
+    [Fact]
     public void Too_little_loot_is_not_worth_an_attack()
     {
         var report = FullReport() with { Resources = new ResourceSet(1_000, 0, 0) };
 
         Assert.Equal(RaidTargetState.TooLittleLoot, Evaluate(report).State);
+    }
+
+    [Fact]
+    public void A_low_loot_report_isnt_spied_on_again_for_the_wait()
+    {
+        var lowLoot = FullReport(time: Now.AddHours(-2)) with { Resources = new ResourceSet(1_000, 0, 0) }; // loot 500 < 1,000
+
+        var waiting = Evaluate(lowLoot);
+        Assert.Equal(RaidTargetState.TooLittleLoot, waiting.State);
+        Assert.StartsWith("spied again after", waiting.Note, StringComparison.Ordinal);
+
+        Assert.Equal(RaidTargetState.NeedsSpy, Evaluate(lowLoot with { Time = Now.AddHours(-6) }).State); // 5 hours are over
+        Assert.Equal(RaidTargetState.NeedsSpy, RaidPlanner.Evaluate(Inactive, lowLoot, [], Now, Settings with { LowLootRespyHours = 0 }).State); // off
+        // An attack after the report took the loot it saw: the report says nothing about what's there now.
+        Assert.Equal(RaidTargetState.NeedsSpy, Evaluate(lowLoot, Raid(MissionType.Attack, Now.AddHours(-1.5), Now.AddHours(-1))).State);
     }
 
     [Fact]
@@ -163,6 +227,24 @@ public class RaidPlannerTests
         Assert.Same(far, Choose(20));
         Assert.Same(far, Choose(100));
         Assert.Null(RaidPlanner.ChooseOrigin(Target, [new Origin(Target, 0)], o => o.Coordinates, o => o.Ships, 1, new UniverseProfile("tron")));
+    }
+
+    [Fact]
+    public void Nearest_first_orders_by_the_nearest_own_planet_and_keeps_ties_in_order()
+    {
+        RaidTarget At(string name, Coordinates coordinates) => new(Planet(name, coordinates, PlayerStatus.Inactive, 1), null, RaidTargetState.Ready, 0);
+        RaidTarget[] targets =
+        [
+            At("OtherGalaxy", new Coordinates(2, 1, 1)),
+            At("FarSystem", new Coordinates(5, 200, 1)),
+            At("SameSystemA", new Coordinates(5, 288, 5)),
+            At("NearSecondPlanet", new Coordinates(7, 51, 1)),
+            At("SameSystemB", new Coordinates(5, 288, 1))
+        ];
+
+        var ordered = RaidPlanner.NearestFirst(targets, [Target, new Coordinates(7, 50, 1)], new UniverseProfile("tron"));
+
+        Assert.Equal(["SameSystemA", "SameSystemB", "NearSecondPlanet", "FarSystem", "OtherGalaxy"], ordered.Select(t => t.Planet.PlayerName));
     }
 
     private sealed record Origin(Coordinates Coordinates, long Ships);

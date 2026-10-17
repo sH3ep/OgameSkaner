@@ -227,8 +227,8 @@ public sealed class BuildOrderOptimizer
                 Add(mine);
             }
 
-            // Factory targets the mines didn't need.
-            foreach (var factory in (ReadOnlySpan<Gene>)[Gene.RoboticsFactory, Gene.NaniteFactory, Gene.Shipyard])
+            // Factory and storage targets the mines didn't need.
+            foreach (var factory in (ReadOnlySpan<Gene>)[Gene.RoboticsFactory, Gene.NaniteFactory, Gene.Shipyard, Gene.MetalStorage, Gene.CrystalStorage, Gene.DeuteriumTank])
             {
                 for (var guard = 0; guard < GameModel.MaxLevel && simulator.LevelOf(factory) < _setup.TargetOf(factory) && Reachable(factory); guard++)
                     Add(factory);

@@ -37,6 +37,9 @@
                              ToolTip="Show only players with at most this many defense points in the ranking (0 = no defenses). Players not in the ranking are hidden while this is set. Empty = no limit." />
                 </WrapPanel>
                 <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                    <Button Content="Select all" Command="{Binding SelectAllCommand}" MinWidth="0"
+                            ToolTip="Tick every planet shown. Shift+click a checkbox to tick or untick the range from the last clicked one." />
+                    <Button Content="Select none" Command="{Binding SelectNoneCommand}" MinWidth="0" />
                     <Button Content="Select ready" Command="{Binding SelectReadyCommand}" MinWidth="0" />
                     <Button Content="Select to spy" Command="{Binding SelectNeedingSpyCommand}" MinWidth="0" />
                     <Button Content="Load reports" Command="{Binding ReadReportsCommand}" MinWidth="0"
@@ -49,14 +52,14 @@
                             ToolTip="Attack the selected planets that have a report, with the cargo ships their loot needs" />
                 </StackPanel>
 
-                <DataGrid ItemsSource="{Binding Targets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                <DataGrid x:Name="TargetsGrid" ItemsSource="{Binding Targets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" SelectionUnit="FullRow" Background="Transparent" IsReadOnly="False"
                           EnableRowVirtualization="True">
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Header="" SortMemberPath="IsSelected">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
-                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}"
+                                    <CheckBox IsChecked="{Binding IsSelected, UpdateSourceTrigger=PropertyChanged}" Click="OnSelectCheckBoxClick"
                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
@@ -128,6 +131,8 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="Max defense points" VerticalAlignment="Center" Margin="0,0,6,6" />
@@ -137,7 +142,7 @@
                             <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MaxFleetPoints, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Attack only planets whose ships are worth at most this many points (the number the report shows next to Ships)" />
                             <TextBlock Grid.Row="2" Text="Min loot" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding MinLoot, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}"
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding MinLoot, Converter={StaticResource GroupedNumber}}"
                                      ToolTip="Don't send attacks that bring less than this (metal + crystal + deuterium)" />
                             <TextBlock Grid.Row="3" Text="Loot %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding LootPercent, UpdateSourceTrigger=PropertyChanged}"
@@ -156,14 +161,19 @@
                                      ToolTip="Older reports are spied again before attacking" />
                             <TextBlock Grid.Row="8" Text="Fleet slots used %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding FleetSlotUsePercent, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="The raider fills at most this share of all fleet slots with spies and attacks" />
+                                     ToolTip="Attacks fill at most this share of all fleet slots. Spy missions may use every slot but one (probes are back within minutes)." />
                             <TextBlock Grid.Row="9" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding SpeedPercentage, UpdateSourceTrigger=PropertyChanged}" />
-                            <TextBlock Grid.Row="10" Text="Only rank ≤ (0 = all)" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding MaxRank, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Players are taken best ranked (most points) first; this skips players ranked below" />
+                            <TextBlock Grid.Row="10" Text="Only def. rank ≤" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding RaidMaxRankingDefensePoints, Converter={StaticResource GroupedNumber}}"
+                                     ToolTip="The raider only spies on and attacks players with at most this many defense points in the ranking (0 = only players without defenses). Players not in the ranking are skipped while this is set. Empty = no limit." />
                             <CheckBox Grid.Row="11" Grid.ColumnSpan="2" Content="Send from the nearest planet with cargo ships" IsChecked="{Binding UseNearestPlanet}"
                                       ToolTip="Otherwise every fleet leaves from the planet selected in the game" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="13" Text="Low loot: spy again after (h)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding LowLootRespyHours, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="A planet whose newest report has less loot than Min loot isn't spied on again for this many hours, which saves probes and fleet slots (0 = off)" />
+                            <CheckBox Grid.Row="12" Grid.ColumnSpan="2" Content="Nearest targets first" IsChecked="{Binding NearestTargetsFirst}"
+                                      ToolTip="The raider spies on and attacks nearer targets first (fleets come back sooner). Targets at the same distance: most loot first for attacks, best ranked first for spies. Distance counts from the planets fleets can leave from." Margin="0,0,0,6" />
                         </Grid>
 
                         <CheckBox Content="Test mode (don't send fleets)" IsChecked="{Binding TestMode}" Margin="0,0,0,6" FontWeight="SemiBold"

@@ -84,10 +84,16 @@ public sealed partial class RaidsViewModel : PageViewModel
     private int _speedPercentage;
 
     [ObservableProperty]
-    private int _maxRank;
+    private long? _raidMaxRankingDefensePoints;
+
+    [ObservableProperty]
+    private int _lowLootRespyHours;
 
     [ObservableProperty]
     private bool _useNearestPlanet;
+
+    [ObservableProperty]
+    private bool _nearestTargetsFirst;
 
     /// <summary>Show only targets that need a spy, are waiting for one or are ready.</summary>
     [ObservableProperty]
@@ -177,6 +183,20 @@ public sealed partial class RaidsViewModel : PageViewModel
         }
 
         ShowTargets();
+    }
+
+    [RelayCommand]
+    private void SelectAll()
+    {
+        foreach (var item in Targets)
+            item.IsSelected = true;
+    }
+
+    [RelayCommand]
+    private void SelectNone()
+    {
+        foreach (var item in Targets)
+            item.IsSelected = false;
     }
 
     [RelayCommand]
@@ -321,8 +341,10 @@ public sealed partial class RaidsViewModel : PageViewModel
             ProbeCount = settings.ProbeCount;
             ReportMaxAgeMinutes = settings.ReportMaxAgeMinutes;
             SpeedPercentage = settings.SpeedPercentage;
-            MaxRank = settings.MaxRank;
+            RaidMaxRankingDefensePoints = settings.MaxRankingDefensePoints;
+            LowLootRespyHours = settings.LowLootRespyHours;
             UseNearestPlanet = settings.UseNearestPlanet;
+            NearestTargetsFirst = settings.NearestTargetsFirst;
         }
         finally
         {
@@ -354,8 +376,10 @@ public sealed partial class RaidsViewModel : PageViewModel
         ProbeCount = Math.Max(1, ProbeCount),
         ReportMaxAgeMinutes = Math.Max(1, ReportMaxAgeMinutes),
         SpeedPercentage = Math.Clamp(SpeedPercentage, 1, 100),
-        MaxRank = Math.Max(0, MaxRank),
+        MaxRankingDefensePoints = RaidMaxRankingDefensePoints is { } max ? Math.Max(0, max) : null,
+        LowLootRespyHours = Math.Max(0, LowLootRespyHours),
         UseNearestPlanet = UseNearestPlanet,
+        NearestTargetsFirst = NearestTargetsFirst,
         TestMode = TestMode
     };
 

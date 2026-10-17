@@ -29,7 +29,9 @@ public sealed class BuildSettings
     /// <summary>Simulated mode: solar satellites may provide energy.</summary>
     public bool UseSolarSatellites { get; set; } = true;
 
-    public SimulatedBuildOptions ToSimulatedOptions() => new(Math.Max(10_000, SimulationsPerPlan), UseSolarSatellites);
+    public BuilderMode Mode { get; set; } = BuilderMode.Simulated;
+
+    public SimulatedBuildOptions ToSimulatedOptions() => new(Math.Max(10_000, SimulationsPerPlan), UseSolarSatellites, Mode: Mode);
 
     /// <summary>
     /// Planets the user unticked. Storing the excluded ones (not the selected ones) means a new colony takes part
@@ -42,14 +44,15 @@ public sealed class BuildSettings
     public static BuildSettings CreateDefault() => new() { Rules = BuildingCatalog.All.Select(d => DefaultRule(d.Type)).OfType<BuildingRule>().ToList() };
 
     /// <summary>
-    /// Ensures exactly one rule per catalog building (except the automatic ones: solar plant and storages), in
-    /// catalog order, so buildings added to the catalog later show up in old settings files.
+    /// Ensures exactly one rule per catalog building (except the solar plant, which is driven by energy), in catalog
+    /// order, so buildings added to the catalog later show up in old settings files. A storage's rule only says whether
+    /// the fill rule builds it.
     /// </summary>
     public BuildSettings Normalize()
     {
         var existing = Rules.GroupBy(r => r.Building).ToDictionary(g => g.Key, g => g.First());
         Rules = BuildingCatalog.All
-            .Where(d => !BuildStrategy.IsAutomatic(d.Type))
+            .Where(d => d.Type != BuildingType.SolarPlant)
             .Select(d => existing.GetValueOrDefault(d.Type) ?? DefaultRule(d.Type)!)
             .ToList();
         return this;
@@ -57,7 +60,8 @@ public sealed class BuildSettings
 
     private static BuildingRule? DefaultRule(BuildingType building) => building switch
     {
-        _ when BuildStrategy.IsAutomatic(building) => null,
+        _ when BuildStrategy.IsStorage(building) => new(building, true, RuleMode.Absolute, 0),
+        BuildingType.SolarPlant => null,
         BuildingType.MetalMine => new(building, true, RuleMode.Relative, 2),
         BuildingType.CrystalMine => new(building, true, RuleMode.Relative, 0),
         BuildingType.DeuteriumSynthesizer => new(building, true, RuleMode.Relative, -2),

@@ -472,6 +472,25 @@ public class BuildSimulatorTests
     }
 
     [Fact]
+    public void A_storage_target_must_be_reached_too()
+    {
+        var setup = Targets(1) with { MetalStorageTarget = 2, StartResources = new ResourceSet(1_000_000, 1_000_000, 0) };
+
+        Assert.True(double.IsPositiveInfinity(Simulator(setup).Evaluate([Gene.MetalMine])));
+        Assert.False(double.IsPositiveInfinity(Simulator(setup).Evaluate([Gene.MetalMine, Gene.MetalStorage, Gene.MetalStorage])));
+    }
+
+    [Fact]
+    public void The_storage_rule_skips_storages_left_out_of_FillStorages()
+    {
+        var setup = Targets(1) with { StartResources = new ResourceSet(8_000_000, 0, 0), StorageFillPercent = 70 };
+
+        var (_, steps) = Simulator(setup with { FillStorages = StorageKinds.Crystal | StorageKinds.Deuterium }).Trace([Gene.MetalMine]);
+
+        Assert.Equal([Gene.MetalMine], steps.Select(s => s.Gene));
+    }
+
+    [Fact]
     public void The_storage_rule_doesnt_change_the_real_queue()
     {
         var start = new PlanetStart

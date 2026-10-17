@@ -91,7 +91,7 @@ public static class BuildPlanner
     {
         var solar = NextSolar(levels, strategy, state, costs);
         var byPrice = strategy.Rules
-            .Where(r => r.Enabled && !BuildStrategy.IsAutomatic(r.Building) && !state.Locked.Contains(r.Building))
+            .Where(r => r.Enabled && r.Building != BuildingType.SolarPlant && !state.Locked.Contains(r.Building)) // storages: their target
             .Where(r => PlanetLevels.Of(levels, r.Building) < r.TargetFor(strategy.ReferenceLevel))
             .Select(r => costs.Upgrade(r.Building, PlanetLevels.Of(levels, r.Building) + 1))
             .OrderBy(u => u.Cost.Value)
@@ -99,7 +99,7 @@ public static class BuildPlanner
             .ToList();
 
         // Storages for (nearly) full resources go before the price order...
-        byPrice.InsertRange(0, StorageRule.Needed(levels, strategy.StorageFillPercent, state, costs));
+        byPrice.InsertRange(0, StorageRule.Needed(levels, strategy.StorageFillPercent, state, costs).Where(u => strategy.FillsStorage(u.Building)));
 
         // ...and only an energy shortage (e.g. mines finished before the solar plant) goes before them.
         if (solar is not null && byPrice.Count > 0 && EnergyFormulas.Projected(state.EnergyBalance, state.Levels, levels) < 0)

@@ -34,6 +34,10 @@ public sealed partial class BuildingRuleItemViewModel : ObservableObject
 
     public BuildingCategory Category { get; }
 
+    public string EnabledToolTip => BuildStrategy.IsStorage(Building)
+        ? "Build this storage to its target (0 = no target) and further when its resource reaches the storage fill %. Unticked, it's built only when a cost doesn't fit in it."
+        : "Upgrade this building to its target";
+
     [ObservableProperty]
     private bool _enabled;
 

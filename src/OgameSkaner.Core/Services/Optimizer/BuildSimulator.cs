@@ -35,6 +35,7 @@ public sealed class BuildSimulator
     private readonly int[] _targetGenes;
     private readonly double _metalCorrection = 1, _crystalCorrection = 1, _deuteriumCorrection = 1, _extraEnergy;
     private readonly double _storageFill;
+    private readonly StorageKinds _fillStorages;
     private readonly double _mineBalance;
     private readonly int _earlyRobotics, _earlyRoboticsMineLevel;
     private bool _finishingQueue;
@@ -60,6 +61,7 @@ public sealed class BuildSimulator
             _targets[b] = Math.Min(GameModel.MaxLevel, setup.TargetOf((Gene)b));
         _targetGenes = Enumerable.Range(0, GameModel.BuildingCount).Where(b => _targets[b] > 0).ToArray();
         _storageFill = Math.Clamp(setup.StorageFillPercent, 0, 100) / 100.0;
+        _fillStorages = setup.FillStorages;
         _mineBalance = Math.Clamp(setup.MineBalancePercent, 0, 100) / 100.0;
         _earlyRobotics = Math.Clamp(setup.EarlyRoboticsLevel, 0, GameModel.MaxLevel);
         _earlyRoboticsMineLevel = setup.EarlyRoboticsMineLevel;
@@ -496,13 +498,15 @@ public sealed class BuildSimulator
         var storage = -1;
         var fullest = _storageFill;
         UpdateRates();
-        Check(MetalStorageIndex, _s.Metal - metal);
-        Check(CrystalStorageIndex, _s.Crystal - crystal);
-        Check(DeuteriumTankIndex, _s.Deuterium - deuterium);
+        Check(MetalStorageIndex, StorageKinds.Metal, _s.Metal - metal);
+        Check(CrystalStorageIndex, StorageKinds.Crystal, _s.Crystal - crystal);
+        Check(DeuteriumTankIndex, StorageKinds.Deuterium, _s.Deuterium - deuterium);
         return storage;
 
-        void Check(int index, double left)
+        void Check(int index, StorageKinds kind, double left)
         {
+            if ((_fillStorages & kind) == 0)
+                return;
             var level = _s.Levels[index];
             var share = left / Model.Capacity[level];
             if (share >= fullest && level < _maxLevels[index] && level < GameModel.MaxLevel && RefillsWhileBuilt(index, left) < _storageFill)

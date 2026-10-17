@@ -158,6 +158,9 @@ public sealed class SimulatedBuildRunner(
             return (false, null);
         }
 
+        if (settings.Mode == BuilderMode.ByPrice)
+            return await BuildByPriceAsync(client, state, strategy, "", run, cancellationToken).ConfigureAwait(false);
+
         var shipyard = settings.UseSolarSatellites && state.LevelOf(BuildingType.Shipyard) > 0
             ? await client.GetShipyardStateAsync(planet.Id, cancellationToken).ConfigureAwait(false)
             : null;
@@ -179,7 +182,15 @@ public sealed class SimulatedBuildRunner(
 
         var steps = memory.Plan.Steps;
         if (steps.Count == 0)
-            return await BuildOthersAsync(client, state, strategy, run, cancellationToken).ConfigureAwait(false);
+        {
+            // The simulated targets are built or queued: the strategy's other buildings (Research Lab, …) by price.
+            var others = strategy with
+            {
+                Rules = strategy.Rules.Where(r => !SimulatedPlanner.IsSimulated(r.Building)).ToList(),
+                StorageFillPercent = 0
+            };
+            return await BuildByPriceAsync(client, state, others, "simulated targets queued; ", run, cancellationToken).ConfigureAwait(false);
+        }
 
         var push = SimulatedPlanner.Push(state, steps, shipyard, QueueCapacity);
         foreach (var action in push.Actions)
@@ -262,38 +273,42 @@ public sealed class SimulatedBuildRunner(
     }
 
     /// <summary>
-    /// The simulated targets are built or queued: the strategy's other buildings (Research Lab, …) by price, one at a
-    /// time and only into an otherwise empty queue (the price planner doesn't reserve resources for waiting items).
+    /// Queues the strategy's buildings in the price planner's order (cheapest next level first), as many levels as the
+    /// resources cover on top of the waiting queue items.
     /// </summary>
-    private static async Task<(bool Done, TimeSpan? NextIn)> BuildOthersAsync(
-        IOgamexClient client, PlanetBuildState state, BuildStrategy strategy, Run run, CancellationToken cancellationToken)
+    private async Task<(bool Done, TimeSpan? NextIn)> BuildByPriceAsync(
+        IOgamexClient client, PlanetBuildState state, BuildStrategy strategy, string waitingPrefix, Run run, CancellationToken cancellationToken)
     {
-        var others = strategy with
+        var plan = BuildPlanner.Plan(state, strategy, Math.Max(1, QueueCapacity - state.Queue.Count), requireAffordable: false);
+        if (plan.Upgrades.Count == 0)
         {
-            Rules = strategy.Rules.Where(r => !SimulatedPlanner.IsSimulated(r.Building)).ToList(),
-            StorageFillPercent = 0
-        };
-        var decision = BuildPlanner.NextUpgrade(state, others, requireAffordable: false);
-        if (decision.Upgrade is not { } upgrade)
-        {
-            run.Finish(state.Planet, BuildStopReason.TargetsReached);
+            run.Finish(state.Planet, plan.Reason);
             return (true, null);
         }
 
         var runningLeft = state.RunningRemaining ?? TimeSpan.Zero;
-        if (state.Queue.Any(q => !q.Started) || !state.Resources.CanAfford(upgrade.Cost))
+        TimeSpan? nextIn = runningLeft > TimeSpan.Zero ? runningLeft : null;
+        var push = state.Queue.Count >= QueueCapacity ? [] : SimulatedPlanner.AffordablePrefix(state, plan.Upgrades);
+        foreach (var upgrade in push)
         {
-            run.Report($"{state.Planet}: simulated targets queued; waiting for {BuildingCatalog.Get(upgrade.Building).DisplayName} {upgrade.Level}");
-            return (false, runningLeft > TimeSpan.Zero ? runningLeft : null);
+            var name = $"{BuildingCatalog.Get(upgrade.Building).DisplayName} {upgrade.Level}";
+            var outcome = await client.EnqueueBuildingAsync(state.Planet.Id, upgrade.Building, cancellationToken).ConfigureAwait(false);
+            if (outcome.Result != EnqueueResult.Queued)
+            {
+                run.Report($"{state.Planet}: the game refused {name}: {outcome.Message ?? outcome.Result.ToString()}");
+                return (false, nextIn);
+            }
+            run.Planet(state.Planet.Id).LastPushed.Add(upgrade);
+            run.Queued(state.Planet, $"{state.Planet}: queued {name} (by price)");
         }
 
-        var outcome = await client.EnqueueBuildingAsync(state.Planet.Id, upgrade.Building, cancellationToken).ConfigureAwait(false);
-        if (outcome.Result == EnqueueResult.Queued)
+        if (push.Count < plan.Upgrades.Count)
         {
-            run.Planet(state.Planet.Id).LastPushed.Add(upgrade);
-            run.Queued(state.Planet, $"{state.Planet}: queued {BuildingCatalog.Get(upgrade.Building).DisplayName} {upgrade.Level} (by price)");
+            var next = plan.Upgrades[push.Count];
+            run.Report($"{state.Planet}: {waitingPrefix}waiting for {BuildingCatalog.Get(next.Building).DisplayName} {next.Level}"
+                       + (state.Queue.Count + push.Count >= QueueCapacity ? " (queue full)" : " (resources, queued items reserved)"));
         }
-        return (false, runningLeft > TimeSpan.Zero ? runningLeft : null);
+        return (false, nextIn);
     }
 
     /// <summary>What the plan depends on: levels, queue, satellites and the setup's limits (resources only drift).</summary>

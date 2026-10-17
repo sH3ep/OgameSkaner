@@ -64,7 +64,7 @@
                             <DataGridTemplateColumn Header="On">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}"
+                                        <CheckBox IsChecked="{Binding Enabled, UpdateSourceTrigger=PropertyChanged}" ToolTip="{Binding EnabledToolTip}"
                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -123,16 +123,24 @@
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="Auto" MinWidth="90" />
                             </Grid.ColumnDefinitions>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <TextBlock Text="Simulations per plan" VerticalAlignment="Center" Margin="0,0,6,4" />
-                            <TextBox Grid.Column="1" Text="{Binding SimulationsPerPlan, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" Margin="0,0,0,4"
+                            <TextBlock Text="Mode" VerticalAlignment="Center" Margin="0,0,6,4" />
+                            <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:BuilderViewModel.Modes}" DisplayMemberPath="Name"
+                                      SelectedValuePath="Id" SelectedValue="{Binding Mode}" Margin="0,0,0,4" MinWidth="170"
+                                      ToolTip="Simulated: the build simulation finds the fastest order to the targets. By price: always the cheapest next level of the ticked buildings (metal 1, crystal 1.5, deuterium 3), until every target is reached; the solar plant only when energy runs out, storages at the fill % or their target." />
+                            <TextBlock Grid.Row="1" Text="Simulations per plan" VerticalAlignment="Center" Margin="0,0,6,4"
+                                       IsEnabled="{Binding IsSimulatedMode}" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SimulationsPerPlan, Converter={StaticResource GroupedNumber}}" Margin="0,0,0,4"
+                                     IsEnabled="{Binding IsSimulatedMode}"
                                      ToolTip="Orders simulated for one plan of one planet (2,000,000 take well under a second per planet)" />
-                            <CheckBox Grid.Row="1" Grid.ColumnSpan="2" Content="Use solar satellites for energy" IsChecked="{Binding UseSolarSatellites}" />
+                            <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Content="Use solar satellites for energy" IsChecked="{Binding UseSolarSatellites}"
+                                      IsEnabled="{Binding IsSimulatedMode}" ToolTip="Simulated mode only" />
                         </Grid>
 
                         <DockPanel Margin="0,0,0,4">

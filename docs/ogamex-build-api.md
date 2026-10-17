@@ -86,6 +86,10 @@ Consequences for the client:
   duration "00:06". Without a shipyard: "Required technologies" (Shipyard 0/1), no cost.
 - Order ships: `POST /hangar/createship {"ShipType":"SOLAR_SATELLITE","Quantity":n,"__PlanetId":…}` → `{IsSuccess, Message}`
   (from `/assets/js/app/pages/hangar.js`; also `cancelhangarproduction {ProductionId}`, `dmcomplete`).
+- Order defenses: `POST /defense/createdefense {"DefenseType":"PLASMA_CANNON","Quantity":n,"__PlanetId":…}` → `{IsSuccess, Message}`
+  (from `/assets/js/app/pages/defense.js`, page `/defense`, the same `.hangar-detail` blocks with `data-defense-type`).
+  The client loads `hangar?planet=` / `defense?planet=` first (checking `currentPlanetId`) and posts under the planet-switch lock:
+  whether the server honours `__PlanetId` or the current planet wasn't tested, and the game itself always posts from the planet's page.
 - Construction durations: "Construction duration : 06:57" in every building block, for the next level after the queue.
   Format from the game's `ConvertToTimeString`: `[Nd ][hh:]mm:ss` (hours only when > 0) → "06:57" is 6 min 57 s.
   Durations are not proportional to cost on OgameX (metal 25→27: cost ×2.13, time ×2.22).

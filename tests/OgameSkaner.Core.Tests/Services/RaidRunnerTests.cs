@@ -53,7 +53,9 @@ public class RaidRunnerTests
     [Fact]
     public async Task Without_reports_the_best_ranked_inactives_are_spied_on_from_the_current_planet()
     {
-        var result = await RunCycleAsync(RaidSettings.Default with { FleetSlotUsePercent = 20 }); // 2 of 11 slots
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 8); // spies get all but one: 2 of 11 left
+
+        var result = await RunCycleAsync(RaidSettings.Default with { NearestTargetsFirst = false });
 
         Assert.Equal(RaidOutcome.Cancelled, result.Outcome);
         Assert.Equal([Rich.Coordinates, Second.Coordinates], _client.SentMissions.Select(m => m.Target));
@@ -62,6 +64,17 @@ public class RaidRunnerTests
         Assert.All(_client.SentOrigins, o => Assert.Equal(Home.Id, o));
         Assert.Equal(2, _store.Raids.Count(r => r.Mission == MissionType.Spy));
         Assert.Equal(Home.Id, _client.SelectedPlanets.Last()); // switched back
+    }
+
+    [Fact]
+    public async Task Nearest_targets_first_spies_on_the_closest_inactives()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 8); // spies get all but one: 2 of 11 left
+
+        await RunCycleAsync(RaidSettings.Default);
+
+        // From Home 8:260:3: Second (same galaxy), then Third (galaxy 1, two steps with the wrap), not Rich (galaxy 5, three steps)
+        Assert.Equal([Second.Coordinates, Third.Coordinates], _client.SentMissions.Select(m => m.Target));
     }
 
     [Fact]
@@ -95,14 +108,25 @@ public class RaidRunnerTests
     }
 
     [Fact]
-    public async Task Nothing_is_sent_when_the_usable_slots_are_taken()
+    public async Task Nothing_is_sent_when_all_slots_but_one_are_taken()
     {
-        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 9); // 90% of 11 = 9
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 10);
 
         await RunCycleAsync(RaidSettings.Default);
 
         Assert.Empty(_client.SentMissions);
-        Assert.Contains(_log, m => m.Contains("fleet slots 9/11, 0 usable", StringComparison.Ordinal));
+        Assert.Contains(_log, m => m.Contains("fleet slots 10/11, 0 usable for attacks, 0 for spies", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Attacks_keep_the_slot_share_while_spies_use_all_slots_but_one()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 9); // 90% of 11 = 9: no attack slot left
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
+
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1 });
+
+        Assert.Equal([MissionType.Spy], _client.SentMissions.Select(m => m.Mission)); // the 10th slot; the 11th stays free
     }
 
     [Fact]

@@ -38,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<GalaxyScanService>();
         services.AddSingleton<FleetEscapeService>();
         services.AddSingleton<ColonizationService>();
+        services.AddSingleton<ShipyardService>();
         services.AddSingleton<CsvExportService>();
         services.AddSingleton<OwnPlanetService>();
         services.AddSingleton<SchemaRunner>();

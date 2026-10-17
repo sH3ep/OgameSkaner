@@ -30,7 +30,7 @@ public class SimulatedBuildRunnerTests
         _client.BuildStates[Colony.Id] = State(planet: Colony);
     }
 
-    private Task<BuildRunResult> RunAsync(BuildStrategy strategy) =>
+    private Task<BuildRunResult> RunAsync(BuildStrategy strategy, BuilderMode mode = BuilderMode.Simulated) =>
         new SimulatedBuildRunner(
                 new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
                 new BuildOrderOptimizer(),
@@ -38,7 +38,7 @@ public class SimulatedBuildRunnerTests
                 TimeProvider.System,
                 NullLogger<SimulatedBuildRunner>.Instance)
             .RunAsync(_client, new BuildRequest(strategy, new HashSet<PlanetId> { Colony.Id }),
-                new SimulatedBuildOptions(SimulationsPerPlan: 20_000),
+                new SimulatedBuildOptions(SimulationsPerPlan: 20_000, Mode: mode),
                 new SyncProgress(p =>
                 {
                     _progress.Add(p);
@@ -87,6 +87,30 @@ public class SimulatedBuildRunnerTests
         await RunAsync(MetalAndCrystal with { Rules = [.. MetalAndCrystal.Rules, new BuildingRule(BuildingType.ResearchLab, true, RuleMode.Absolute, 1)] });
 
         Assert.Equal([(Colony.Id, BuildingType.ResearchLab)], _client.EnqueuedBuildings);
+    }
+
+    [Fact]
+    public async Task Other_buildings_queue_every_level_the_resources_cover_at_once()
+    {
+        // 10M of every resource: Research Lab 1–5 cost about 1.2M together, so all go in one cycle (they used to go one per cycle).
+        _client.BuildStates[Colony.Id] = State(levels: new() { [BuildingType.MetalMine] = 2, [BuildingType.CrystalMine] = 1 }, planet: Colony);
+
+        await RunAsync(MetalAndCrystal with { Rules = [.. MetalAndCrystal.Rules, new BuildingRule(BuildingType.ResearchLab, true, RuleMode.Absolute, 5)] });
+
+        Assert.Equal(Enumerable.Repeat((Colony.Id, BuildingType.ResearchLab), 5), _client.EnqueuedBuildings.Take(5));
+    }
+
+    [Fact]
+    public async Task By_price_queues_the_cheapest_levels_without_a_simulation()
+    {
+        var strategy = MetalAndCrystal with { StorageFillPercent = 0 };
+
+        await RunAsync(strategy, BuilderMode.ByPrice);
+
+        // Metal Mine 1 (60/15) < Crystal Mine 1 (48/24) < Metal Mine 2 (90/22) by weighted value
+        Assert.Equal([BuildingType.MetalMine, BuildingType.CrystalMine, BuildingType.MetalMine], _client.EnqueuedBuildings.Select(e => e.Building));
+        Assert.DoesNotContain(_progress, p => p.Message.Contains("planned", StringComparison.Ordinal));
+        Assert.Equal(0, _client.TemperatureReads);
     }
 
     private sealed class SyncProgress(Action<BuildProgress> handler) : IProgress<BuildProgress>

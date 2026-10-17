@@ -84,6 +84,7 @@ public partial class App : Application
         builder.Services.AddPage<SchemasViewModel, SchemasView>("Schemas");
         builder.Services.AddPage<OptimizerViewModel, OptimizerView>("Optimizer");
         builder.Services.AddPage<RaidsViewModel, RaidsView>("Raids");
+        builder.Services.AddPage<ShipyardViewModel, ShipyardView>("Shipyard");
         builder.Services.AddPage<UtilitiesViewModel, UtilitiesView>("Utilities");
 
         return builder.Build();

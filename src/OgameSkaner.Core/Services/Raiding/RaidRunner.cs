@@ -60,11 +60,8 @@ public sealed class RaidRunner(
         var own = ownPlanets.GetStored(universe).Planets.Select(p => p.Coordinates).ToHashSet();
         var reports = store.LoadReports(universe);
         var candidates = RaidPlanner.Candidates(database.Snapshot(), own, settings, reports);
-        var targets = RaidPlanner.Evaluate(candidates, reports, store.LoadRaids(universe), timeProvider.GetUtcNow(), settings);
         var defense = store.LoadRanking(universe, RankingCategory.Defense);
-        return defense.PointsByPlayerId.Count == 0
-            ? targets
-            : targets.Select(t => t with { RankingDefensePoints = defense.PointsOf(t.Planet.PlayerId) }).ToList();
+        return RaidPlanner.Evaluate(candidates, reports, store.LoadRaids(universe), timeProvider.GetUtcNow(), settings, defense);
     }
 
     /// <summary>When the defense ranking was read last (null: never).</summary>
@@ -184,11 +181,11 @@ public sealed class RaidRunner(
         return fresh.Count;
     }
 
-    /// <summary>Spies on <paramref name="targets"/> from the current planet, as far as the free fleet slots allow.</summary>
+    /// <summary>Spies on <paramref name="targets"/> from the current planet, in every free fleet slot but one.</summary>
     public Task<int> SpyAsync(
         IOgamexClient client, IReadOnlyList<RaidTarget> targets, RaidSettings settings, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default) =>
         RunManualAsync(client, settings, progress, cancellationToken, (refresh, origins, slots) =>
-            SpyAsync(client, targets.Take(slots.Free).ToList(), settings, Home(origins, refresh), progress, cancellationToken));
+            SpyAsync(client, targets.Take(RaidPlanner.SpySlotBudget(slots)).ToList(), settings, Home(origins, refresh), progress, cancellationToken));
 
     /// <summary>Attacks <paramref name="targets"/> (with fresh reports), as far as the free fleet slots allow.</summary>
     public Task<int> AttackAsync(
@@ -236,21 +233,26 @@ public sealed class RaidRunner(
             if (DefenseRankingReadAt(client.Universe.Name) is not { } rankingAt || timeProvider.GetUtcNow() - rankingAt >= RankingMaxAge)
                 await ReadDefenseRankingAsync(client, progress, cancellationToken).ConfigureAwait(false);
             var targets = await GetTargetsAsync(client.Universe.Name, settings, cancellationToken).ConfigureAwait(false);
-            Report(progress, Summary(targets, slots, budget));
+            Report(progress, Summary(targets, slots, budget, RaidPlanner.SpySlotBudget(slots)));
 
             var attacks = 0;
             var spies = 0;
             if (budget > 0)
             {
-                var ready = targets.Where(t => t.State == RaidTargetState.Ready).OrderByDescending(t => t.ExpectedLoot).ToList();
+                IReadOnlyList<RaidTarget> ready = targets.Where(t => t.State == RaidTargetState.Ready).OrderByDescending(t => t.ExpectedLoot).ToList();
+                if (settings.NearestTargetsFirst)
+                    ready = RaidPlanner.NearestFirst(ready, origins.Select(o => o.Planet.Coordinates).ToList(), client.Universe);
                 attacks = await AttackAsync(client, ready, settings, origins, budget, progress, cancellationToken).ConfigureAwait(false);
-                budget -= attacks;
             }
 
-            if (budget > 0)
+            var spyBudget = RaidPlanner.SpySlotBudget(slots, attacks);
+            if (spyBudget > 0)
             {
-                var needSpy = targets.Where(t => t.State == RaidTargetState.NeedsSpy).Take(budget).ToList();
-                spies = await SpyAsync(client, needSpy, settings, Home(origins, refresh), progress, cancellationToken).ConfigureAwait(false);
+                var home = Home(origins, refresh);
+                IReadOnlyList<RaidTarget> needSpy = targets.Where(t => t.State == RaidTargetState.NeedsSpy).ToList();
+                if (settings.NearestTargetsFirst)
+                    needSpy = RaidPlanner.NearestFirst(needSpy, [home.Planet.Coordinates], client.Universe);
+                spies = await SpyAsync(client, needSpy.Take(spyBudget).ToList(), settings, home, progress, cancellationToken).ConfigureAwait(false);
             }
 
             return (attacks, spies, NextWait(client.Universe.Name));
@@ -471,10 +473,10 @@ public sealed class RaidRunner(
         }
     }
 
-    private static string Summary(IReadOnlyList<RaidTarget> targets, FleetSlots slots, int budget)
+    private static string Summary(IReadOnlyList<RaidTarget> targets, FleetSlots slots, int attackBudget, int spyBudget)
     {
         var counts = targets.GroupBy(t => t.State).OrderBy(g => g.Key).Select(g => $"{g.Count()} {g.Key}");
-        return $"{targets.Count} inactive planets ({string.Join(", ", counts)}); fleet slots {slots.Used}/{slots.Max}, {budget} usable";
+        return $"{targets.Count} inactive planets ({string.Join(", ", counts)}); fleet slots {slots.Used}/{slots.Max}, {attackBudget} usable for attacks, {spyBudget} for spies";
     }
 
     private static string Describe(RaidTarget target) =>
