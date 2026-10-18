@@ -18,7 +18,8 @@ internal sealed record SendFleetRequest(
     long Metal,
     long Crystal,
     long Deuterium,
-    int MissionType);
+    int MissionType,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? HoldTimeOnMinutes = null);
 
 internal sealed record ShipRequest(string ShipType, long Quantity);
 
@@ -55,7 +56,8 @@ internal sealed record FleetBriefingResponse(
     bool PlayerIsInactive28,
     bool PlayerIsUnderProtection,
     bool ShowWarning,
-    string? WarningMessage);
+    string? WarningMessage,
+    int[]? ExpeditionKeepValues = null);
 
 /// <summary>Body of <c>/building/increasebuilding</c>; the game sends these exact (PascalCase) names.</summary>
 internal sealed record IncreaseBuildingRequest(

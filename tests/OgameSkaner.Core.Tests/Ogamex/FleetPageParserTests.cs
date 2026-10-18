@@ -55,6 +55,7 @@ public class FleetPageParserTests
         var fleet = FleetPageParser.Parse(html);
 
         Assert.Equal(new FleetSlots(3, 11), fleet.Slots);
+        Assert.Equal(new FleetSlots(0, 1), fleet.ExpeditionSlots);
         Assert.Equal(8, fleet.Slots!.Value.Free);
         Assert.Equal(200_000, fleet.CargoCapacityOf("COLONY_SHIP"));
         Assert.Equal(2, fleet.QuantityOf("COLONY_SHIP"));
@@ -67,6 +68,7 @@ public class FleetPageParserTests
         var fleet = FleetPageParser.Parse(FleetPage);
 
         Assert.Null(fleet.Slots);
+        Assert.Null(fleet.ExpeditionSlots);
         Assert.Equal(0, fleet.CargoCapacityOf("SMALL_CARGO"));
     }
 

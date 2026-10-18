@@ -23,13 +23,27 @@ public sealed record BuildDecision(PlannedUpgrade? Upgrade, BuildStopReason Reas
     public static BuildDecision Stop(BuildStopReason reason) => new(null, reason);
 }
 
+/// <summary>How <see cref="BuildPlanner"/> orders the upgrades below their targets.</summary>
+public enum BuildOrder
+{
+    /// <summary>The cheapest next level first.</summary>
+    ByPrice,
+
+    /// <summary>
+    /// The next level furthest below its target first (cheapest first among equals). With Relative rules every building
+    /// stays at reference + its offset while all of them rise one level at a time.
+    /// </summary>
+    ByLevel
+}
+
 /// <summary>Upgrades in build order and why the plan ends there.</summary>
 public sealed record BuildPlan(IReadOnlyList<PlannedUpgrade> Upgrades, BuildStopReason Reason);
 
 /// <summary>
 /// Decides what to build next on a planet. Already queued items count as built, so a level is never
 /// queued twice. Upgrades below their target are compared by <see cref="ResourceSet.Value"/> (metal 1,
-/// crystal 1.5, deuterium 3) and the cheapest wins. Locked buildings are skipped.
+/// crystal 1.5, deuterium 3) and the cheapest wins, or in <see cref="BuildOrder.ByLevel"/> the one furthest below its
+/// target. Locked buildings are skipped.
 /// </summary>
 /// <remarks>
 /// A storage goes ahead of the price order when its resource is at <see cref="BuildStrategy.StorageFillPercent"/>
@@ -57,7 +71,7 @@ public static class BuildPlanner
     }
 
     /// <summary>The next <paramref name="maxItems"/> upgrades in build order.</summary>
-    public static BuildPlan Plan(PlanetBuildState state, BuildStrategy strategy, int maxItems, bool requireAffordable)
+    public static BuildPlan Plan(PlanetBuildState state, BuildStrategy strategy, int maxItems, bool requireAffordable, BuildOrder order = BuildOrder.ByPrice)
     {
         var levels = PlanetLevels.Planned(state);
         var costs = new CostModel(state);
@@ -68,7 +82,7 @@ public static class BuildPlanner
             if (state.FreeFields is { } fields && plan.Count >= fields)
                 return new BuildPlan(plan, BuildStopReason.NoFreeFields);
 
-            var options = Candidates(levels, strategy, state, costs).ToList();
+            var options = Candidates(levels, strategy, state, costs, order).ToList();
             if (options.Count == 0)
                 return new BuildPlan(plan, BuildStopReason.TargetsReached);
 
@@ -85,27 +99,30 @@ public static class BuildPlanner
 
     /// <summary>
     /// Possible next upgrades in order: the solar plant first when energy is already short, then the others
-    /// cheapest first, with the solar plant taking the place of a mine that would run out of energy.
+    /// in <paramref name="order"/>, with the solar plant taking the place of a mine that would run out of energy.
     /// </summary>
-    private static IEnumerable<PlannedUpgrade> Candidates(Dictionary<BuildingType, int> levels, BuildStrategy strategy, PlanetBuildState state, CostModel costs)
+    private static IEnumerable<PlannedUpgrade> Candidates(
+        Dictionary<BuildingType, int> levels, BuildStrategy strategy, PlanetBuildState state, CostModel costs, BuildOrder order)
     {
         var solar = NextSolar(levels, strategy, state, costs);
-        var byPrice = strategy.Rules
+        var below = strategy.Rules
             .Where(r => r.Enabled && r.Building != BuildingType.SolarPlant && !state.Locked.Contains(r.Building)) // storages: their target
-            .Where(r => PlanetLevels.Of(levels, r.Building) < r.TargetFor(strategy.ReferenceLevel))
-            .Select(r => costs.Upgrade(r.Building, PlanetLevels.Of(levels, r.Building) + 1))
-            .OrderBy(u => u.Cost.Value)
-            .Select(u => WithEnergy(u, levels, state, solar))
+            .Select(r => (Target: r.TargetFor(strategy.ReferenceLevel), Upgrade: costs.Upgrade(r.Building, PlanetLevels.Of(levels, r.Building) + 1)))
+            .Where(c => c.Upgrade.Level <= c.Target);
+        var ordered = (order == BuildOrder.ByLevel
+                ? below.OrderBy(c => c.Upgrade.Level - c.Target).ThenBy(c => c.Upgrade.Cost.Value)
+                : below.OrderBy(c => c.Upgrade.Cost.Value))
+            .Select(c => WithEnergy(c.Upgrade, levels, state, solar))
             .ToList();
 
-        // Storages for (nearly) full resources go before the price order...
-        byPrice.InsertRange(0, StorageRule.Needed(levels, strategy.StorageFillPercent, state, costs).Where(u => strategy.FillsStorage(u.Building)));
+        // Storages for (nearly) full resources go before that order...
+        ordered.InsertRange(0, StorageRule.Needed(levels, strategy.StorageFillPercent, state, costs).Where(u => strategy.FillsStorage(u.Building)));
 
         // ...and only an energy shortage (e.g. mines finished before the solar plant) goes before them.
-        if (solar is not null && byPrice.Count > 0 && EnergyFormulas.Projected(state.EnergyBalance, state.Levels, levels) < 0)
-            byPrice.Insert(0, solar);
+        if (solar is not null && ordered.Count > 0 && EnergyFormulas.Projected(state.EnergyBalance, state.Levels, levels) < 0)
+            ordered.Insert(0, solar);
 
-        return byPrice.Distinct();
+        return ordered.Distinct();
     }
 
     private static PlannedUpgrade WithEnergy(PlannedUpgrade candidate, Dictionary<BuildingType, int> levels, PlanetBuildState state, PlannedUpgrade? solar)

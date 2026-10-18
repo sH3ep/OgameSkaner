@@ -1,0 +1,146 @@
+<UserControl x:Class="OgameSkaner.App.Views.AsteroidsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:AsteroidsViewModel}"
+             d:DesignHeight="560" d:DesignWidth="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" MinWidth="460" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="280" />
+        </Grid.ColumnDefinitions>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="3*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="2*" />
+            </Grid.RowDefinitions>
+
+            <GroupBox Header="Asteroids">
+                <DockPanel>
+                    <DockPanel DockPanel.Dock="Top">
+                        <Button DockPanel.Dock="Right" Content="↻" MinWidth="0" Padding="8,2" Command="{Binding RefreshCommand}"
+                                ToolTip="Show the stored asteroids and reports again" />
+                        <TextBlock Text="{Binding EstimateInfo}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,0,6" />
+                    </DockPanel>
+                    <StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+                        <Button Content="Find asteroids" Command="{Binding FindCommand}" MinWidth="0"
+                                ToolTip="Read the game's asteroid locations and scan the systems that may hold an asteroid not known yet (one request per system)" />
+                        <Button Content="Load reports" Command="{Binding ReadReportsCommand}" MinWidth="0"
+                                ToolTip="Read the new asteroid mining reports from the game's messages" />
+                        <Button Content="Send miners" Command="{Binding SendSelectedCommand}" MinWidth="0"
+                                ToolTip="Send miners to the selected open asteroid from the nearest planet that has enough" />
+                    </StackPanel>
+
+                    <DataGrid ItemsSource="{Binding Asteroids}" SelectedItem="{Binding SelectedAsteroid}" AutoGenerateColumns="False" CanUserAddRows="False"
+                              CanUserDeleteRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow" Background="Transparent" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Coordinates" Binding="{Binding Coordinates}" SortMemberPath="CoordinatesSortKey" />
+                            <DataGridTextColumn Header="Seen" Binding="{Binding Seen}" />
+                            <DataGridTextColumn Header="Gone at" Binding="{Binding GoneAt}" SortMemberPath="GoneAtSortKey" />
+                            <DataGridTextColumn Header="Left" Binding="{Binding TimeLeft}" SortMemberPath="GoneAtSortKey" />
+                            <DataGridTextColumn Header="Miners" Binding="{Binding Miners, StringFormat=N0}" />
+                            <DataGridTextColumn Header="Estimate" Binding="{Binding Estimate, StringFormat=N0}" />
+                            <DataGridTextColumn Header="Arrival" Binding="{Binding Arrival}" />
+                            <DataGridTextColumn Header="State" Binding="{Binding StateText}" Width="*" MinWidth="110" />
+                        </DataGrid.Columns>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding State}" Value="Open">
+                                        <Setter Property="Background" Value="#DFF0D8" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding State}" Value="Sent">
+                                        <Setter Property="Background" Value="#FCF8E3" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding State}" Value="Expired">
+                                        <Setter Property="Foreground" Value="#888" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                    </DataGrid>
+                </DockPanel>
+            </GroupBox>
+
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
+
+            <GroupBox Grid.Row="2" Header="Mining reports">
+                <DataGrid ItemsSource="{Binding Reports}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          HeadersVisibility="Column" Background="Transparent" IsReadOnly="True">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Time" Binding="{Binding Time}" SortMemberPath="TimeSortKey" />
+                        <DataGridTextColumn Header="Coordinates" Binding="{Binding Coordinates}" />
+                        <DataGridTextColumn Header="Result" Binding="{Binding Kind}" />
+                        <DataGridTextColumn Header="Asteroid held" Binding="{Binding Available, StringFormat=N0}" />
+                        <DataGridTextColumn Header="Gained" Binding="{Binding Gained, StringFormat=N0}" />
+                        <DataGridTextColumn Header="Dark matter" Binding="{Binding DarkMatter, StringFormat=N0}" />
+                        <DataGridTextColumn Header="Resources" Binding="{Binding Resources}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </GroupBox>
+        </Grid>
+
+        <GridSplitter Grid.Column="1" />
+
+        <GroupBox Grid.Column="2" Header="Asteroid miner">
+            <ScrollViewer Style="{StaticResource PanelScroll}">
+                <DockPanel Style="{StaticResource FillViewport}" MinHeight="420" MinWidth="260">
+                    <StackPanel DockPanel.Dock="Top">
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" MinWidth="90" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Extra cargo %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Column="1" Text="{Binding MarginPercent, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Miners for this much more than the estimated resources (the estimate follows the last report and your production)" />
+                            <TextBlock Grid.Row="1" Text="Miners without estimate" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding MinersWithoutEstimate, Converter={StaticResource GroupedNumber}}"
+                                     ToolTip="Miners per asteroid until a mining report shows how many resources an asteroid holds" />
+                            <TextBlock Grid.Row="2" Text="Min miners" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding MinMiners, Converter={StaticResource GroupedNumber}}"
+                                     ToolTip="At least this many miners per asteroid" />
+                            <TextBlock Grid.Row="3" Text="Arrive before gone (s)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ArrivalSafetySeconds, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Miners are only sent when they arrive at least this long before the asteroid disappears" />
+                            <TextBlock Grid.Row="4" Text="Fleet slots used %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FleetSlotUsePercent, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Mining fleets fill at most this share of all fleet slots (counting the fleets already flying)" />
+                            <TextBlock Grid.Row="5" Text="Check every (min)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding CheckIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="The runner looks for new asteroids at least this often (sooner when a report is due or miners return)" />
+                            <TextBlock Grid.Row="6" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SpeedPercentage, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <CheckBox Content="Test mode (don't send fleets)" IsChecked="{Binding TestMode}" Margin="0,0,0,6" FontWeight="SemiBold"
+                                  ToolTip="Start and Send miners only read the game and log what they would send" />
+                        <StackPanel Orientation="Horizontal">
+                            <Button Content="Start" Command="{Binding RunCommand}"
+                                    ToolTip="Read reports, find asteroids, send miners to every one they reach in time, and repeat" />
+                            <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                        </StackPanel>
+                        <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" />
+                    </StackPanel>
+                    <ListBox ItemsSource="{Binding Log}" MinHeight="60" />
+                </DockPanel>
+            </ScrollViewer>
+        </GroupBox>
+    </Grid>
+</UserControl>

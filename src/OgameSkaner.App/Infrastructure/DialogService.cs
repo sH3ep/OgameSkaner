@@ -20,6 +20,9 @@ public interface IDialogService
     /// <returns>The chosen folder, or null when cancelled.</returns>
     string? PickFolder(string title);
 
+    /// <returns>The chosen file, or null when cancelled.</returns>
+    string? OpenFile(string filter);
+
     void ShowProfiles();
 }
 
@@ -46,6 +49,12 @@ public sealed class DialogService(IServiceProvider services) : IDialogService
     {
         var dialog = new OpenFolderDialog { Title = title };
         return dialog.ShowDialog(Owner) == true ? dialog.FolderName : null;
+    }
+
+    public string? OpenFile(string filter)
+    {
+        var dialog = new OpenFileDialog { Filter = filter, CheckFileExists = true };
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
 
     public void ShowProfiles()

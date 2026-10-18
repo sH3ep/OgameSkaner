@@ -6,6 +6,9 @@ namespace OgameSkaner.Core.Storage;
 /// <summary>The player's own planets in a universe, as last read from the server.</summary>
 public sealed record OwnPlanetList(IReadOnlyList<OwnPlanet> Planets, DateTimeOffset? RefreshedAt)
 {
+    /// <summary>The player's moons; only the Expeditions page uses them.</summary>
+    public IReadOnlyList<OwnPlanet> Moons { get; init; } = [];
+
     public static OwnPlanetList Empty { get; } = new([], null);
 }
 
@@ -30,7 +33,10 @@ public sealed class JsonOwnPlanetStore(IAppPaths paths) : IOwnPlanetStore
 
         return document is null
             ? OwnPlanetList.Empty
-            : new OwnPlanetList(document.Planets.Select(r => r.ToDomain()).ToList(), document.RefreshedAt);
+            : new OwnPlanetList(document.Planets.Select(r => r.ToDomain()).ToList(), document.RefreshedAt)
+            {
+                Moons = document.Moons.Select(r => r.ToDomain()).ToList()
+            };
     }
 
     public void Save(string universe, OwnPlanetList planets)
@@ -38,7 +44,8 @@ public sealed class JsonOwnPlanetStore(IAppPaths paths) : IOwnPlanetStore
         var document = new PlanetsDocument
         {
             RefreshedAt = planets.RefreshedAt,
-            Planets = planets.Planets.Select(PlanetRecord.FromDomain).ToList()
+            Planets = planets.Planets.Select(PlanetRecord.FromDomain).ToList(),
+            Moons = planets.Moons.Select(PlanetRecord.FromDomain).ToList()
         };
 
         lock (_sync)
@@ -51,6 +58,7 @@ public sealed class JsonOwnPlanetStore(IAppPaths paths) : IOwnPlanetStore
     {
         public DateTimeOffset? RefreshedAt { get; set; }
         public List<PlanetRecord> Planets { get; set; } = [];
+        public List<PlanetRecord> Moons { get; set; } = [];
     }
 
     /// <summary>Flat on-disk shape, decoupled from the domain model.</summary>

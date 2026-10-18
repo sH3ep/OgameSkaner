@@ -20,12 +20,16 @@ public class OwnPlanetStoreTests : IDisposable
     {
         var list = new OwnPlanetList(
             [new OwnPlanet(new PlanetId("33"), "Home", new Coordinates(1, 2, 3)), new OwnPlanet(new PlanetId("34"), "Colony", new Coordinates(4, 5, 6))],
-            new DateTimeOffset(2026, 10, 16, 12, 0, 0, TimeSpan.FromHours(2)));
+            new DateTimeOffset(2026, 10, 16, 12, 0, 0, TimeSpan.FromHours(2)))
+        {
+            Moons = [new OwnPlanet(new PlanetId("35"), "Luna", new Coordinates(1, 2, 3))]
+        };
 
         new JsonOwnPlanetStore(new AppPaths(_temp.Path)).Save("tron", list);
         var loaded = new JsonOwnPlanetStore(new AppPaths(_temp.Path)).Load("tron");
 
         Assert.Equal(list.Planets, loaded.Planets);
+        Assert.Equal(list.Moons, loaded.Moons);
         Assert.Equal(list.RefreshedAt, loaded.RefreshedAt);
         Assert.Empty(new JsonOwnPlanetStore(new AppPaths(_temp.Path)).Load("other").Planets);
     }

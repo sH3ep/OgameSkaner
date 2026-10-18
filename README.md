@@ -4,6 +4,8 @@ Desktop helper for the [OgameX](https://ogamex.net) private OGame server:
 
 - **Scanner** – scans a range of the galaxy view and stores who owns which planet (and which have a moon).
 - **Players** – searches the scanned planets by player name, sends spy probes to a planet or its moon and exports results to CSV.
+- **Defense** – attack protection: watches the event list, alerts through Windows notifications and a sound, and escapes an attacked planet's fleet (with its resources) to its moon or the nearest planet at 10% speed shortly before impact.
+- **Expeditions** – keeps expeditions flying: tick the ship types (all of them go) and the planets or moons, set how many expeditions each sends, and the page sends them to position 16 of their system whenever slots and ships are free.
 - **Utilities** – escape fleet: sends every ship of the current planet to its moon.
 
 ## Build & run

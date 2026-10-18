@@ -20,7 +20,24 @@ public sealed record RaidSettings
     /// <summary>Share of the planet's resources an attack takes.</summary>
     public int LootPercent { get; init; } = 50;
 
+    /// <summary>
+    /// Attacks sent to one planet on one report: another one goes while what the attacks before it leave still brings
+    /// <see cref="MinLoot"/> (with 50% loot, 2 attacks from 2× min loot, 3 from 4×). 1 = one attack per report.
+    /// </summary>
+    public int MaxAttacksPerTarget { get; init; } = 4;
+
+    /// <summary>The single cargo ship of older settings; only used while <see cref="CargoShipTypes"/> is empty.</summary>
     public string CargoShipType { get; init; } = "HEAVY_CARGO";
+
+    /// <summary>
+    /// The cargo ships attacks may use, highest priority first: an attack takes the first type as far as the planet has
+    /// it and tops up with the next ones. Empty = <see cref="CargoShipType"/> alone (settings saved before the list).
+    /// </summary>
+    public IReadOnlyList<string> CargoShipTypes { get; init; } = [];
+
+    /// <summary><see cref="CargoShipTypes"/>, or <see cref="CargoShipType"/> when that is empty.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> CargoShipPriority => CargoShipTypes.Count > 0 ? CargoShipTypes : [CargoShipType];
 
     /// <summary>Extra cargo on top of the expected loot (production during the flight, rounding).</summary>
     public int CargoMarginPercent { get; init; } = 10;

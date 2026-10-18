@@ -158,8 +158,11 @@ public sealed class SimulatedBuildRunner(
             return (false, null);
         }
 
-        if (settings.Mode == BuilderMode.ByPrice)
-            return await BuildByPriceAsync(client, state, strategy, "", run, cancellationToken).ConfigureAwait(false);
+        if (settings.Mode is BuilderMode.ByPrice or BuilderMode.ByLevel)
+        {
+            var order = settings.Mode == BuilderMode.ByLevel ? BuildOrder.ByLevel : BuildOrder.ByPrice;
+            return await BuildInOrderAsync(client, state, strategy, order, "", run, cancellationToken).ConfigureAwait(false);
+        }
 
         var shipyard = settings.UseSolarSatellites && state.LevelOf(BuildingType.Shipyard) > 0
             ? await client.GetShipyardStateAsync(planet.Id, cancellationToken).ConfigureAwait(false)
@@ -189,7 +192,7 @@ public sealed class SimulatedBuildRunner(
                 Rules = strategy.Rules.Where(r => !SimulatedPlanner.IsSimulated(r.Building)).ToList(),
                 StorageFillPercent = 0
             };
-            return await BuildByPriceAsync(client, state, others, "simulated targets queued; ", run, cancellationToken).ConfigureAwait(false);
+            return await BuildInOrderAsync(client, state, others, BuildOrder.ByPrice, "simulated targets queued; ", run, cancellationToken).ConfigureAwait(false);
         }
 
         var push = SimulatedPlanner.Push(state, steps, shipyard, QueueCapacity);
@@ -273,13 +276,13 @@ public sealed class SimulatedBuildRunner(
     }
 
     /// <summary>
-    /// Queues the strategy's buildings in the price planner's order (cheapest next level first), as many levels as the
-    /// resources cover on top of the waiting queue items.
+    /// Queues the strategy's buildings in the planner's <paramref name="order"/> (cheapest next level or lowest level
+    /// against its target first), as many levels as the resources cover on top of the waiting queue items.
     /// </summary>
-    private async Task<(bool Done, TimeSpan? NextIn)> BuildByPriceAsync(
-        IOgamexClient client, PlanetBuildState state, BuildStrategy strategy, string waitingPrefix, Run run, CancellationToken cancellationToken)
+    private async Task<(bool Done, TimeSpan? NextIn)> BuildInOrderAsync(
+        IOgamexClient client, PlanetBuildState state, BuildStrategy strategy, BuildOrder order, string waitingPrefix, Run run, CancellationToken cancellationToken)
     {
-        var plan = BuildPlanner.Plan(state, strategy, Math.Max(1, QueueCapacity - state.Queue.Count), requireAffordable: false);
+        var plan = BuildPlanner.Plan(state, strategy, Math.Max(1, QueueCapacity - state.Queue.Count), requireAffordable: false, order);
         if (plan.Upgrades.Count == 0)
         {
             run.Finish(state.Planet, plan.Reason);
@@ -299,7 +302,7 @@ public sealed class SimulatedBuildRunner(
                 return (false, nextIn);
             }
             run.Planet(state.Planet.Id).LastPushed.Add(upgrade);
-            run.Queued(state.Planet, $"{state.Planet}: queued {name} (by price)");
+            run.Queued(state.Planet, $"{state.Planet}: queued {name} ({(order == BuildOrder.ByLevel ? "by level" : "by price")})");
         }
 
         if (push.Count < plan.Upgrades.Count)

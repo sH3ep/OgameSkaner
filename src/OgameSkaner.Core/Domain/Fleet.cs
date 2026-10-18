@@ -1,3 +1,5 @@
+using OgameSkaner.Core.Domain.Buildings;
+
 namespace OgameSkaner.Core.Domain;
 
 public sealed record ShipStack(string ShipType, long Quantity);
@@ -11,12 +13,16 @@ public readonly record struct FleetSlots(int Used, int Max)
 /// <summary>Ships available on the current planet and that planet's coordinates.</summary>
 /// <param name="CargoCapacities">Cargo capacity of one ship per ship type (technology included), from the ship tooltips.</param>
 /// <param name="ServerClock">The clock in the page header, in the time zone the game shows all dates in.</param>
+/// <param name="Resources">The planet's resources (the page's <c>var resources</c> script).</param>
+/// <param name="ExpeditionSlots">The account's expedition slots ("Expeditions: 0/12").</param>
 public sealed record FleetSnapshot(
     IReadOnlyList<ShipStack> Ships,
     Coordinates CurrentPlanet,
     FleetSlots? Slots = null,
     IReadOnlyDictionary<string, long>? CargoCapacities = null,
-    DateTime? ServerClock = null)
+    DateTime? ServerClock = null,
+    ResourceSet? Resources = null,
+    FleetSlots? ExpeditionSlots = null)
 {
     public long QuantityOf(string shipType) => Ships.FirstOrDefault(s => s.ShipType == shipType)?.Quantity ?? 0;
 
@@ -39,15 +45,22 @@ public enum MissionType
     /// <summary>Defends an allied player's planet or moon.</summary>
     Hold = 7,
 
-    Attack = 8
+    Attack = 8,
+
+    /// <summary>Asteroid Miners collect an asteroid at position 17.</summary>
+    AsteroidMining = 12
 }
 
+/// <param name="Cargo">Resources the fleet takes along; none by default.</param>
+/// <param name="HoldMinutes">An expedition's stay at position 16 (one of <see cref="FleetBriefing.ExpeditionDurations"/>).</param>
 public sealed record FleetMission(
     Coordinates Target,
     PlanetType TargetType,
     MissionType Mission,
     IReadOnlyList<ShipStack> Ships,
-    int SpeedPercentage = 100);
+    int SpeedPercentage = 100,
+    ResourceSet Cargo = default,
+    int? HoldMinutes = null);
 
 /// <summary>Answer of <c>/fleet/submitfleet</c>.</summary>
 public sealed record FleetSendOutcome(bool Sent, string? Message = null);
@@ -67,4 +80,8 @@ public sealed record FleetBriefing(
     long PlayerPoints,
     long PlayerFleetPoints,
     PlayerStatus PlayerStatus,
-    string? Warning);
+    string? Warning)
+{
+    /// <summary>The expedition durations offered, in minutes (<c>ExpeditionKeepValues</c>); empty for other targets.</summary>
+    public IReadOnlyList<int> ExpeditionDurations { get; init; } = [];
+}

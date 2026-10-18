@@ -189,7 +189,27 @@ public class RaidPlannerTests
     [InlineData(1_000_000, 0, 10, 0)]
     public void Ships_needed_cover_the_loot_plus_margin(long loot, long capacity, int margin, long expected)
     {
-        Assert.Equal(expected, RaidPlanner.ShipsNeeded(loot, capacity, Settings with { CargoMarginPercent = margin }));
+        var cargo = RaidPlanner.CargoNeeded(loot, Settings with { CargoMarginPercent = margin });
+        var fleet = RaidPlanner.CargoFleet(cargo, ["HEAVY_CARGO"], _ => 1_000, _ => capacity);
+        Assert.Equal(expected, fleet.Sum(f => f.Quantity));
+    }
+
+    [Fact]
+    public void The_cargo_fleet_takes_the_first_type_and_tops_up_with_the_next()
+    {
+        var available = new Dictionary<string, long> { ["LIGHT_CARGO"] = 10, ["HEAVY_CARGO"] = 1_000 };
+        var capacity = new Dictionary<string, long> { ["LIGHT_CARGO"] = 5_000, ["HEAVY_CARGO"] = 25_000 };
+
+        // 100k: the 10 Light Cargos carry 50k, 2 Heavy Cargos the rest.
+        Assert.Equal([new ShipStack("LIGHT_CARGO", 10), new ShipStack("HEAVY_CARGO", 2)],
+            RaidPlanner.CargoFleet(100_000, ["LIGHT_CARGO", "HEAVY_CARGO"], t => available[t], t => capacity[t]));
+        // Enough of the first type: the second isn't used.
+        Assert.Equal([new ShipStack("HEAVY_CARGO", 4)],
+            RaidPlanner.CargoFleet(100_000, ["HEAVY_CARGO", "LIGHT_CARGO"], t => available[t], t => capacity[t]));
+        // A type with no ships is skipped.
+        available["LIGHT_CARGO"] = 0;
+        Assert.Equal([new ShipStack("HEAVY_CARGO", 4)],
+            RaidPlanner.CargoFleet(100_000, ["LIGHT_CARGO", "HEAVY_CARGO"], t => available[t], t => capacity[t]));
     }
 
     [Theory]

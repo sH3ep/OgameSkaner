@@ -27,11 +27,24 @@ public class RaidStoreTests : IDisposable
     {
         Assert.Equal(RaidSettings.Default, Store().LoadSettings("tron"));
 
-        var settings = RaidSettings.Default with { MaxDefensePoints = 50, CargoShipType = "LIGHT_CARGO", UseNearestPlanet = true };
+        var settings = RaidSettings.Default with
+        {
+            MaxDefensePoints = 50, CargoShipType = "LIGHT_CARGO", CargoShipTypes = ["LIGHT_CARGO", "HEAVY_CARGO"], UseNearestPlanet = true
+        };
         Store().SaveSettings("tron", settings);
 
-        Assert.Equal(settings, Store().LoadSettings("tron"));
+        var loaded = Store().LoadSettings("tron");
+        Assert.Equal(settings.CargoShipTypes, loaded.CargoShipTypes);
+        Assert.Equal(settings, loaded with { CargoShipTypes = settings.CargoShipTypes }); // the list compares by reference
         Assert.Equal(RaidSettings.Default, Store().LoadSettings("other"));
+    }
+
+    [Fact]
+    public void Settings_from_before_the_cargo_list_use_their_single_cargo_ship()
+    {
+        Store().SaveSettings("tron", RaidSettings.Default with { CargoShipType = "LIGHT_CARGO" });
+
+        Assert.Equal(["LIGHT_CARGO"], Store().LoadSettings("tron").CargoShipPriority);
     }
 
     [Fact]

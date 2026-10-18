@@ -42,6 +42,41 @@
                     <TextBlock Text="Systems from..to are scanned in every galaxy of the range."
                                Foreground="#555" TextWrapping="Wrap" Margin="0,2,0,8" />
 
+                    <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="60" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Delay between systems" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding MinDelayMilliseconds, Converter={StaticResource GroupedNumber}}"
+                                 ToolTip="Shortest time between the requests of two systems, in ms. Each delay is picked at random between the two values. 0 = only the app's minimum gap between requests (Ogamex:MinRequestInterval, 400 ms + up to 200 ms), which is always kept." />
+                        <TextBlock Grid.Column="2" Text="–" VerticalAlignment="Center" Margin="6,0,6,6" />
+                        <TextBox Grid.Column="3" Text="{Binding MaxDelayMilliseconds, Converter={StaticResource GroupedNumber}}"
+                                 ToolTip="Longest time between the requests of two systems, in ms." />
+                        <TextBlock Grid.Column="4" Text="ms" VerticalAlignment="Center" Margin="6,0,6,6" />
+
+                        <TextBlock Grid.Row="1" Text="Pause after every" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding PauseEverySystems, Converter={StaticResource GroupedNumber}}"
+                                 ToolTip="A longer pause after this many systems. 0 = no pauses." />
+                        <TextBlock Grid.Row="1" Grid.Column="2" Text="systems for" VerticalAlignment="Center" Margin="6,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="3" Text="{Binding MinPauseSeconds, Converter={StaticResource GroupedNumber}}"
+                                 ToolTip="Shortest pause, in seconds." />
+                        <TextBlock Grid.Row="1" Grid.Column="4" Text="–" VerticalAlignment="Center" Margin="6,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="5" Text="{Binding MaxPauseSeconds, Converter={StaticResource GroupedNumber}}"
+                                 ToolTip="Longest pause, in seconds; each pause is picked at random between the two." />
+                        <TextBlock Grid.Row="1" Grid.Column="6" Text="s" VerticalAlignment="Center" Margin="6,0,0,6" />
+                    </Grid>
+
                     <StackPanel Orientation="Horizontal">
                         <Button Content="Scan" Command="{Binding ScanCommand}" />
                         <Button Content="Cancel" Command="{Binding ScanCancelCommand}" />

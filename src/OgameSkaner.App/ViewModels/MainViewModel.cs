@@ -31,8 +31,10 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
         IUniverseContext context,
         IDialogService dialogs,
         IMessenger messenger,
+        RunningModules running,
         ILogger<MainViewModel> logger)
     {
+        Running = running.Titles;
         _services = services;
         _profiles = profiles;
         _sessions = sessions;
@@ -45,9 +47,20 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
 
         ReloadProfiles(profiles.SelectedName);
         SelectedPage = Pages.FirstOrDefault();
+
+        var clock = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        clock.Tick += (_, _) => Now = DateTime.Now;
+        clock.Start();
     }
 
+    /// <summary>The local time for the sidebar clock, updated every second.</summary>
+    [ObservableProperty]
+    private DateTime _now = DateTime.Now;
+
     public IReadOnlyList<PageDescriptor> Pages { get; }
+
+    /// <summary>Titles of the pages whose automation runs, in menu order.</summary>
+    public ObservableCollection<string> Running { get; }
 
     public ObservableCollection<UniverseProfile> Profiles { get; } = [];
 

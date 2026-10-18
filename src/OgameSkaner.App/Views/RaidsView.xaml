@@ -133,6 +133,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="Max defense points" VerticalAlignment="Center" Margin="0,0,6,6" />
@@ -147,9 +148,21 @@
                             <TextBlock Grid.Row="3" Text="Loot %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding LootPercent, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Share of the planet's resources an attack takes" />
-                            <TextBlock Grid.Row="4" Text="Cargo ship" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{x:Static vm:RaidsViewModel.CargoShips}" DisplayMemberPath="Name"
-                                      SelectedValuePath="Id" SelectedValue="{Binding CargoShipType}" Margin="0,0,6,6" />
+                            <TextBlock Grid.Row="4" Text="Cargo ships" VerticalAlignment="Top" Margin="0,2,6,6" />
+                            <DockPanel Grid.Row="4" Grid.Column="1" Margin="0,0,6,6"
+                                       ToolTip="Ticked ships are used top to bottom: an attack takes the first type as far as the planet has it and tops up with the next">
+                                <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                                    <Button Content="▲" Command="{Binding MoveCargoShipUpCommand}" Padding="6,0" Margin="0,0,0,2" ToolTip="Higher priority" />
+                                    <Button Content="▼" Command="{Binding MoveCargoShipDownCommand}" Padding="6,0" ToolTip="Lower priority" />
+                                </StackPanel>
+                                <ListBox ItemsSource="{Binding CargoShips}" SelectedItem="{Binding SelectedCargoShip}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:CargoShipOptionViewModel}">
+                                            <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
                             <TextBlock Grid.Row="5" Text="Extra cargo %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding CargoMarginPercent, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Ships for this much more than the expected loot (production during the flight)" />
@@ -174,6 +187,9 @@
                                      ToolTip="A planet whose newest report has less loot than Min loot isn't spied on again for this many hours, which saves probes and fleet slots (0 = off)" />
                             <CheckBox Grid.Row="12" Grid.ColumnSpan="2" Content="Nearest targets first" IsChecked="{Binding NearestTargetsFirst}"
                                       ToolTip="The raider spies on and attacks nearer targets first (fleets come back sooner). Targets at the same distance: most loot first for attacks, best ranked first for spies. Distance counts from the planets fleets can leave from." Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="14" Text="Max attacks per report" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding MaxAttacksPerTarget, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="One report can get several attacks: each takes Loot % of what the ones before it left and goes only while that is at least Min loot (with 50%: 2 attacks from 2× min loot, 3 from 4×). Each lands after the one before it, waiting or flying slower if needed. 1 = one attack per report." />
                         </Grid>
 
                         <CheckBox Content="Test mode (don't send fleets)" IsChecked="{Binding TestMode}" Margin="0,0,0,6" FontWeight="SemiBold"

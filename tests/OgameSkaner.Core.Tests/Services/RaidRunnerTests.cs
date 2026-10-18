@@ -35,8 +35,8 @@ public class RaidRunnerTests
         _planets.GetAsync("tron").Result.ReplaceSystem(Third.Coordinates.SolarSystem, [Third]);
     }
 
-    private RaidRunner Runner() =>
-        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), _planets, _store, TimeProvider.System, NullLogger<RaidRunner>.Instance);
+    private RaidRunner Runner(TimeProvider? clock = null) =>
+        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), _planets, _store, clock ?? TimeProvider.System, NullLogger<RaidRunner>.Instance);
 
     /// <summary>Runs one cycle: the run is cancelled when it announces the next check.</summary>
     private Task<RaidRunResult> RunCycleAsync(RaidSettings settings, CancellationTokenSource? cancellation = null)
@@ -135,7 +135,7 @@ public class RaidRunnerTests
         _client.Fleets[Colony.Id] = Fleet(Colony, heavyCargo: 500, slotsUsed: 0);
         AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
 
-        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, UseNearestPlanet = true });
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, UseNearestPlanet = true });
 
         var index = _client.SentMissions.FindIndex(m => m.Mission == MissionType.Attack);
         Assert.Equal(Colony.Id, _client.SentOrigins[index]);
@@ -163,12 +163,93 @@ public class RaidRunnerTests
         await runner.ReadReportsAsync(_client, RaidSettings.Default);
         var targets = await runner.GetTargetsAsync("tron", RaidSettings.Default with { MinLoot = 1 });
 
-        var sent = await runner.AttackAsync(_client, targets.Where(t => t.Planet == Second).ToList(), RaidSettings.Default with { MinLoot = 1 });
+        var sent = await runner.AttackAsync(_client, targets.Where(t => t.Planet == Second).ToList(), RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1 });
 
         Assert.Equal(1, sent);
         var attack = Assert.Single(_client.SentMissions);
         Assert.Equal(Second.Coordinates, attack.Target);
         Assert.Equal([new ShipStack("HEAVY_CARGO", 22)], attack.Ships); // 500k × 1.1 / 25k
+    }
+
+    [Fact]
+    public async Task An_attack_takes_the_first_cargo_type_and_tops_up_with_the_next()
+    {
+        _client.Fleets[Home.Id] = new FleetSnapshot(
+            [new ShipStack("HEAVY_CARGO", 100), new ShipStack("LIGHT_CARGO", 50), new ShipStack(RaidRunner.ProbeType, 100)], Home.Coordinates,
+            new FleetSlots(0, 11), new Dictionary<string, long> { ["HEAVY_CARGO"] = 25_000, ["LIGHT_CARGO"] = 5_000 });
+        AddReport(Second, resources: new ResourceSet(1_000_000, 0, 0), defense: 0, fleet: 0);
+        var settings = RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, CargoShipTypes = ["LIGHT_CARGO", "HEAVY_CARGO"] };
+        var runner = Runner();
+        await runner.ReadReportsAsync(_client, settings);
+        var targets = await runner.GetTargetsAsync("tron", settings);
+
+        await runner.AttackAsync(_client, targets.Where(t => t.Planet == Second).ToList(), settings);
+
+        // 550k: the 50 Light Cargos carry 250k, 12 Heavy Cargos the other 300k.
+        Assert.Equal([new ShipStack("LIGHT_CARGO", 50), new ShipStack("HEAVY_CARGO", 12)], Assert.Single(_client.SentMissions).Ships);
+        var raid = _store.Raids.Single(r => r.Mission == MissionType.Attack);
+        Assert.Equal(("LIGHT_CARGO+HEAVY_CARGO", 62L), (raid.ShipType, raid.Ships));
+    }
+
+    [Fact]
+    public async Task A_rich_planet_gets_more_attacks_each_for_half_of_what_is_left_landing_in_order()
+    {
+        var clock = new InstantTimeProvider(DateTimeOffset.UtcNow);
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 1_000, slotsUsed: 0);
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 0, 0), defense: 0, fleet: 0);
+        var settings = RaidSettings.Default with { MinLoot = 500_000 };
+        var runner = Runner(clock);
+        await runner.ReadReportsAsync(_client, settings);
+        var targets = await runner.GetTargetsAsync("tron", settings);
+
+        var sent = await runner.AttackAsync(_client, targets.Where(t => t.Planet == Rich).ToList(), settings);
+
+        // 2M, then 1M of the 2M left, then 500k; a fourth would bring 250k, under the min loot.
+        Assert.Equal(3, sent);
+        var attacks = _store.Raids.Where(r => r.Mission == MissionType.Attack).ToList();
+        Assert.Equal([2_000_000L, 1_000_000L, 500_000L], attacks.Select(a => a.ExpectedLoot));
+        Assert.Equal([new ShipStack("HEAVY_CARGO", 88), new ShipStack("HEAVY_CARGO", 44), new ShipStack("HEAVY_CARGO", 22)],
+            _client.SentMissions.Select(m => m.Ships.Single()));
+        // Same planet, same speed: each one lands after the one before it.
+        Assert.All(attacks.Zip(attacks.Skip(1)), p => Assert.True(p.Second.ArrivesAt >= p.First.ArrivesAt + RaidPlanner.MinWaveGap));
+        Assert.All(_client.SentMissions, m => Assert.Equal(100, m.SpeedPercentage));
+    }
+
+    [Fact]
+    public async Task A_later_attack_from_a_nearer_planet_flies_slower_to_land_after_the_first()
+    {
+        var clock = new InstantTimeProvider(DateTimeOffset.UtcNow);
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 1_000, slotsUsed: 0);
+        _client.Fleets[Colony.Id] = Fleet(Colony, heavyCargo: 50, slotsUsed: 0); // too few for the first attack
+        // 10 minutes from Home, 2 from Colony at full speed.
+        _client.Briefing = mission => new FleetBriefing(
+            [MissionType.Attack, MissionType.Spy],
+            TimeSpan.FromMinutes((_client.FleetReads.Last() == Colony.Id ? 2.0 : 10.0) * 100 / mission.SpeedPercentage),
+            10, 3650, "player", "Target", 10, 1_000_000, 0, PlayerStatus.Inactive, null);
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 0, 0), defense: 0, fleet: 0);
+        var settings = RaidSettings.Default with { MinLoot = 1_000_000, UseNearestPlanet = true };
+        var runner = Runner(clock);
+        await runner.ReadReportsAsync(_client, settings);
+        var targets = await runner.GetTargetsAsync("tron", settings);
+
+        await runner.AttackAsync(_client, targets.Where(t => t.Planet == Rich).ToList(), settings);
+
+        Assert.Equal([Home.Id, Colony.Id], _client.SentOrigins);
+        Assert.Equal([100, 20], _client.SentMissions.Select(m => m.SpeedPercentage)); // 2 min at 20% = 10 min
+        var attacks = _store.Raids.Where(r => r.Mission == MissionType.Attack).ToList();
+        Assert.True(attacks[1].ArrivesAt >= attacks[0].ArrivesAt + RaidPlanner.MinWaveGap);
+    }
+
+    [Fact]
+    public async Task One_attack_per_report_when_the_setting_says_so()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 1_000, slotsUsed: 0);
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 0, 0), defense: 0, fleet: 0);
+        var settings = RaidSettings.Default with { MinLoot = 500_000, MaxAttacksPerTarget = 1 };
+        var runner = Runner();
+        await runner.ReadReportsAsync(_client, settings);
+
+        Assert.Equal(1, await runner.AttackAsync(_client, (await runner.GetTargetsAsync("tron", settings)).Where(t => t.Planet == Rich).ToList(), settings));
     }
 
     private void AddReport(PlayerPlanet planet, ResourceSet resources, long defense, long fleet)

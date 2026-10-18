@@ -4,6 +4,8 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <!-- Only for the tray icon that shows the Windows notifications (WindowsAlertChannel). -->
+    <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>OgameSkaner</AssemblyName>
     <RootNamespace>OgameSkaner.App</RootNamespace>
     <!-- Run on a newer desktop runtime when .NET 8 Desktop Runtime is not installed. -->
@@ -17,6 +19,12 @@
     <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.4" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Keep WPF's Application, MessageBox, etc. unambiguous; WinForms types are imported where used. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
 
   <ItemGroup>

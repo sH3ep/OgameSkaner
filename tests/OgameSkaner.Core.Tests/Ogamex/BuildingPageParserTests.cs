@@ -86,6 +86,25 @@ public class BuildingPageParserTests
     }
 
     [Fact]
+    public void Moons_are_read_with_their_planets_coordinates()
+    {
+        // Inferred markup (no account with a moon was seen): a moon link inside its planet's entry.
+        var html = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "building_resource.html"))
+            .Replace("<div id=\"other-planets\">", """
+                <div id="other-planets">
+                  <div class="planet-item"><a class="planet-select" href="?planet=22222222-2222-2222-2222-222222222222">
+                    <span class="planet-name">Colony</span><span class="planet-coords">[8:260:4]</span></a>
+                    <a class="moon-select tooltip" href="?planet=33333333-3333-3333-3333-333333333333"><span class="moon-name">Luna</span></a></div>
+                """);
+
+        var page = BuildingPageParser.Parse(html);
+
+        Assert.Equal([new OwnPlanet(new PlanetId("33333333-3333-3333-3333-333333333333"), "Luna", new Coordinates(8, 260, 4))], page.Moons);
+        Assert.DoesNotContain(page.Planets, p => p.Name == "Luna");
+        Assert.Empty(Load("building_resource.html").Moons);
+    }
+
+    [Fact]
     public void Reads_resource_buildings_with_current_level_and_next_cost_after_the_queue()
     {
         var page = Load("building_resource.html");

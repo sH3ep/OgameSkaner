@@ -42,6 +42,24 @@ public class BuildPlannerTests
     }
 
     [Fact]
+    public void By_level_raises_the_buildings_one_by_one_keeping_their_offsets()
+    {
+        // Metal +2, Crystal 0, Deuterium −2: Metal 12 / Crystal 7 / Deuterium 5 stand for 10, 7 and 7.
+        var strategy = Strategy(20, rules:
+            [Relative(BuildingType.MetalMine, 2), Relative(BuildingType.CrystalMine, 0), Relative(BuildingType.DeuteriumSynthesizer, -2)])
+            with { StorageFillPercent = 0 };
+        var state = State(new() { [BuildingType.MetalMine] = 12, [BuildingType.CrystalMine] = 7, [BuildingType.DeuteriumSynthesizer] = 5 });
+
+        var plan = BuildPlanner.Plan(state, strategy, maxItems: 7, requireAffordable: false, BuildOrder.ByLevel);
+
+        // Crystal and Deuterium catch up to 10 (cheapest first among equals), then all three rise together.
+        Assert.Equal(
+            [(BuildingType.CrystalMine, 8), (BuildingType.DeuteriumSynthesizer, 6), (BuildingType.CrystalMine, 9), (BuildingType.DeuteriumSynthesizer, 7),
+             (BuildingType.CrystalMine, 10), (BuildingType.DeuteriumSynthesizer, 8), (BuildingType.CrystalMine, 11)],
+            plan.Upgrades.Select(u => (u.Building, u.Level)));
+    }
+
+    [Fact]
     public void Picks_the_cheapest_upgrade_below_target_by_weighted_value()
     {
         // metal 100 + 10×1.5 = 115, crystal 60 + 40×1.5 = 120 (raw totals 110 vs 100 would pick crystal)

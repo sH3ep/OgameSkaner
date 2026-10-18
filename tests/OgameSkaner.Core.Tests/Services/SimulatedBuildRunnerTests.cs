@@ -113,6 +113,21 @@ public class SimulatedBuildRunnerTests
         Assert.Equal(0, _client.TemperatureReads);
     }
 
+    [Fact]
+    public async Task By_level_queues_the_lowest_levels_against_their_targets_without_a_simulation()
+    {
+        var strategy = Strategy(0, solarMax: 30,
+            new BuildingRule(BuildingType.MetalMine, true, RuleMode.Absolute, 3),
+            new BuildingRule(BuildingType.CrystalMine, true, RuleMode.Absolute, 1)) with { StorageFillPercent = 0 };
+
+        await RunAsync(strategy, BuilderMode.ByLevel);
+
+        // Metal is 3 below its target, Crystal 1: two Metal levels first (by price Crystal Mine 1 would come second).
+        Assert.Equal([BuildingType.MetalMine, BuildingType.MetalMine, BuildingType.CrystalMine], _client.EnqueuedBuildings.Take(3).Select(e => e.Building));
+        Assert.Contains(_progress, p => p.Message.Contains("(by level)", StringComparison.Ordinal));
+        Assert.Equal(0, _client.TemperatureReads);
+    }
+
     private sealed class SyncProgress(Action<BuildProgress> handler) : IProgress<BuildProgress>
     {
         public void Report(BuildProgress value) => handler(value);

@@ -15,8 +15,8 @@ public class GalaxyScanServiceTests
     private readonly FakePlanetRepository _repository = new();
     private readonly FakeOgamexClient _client = new(Universe);
 
-    private GalaxyScanService CreateService(int saveInterval = 25) =>
-        new(_repository, NullLogger<GalaxyScanService>.Instance) { SaveInterval = saveInterval };
+    private GalaxyScanService CreateService(int saveInterval = 25, TimeProvider? clock = null) =>
+        new(_repository, clock ?? TimeProvider.System, NullLogger<GalaxyScanService>.Instance) { SaveInterval = saveInterval };
 
     [Fact]
     public async Task Scans_every_system_reports_progress_and_stores_planets()
@@ -71,6 +71,40 @@ public class GalaxyScanServiceTests
 
         Assert.Equal(ScanOutcome.Cancelled, result.Outcome);
         Assert.Equal(2, result.SystemsScanned);
+    }
+
+    [Fact]
+    public async Task Waits_the_delay_between_systems_and_pauses_after_every_few()
+    {
+        var start = new DateTimeOffset(2026, 10, 18, 12, 0, 0, TimeSpan.Zero);
+        var clock = new InstantTimeProvider(start);
+        var settings = new ScanSettings
+        {
+            MinDelayMilliseconds = 1000, MaxDelayMilliseconds = 1000, PauseEverySystems = 2, MinPauseSeconds = 10, MaxPauseSeconds = 10
+        };
+        var reports = new List<ScanProgress>();
+
+        var result = await CreateService(clock: clock).ScanAsync(_client, new ScanRange(1, 1, 1, 5), new SynchronousProgress<ScanProgress>(reports.Add), settings);
+
+        Assert.Equal(ScanOutcome.Completed, result.Outcome);
+        // 1 s, pause, 1 s, pause before systems 2 to 5
+        Assert.Equal(start + TimeSpan.FromSeconds(22), clock.GetUtcNow());
+        Assert.Equal([start + TimeSpan.FromSeconds(11), start + TimeSpan.FromSeconds(22)], reports.Select(r => r.PauseUntil).OfType<DateTimeOffset>());
+    }
+
+    [Fact]
+    public void A_delay_is_picked_between_its_bounds()
+    {
+        var settings = new ScanSettings { MinDelayMilliseconds = 500, MaxDelayMilliseconds = 900 };
+        var random = new Random(1);
+
+        var delays = Enumerable.Range(1, 200).Select(n => settings.DelayAfter(n, random).TotalMilliseconds).ToList();
+
+        Assert.All(delays, d => Assert.InRange(d, 500, 900));
+        Assert.True(delays.Distinct().Count() > 10);
+        Assert.Equal(TimeSpan.Zero, ScanSettings.Default.DelayAfter(5, random));
+        // A maximum below the minimum counts as the minimum.
+        Assert.Equal(TimeSpan.FromMilliseconds(500), (settings with { MaxDelayMilliseconds = 100 }).DelayAfter(1, random));
     }
 
     [Fact]

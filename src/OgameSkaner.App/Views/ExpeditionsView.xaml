@@ -1,0 +1,129 @@
+<UserControl x:Class="OgameSkaner.App.Views.ExpeditionsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:ExpeditionsViewModel}"
+             d:DesignHeight="600" d:DesignWidth="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" MinWidth="460" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="300" />
+        </Grid.ColumnDefinitions>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="3*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="2*" />
+            </Grid.RowDefinitions>
+
+            <GroupBox Header="Send from">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" FontWeight="SemiBold" />
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <Button Content="Refresh planets" Command="{Binding RefreshPlanetsCommand}" />
+                        <Button Content="All" Command="{Binding UseAllCommand}" />
+                        <Button Content="None" Command="{Binding UseNoneCommand}" />
+                        <TextBlock Text="{Binding PlanetsInfo}" VerticalAlignment="Center" Margin="6,0,0,0" />
+                    </DockPanel>
+                    <DataGrid ItemsSource="{Binding Origins}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" SelectionMode="Single" Background="Transparent">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Use" SortMemberPath="IsUsed">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding IsUsed, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Center" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Name" Binding="{Binding Name}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Coordinates" Binding="{Binding Coordinates}" IsReadOnly="True" />
+                            <DataGridTextColumn Header="Type" Binding="{Binding Type}" IsReadOnly="True" />
+                            <DataGridTemplateColumn Header="Expeditions" SortMemberPath="Count" MinWidth="80">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <ComboBox ItemsSource="{x:Static vm:ExpeditionsViewModel.CountOptions}"
+                                                  SelectedItem="{Binding Count, UpdateSourceTrigger=PropertyChanged}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Flying" Binding="{Binding Flying}" IsReadOnly="True" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </GroupBox>
+
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
+
+            <GroupBox Grid.Row="2" Header="Log">
+                <ListBox ItemsSource="{Binding Log}" />
+            </GroupBox>
+        </Grid>
+
+        <GridSplitter Grid.Column="1" />
+
+        <GroupBox Grid.Column="2" Header="Expeditions">
+            <ScrollViewer Style="{StaticResource PanelScroll}">
+                <StackPanel MinWidth="280">
+                    <TextBlock Text="Ships (all of each ticked type, shared by a planet's expeditions)" TextWrapping="Wrap" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <Button Content="All ships" Command="{Binding SelectAllShipsCommand}" />
+                        <Button Content="None" Command="{Binding SelectNoShipsCommand}" />
+                    </StackPanel>
+                    <ItemsControl ItemsSource="{Binding ShipTypes}" Margin="0,0,0,6">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="2" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" Margin="0,0,6,4" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" MinWidth="80" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Duration (h)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <ComboBox Grid.Column="1" ItemsSource="{x:Static vm:ExpeditionsViewModel.HoldHourOptions}" SelectedItem="{Binding HoldHours}" Margin="0,0,0,6"
+                                  ToolTip="How long the fleet stays at position 16; the nearest duration the game offers is taken" />
+                        <TextBlock Grid.Row="1" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SpeedPercent, UpdateSourceTrigger=PropertyChanged}" />
+                        <TextBlock Grid.Row="2" Text="Fleet slots kept free" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding KeepFleetSlotsFree, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="Left for raids, asteroid miners and fleet escapes" />
+                        <TextBlock Grid.Row="3" Text="Check at least every (min)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding CheckIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="A check is also due shortly after an expedition comes back" />
+                    </Grid>
+
+                    <CheckBox Content="Start with the app" Margin="0,0,0,4" IsChecked="{Binding AutoStart}"
+                              ToolTip="Start sending when the app starts or this universe gets selected" />
+                    <CheckBox Content="Test mode (don't send fleets)" Margin="0,0,0,6" FontWeight="SemiBold" IsChecked="{Binding TestMode}"
+                              ToolTip="Log what would be sent, but keep the fleets home" />
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Start" Command="{Binding RunCommand}"
+                                ToolTip="Send expeditions to position 16 of each ticked place's system whenever slots and ships are free" />
+                        <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </GroupBox>
+    </Grid>
+</UserControl>

@@ -24,7 +24,11 @@ public sealed record ShipyardState(
     TimeSpan? SatelliteDuration = null);
 
 /// <summary>The player's planets and the one that is currently selected in the game.</summary>
-public sealed record OwnPlanetsSnapshot(IReadOnlyList<OwnPlanet> Planets, PlanetId CurrentPlanet);
+public sealed record OwnPlanetsSnapshot(IReadOnlyList<OwnPlanet> Planets, PlanetId CurrentPlanet)
+{
+    /// <summary>The player's moons (each at its planet's coordinates); only the Expeditions page uses them.</summary>
+    public IReadOnlyList<OwnPlanet> Moons { get; init; } = [];
+}
 
 /// <summary>An entry of a planet's build queue; <paramref name="Level"/> is the level it upgrades to.</summary>
 public sealed record QueuedBuilding(BuildingType Building, int Level, bool Started);

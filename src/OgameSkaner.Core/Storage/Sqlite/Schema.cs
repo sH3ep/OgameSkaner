@@ -65,6 +65,30 @@ internal static class Schema
         CREATE TABLE rankings (
             category TEXT NOT NULL, player_id TEXT NOT NULL, points INTEGER NOT NULL, rank INTEGER NOT NULL,
             PRIMARY KEY (category, player_id)) WITHOUT ROWID;
+        """,
+
+        // 3: asteroids seen (position 17), the miners sent to them and the mining reports.
+        """
+        CREATE TABLE asteroids (
+            id INTEGER PRIMARY KEY,
+            galaxy INTEGER NOT NULL, system INTEGER NOT NULL, position INTEGER NOT NULL,
+            seen_at INTEGER NOT NULL, disappears_at INTEGER NOT NULL);
+        CREATE INDEX asteroids_disappears ON asteroids (disappears_at);
+
+        CREATE TABLE asteroid_missions (
+            id INTEGER PRIMARY KEY,
+            galaxy INTEGER NOT NULL, system INTEGER NOT NULL, position INTEGER NOT NULL,
+            origin_galaxy INTEGER NOT NULL, origin_system INTEGER NOT NULL, origin_position INTEGER NOT NULL,
+            miners INTEGER NOT NULL, estimated_resources INTEGER NOT NULL,
+            sent_at INTEGER NOT NULL, arrives_at INTEGER NOT NULL, returns_at INTEGER NOT NULL);
+        CREATE INDEX asteroid_missions_sent ON asteroid_missions (sent_at);
+
+        CREATE TABLE asteroid_reports (
+            id TEXT PRIMARY KEY,
+            time INTEGER NOT NULL, galaxy INTEGER NOT NULL, system INTEGER NOT NULL, position INTEGER NOT NULL,
+            kind INTEGER NOT NULL, available INTEGER NOT NULL,
+            metal INTEGER NOT NULL, crystal INTEGER NOT NULL, deuterium INTEGER NOT NULL, dark_matter INTEGER NOT NULL);
+        CREATE INDEX asteroid_reports_time ON asteroid_reports (time);
         """
     ];
 

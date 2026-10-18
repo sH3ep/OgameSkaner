@@ -65,6 +65,15 @@ public static class UnitCatalog
     /// <summary>Cargo ships the Raids page offers.</summary>
     public static IReadOnlyList<UnitInfo> CargoShips { get; } = [ById["HEAVY_CARGO"], ById["LIGHT_CARGO"]];
 
+    /// <summary>Ships that can't fly and stay on the planet.</summary>
+    private static readonly HashSet<string> Stationary = new(StringComparer.Ordinal) { "SOLAR_SATELLITE", "CRAWLER" };
+
+    /// <summary>The ships that can leave a planet (all but Solar Satellites and Crawlers).</summary>
+    public static IReadOnlyList<UnitInfo> FlyingShips { get; } = All.Where(u => u.Kind == UnitKind.Ship && !Stationary.Contains(u.Id)).ToList();
+
+    /// <summary>Whether a ship type can fly; Solar Satellites and Crawlers can't.</summary>
+    public static bool CanFly(string shipType) => !Stationary.Contains(shipType);
+
     public static UnitInfo? Get(string id) => ById.GetValueOrDefault(id);
 
     /// <summary>Finds a unit by its id ("LIGHT_FIGHTER") or English name ("Light Fighter"), ignoring case and spacing.</summary>

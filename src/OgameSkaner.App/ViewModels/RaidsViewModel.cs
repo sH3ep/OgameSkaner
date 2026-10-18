@@ -25,8 +25,9 @@ public sealed partial class RaidsViewModel : PageViewModel
     private bool _loading;
     private IReadOnlyList<RaidTarget> _targets = [];
 
-    public RaidsViewModel(IUniverseContext context, RaidRunner runner, IRaidStore store, IDialogService dialogs)
+    public RaidsViewModel(IUniverseContext context, RaidRunner runner, IRaidStore store, IDialogService dialogs, RunningModules running)
     {
+        running.Track(this, RunCommand);
         _context = context;
         _runner = runner;
         _store = store;
@@ -47,7 +48,12 @@ public sealed partial class RaidsViewModel : PageViewModel
         };
     }
 
-    public static IReadOnlyList<UnitInfo> CargoShips => UnitCatalog.CargoShips;
+    /// <summary>The cargo ships with a checkbox each, highest priority first.</summary>
+    public ObservableCollection<CargoShipOptionViewModel> CargoShips { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MoveCargoShipUpCommand), nameof(MoveCargoShipDownCommand))]
+    private CargoShipOptionViewModel? _selectedCargoShip;
 
     public ObservableCollection<RaidTargetItemViewModel> Targets { get; } = [];
 
@@ -69,7 +75,7 @@ public sealed partial class RaidsViewModel : PageViewModel
     private int _lootPercent;
 
     [ObservableProperty]
-    private string _cargoShipType = "HEAVY_CARGO";
+    private int _maxAttacksPerTarget;
 
     [ObservableProperty]
     private int _cargoMarginPercent;
@@ -147,7 +153,7 @@ public sealed partial class RaidsViewModel : PageViewModel
             case nameof(HideRejected) or nameof(GalaxyFrom) or nameof(GalaxyTo) or nameof(SystemFrom) or nameof(SystemTo) or nameof(MaxRankingDefensePoints):
                 ShowTargets();
                 break;
-            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo):
+            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip):
                 break;
             default:
                 if (!_loading && _loadedUniverse is not null)
@@ -229,12 +235,39 @@ public sealed partial class RaidsViewModel : PageViewModel
     private Task AttackSelectedAsync()
     {
         var selected = Selected();
-        if (selected.Count > 0 && !TestMode && !_dialogs.Confirm($"Attack {selected.Count} selected planet(s) with {UnitCatalog.NameOf(CargoShipType)}?"))
+        if (selected.Count > 0 && !TestMode && !_dialogs.Confirm($"Attack {selected.Count} selected planet(s) with {string.Join(" / ", CurrentSettings().CargoShipPriority.Select(UnitCatalog.NameOf))}?"))
             return Task.CompletedTask;
         return ActAsync(client => _runner.AttackAsync(client, selected, CurrentSettings(), Progress()), n => $"{n} attack(s) sent");
     }
 
     private bool CanAct() => !IsBusy && !RunCommand.IsRunning;
+
+    [RelayCommand(CanExecute = nameof(CanMoveCargoShipUp))]
+    private void MoveCargoShipUp() => MoveCargoShip(-1);
+
+    private bool CanMoveCargoShipUp() => SelectedCargoShip is { } ship && CargoShips.IndexOf(ship) > 0;
+
+    [RelayCommand(CanExecute = nameof(CanMoveCargoShipDown))]
+    private void MoveCargoShipDown() => MoveCargoShip(1);
+
+    private bool CanMoveCargoShipDown() => SelectedCargoShip is { } ship && CargoShips.IndexOf(ship) is var i && i >= 0 && i < CargoShips.Count - 1;
+
+    private void MoveCargoShip(int by)
+    {
+        if (SelectedCargoShip is not { } ship)
+            return;
+        var index = CargoShips.IndexOf(ship);
+        CargoShips.Move(index, index + by);
+        MoveCargoShipUpCommand.NotifyCanExecuteChanged();
+        MoveCargoShipDownCommand.NotifyCanExecuteChanged();
+        CargoShipsChanged();
+    }
+
+    private void CargoShipsChanged()
+    {
+        if (!_loading && _loadedUniverse is not null)
+            SaveSettings();
+    }
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -336,7 +369,12 @@ public sealed partial class RaidsViewModel : PageViewModel
             MaxFleetPoints = settings.MaxFleetPoints;
             MinLoot = settings.MinLoot;
             LootPercent = settings.LootPercent;
-            CargoShipType = settings.CargoShipType;
+            MaxAttacksPerTarget = settings.MaxAttacksPerTarget;
+            var priority = settings.CargoShipPriority;
+            CargoShips.Clear();
+            foreach (var unit in priority.Select(UnitCatalog.Get).OfType<UnitInfo>()
+                         .Concat(UnitCatalog.CargoShips.Where(u => !priority.Contains(u.Id))))
+                CargoShips.Add(new CargoShipOptionViewModel(unit, priority.Contains(unit.Id), CargoShipsChanged));
             CargoMarginPercent = settings.CargoMarginPercent;
             ProbeCount = settings.ProbeCount;
             ReportMaxAgeMinutes = settings.ReportMaxAgeMinutes;
@@ -371,7 +409,9 @@ public sealed partial class RaidsViewModel : PageViewModel
         MaxFleetPoints = Math.Max(0, MaxFleetPoints),
         MinLoot = Math.Max(0, MinLoot),
         LootPercent = Math.Clamp(LootPercent, 1, 100),
-        CargoShipType = CargoShipType,
+        MaxAttacksPerTarget = Math.Clamp(MaxAttacksPerTarget, 1, 10),
+        CargoShipTypes = CargoShips.Where(c => c.IsSelected).Select(c => c.Id).ToList(),
+        CargoShipType = CargoShips.FirstOrDefault(c => c.IsSelected)?.Id ?? RaidSettings.Default.CargoShipType,
         CargoMarginPercent = Math.Max(0, CargoMarginPercent),
         ProbeCount = Math.Max(1, ProbeCount),
         ReportMaxAgeMinutes = Math.Max(1, ReportMaxAgeMinutes),

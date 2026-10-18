@@ -11,7 +11,13 @@ public enum BuilderMode
     Simulated,
 
     /// <summary>The cheapest next level of the ticked buildings first (metal 1, crystal 1.5, deuterium 3), until every target is reached.</summary>
-    ByPrice
+    ByPrice,
+
+    /// <summary>
+    /// The next level furthest below its target first (<see cref="BuildOrder.ByLevel"/>): with Relative rules the
+    /// buildings keep their offsets to each other and rise one level at a time, until every target is reached.
+    /// </summary>
+    ByLevel
 }
 
 /// <summary>Settings of the Builder (most only matter in the Simulated mode).</summary>

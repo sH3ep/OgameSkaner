@@ -1,5 +1,7 @@
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
@@ -54,6 +56,23 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         return Task.FromResult(SolarSystems(address));
     }
 
+    /// <summary>The asteroid at position 17 per system (none by default).</summary>
+    public Dictionary<SolarSystemAddress, Asteroid> Asteroids { get; } = new();
+
+    public async Task<GalaxySystemView> GetGalaxySystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default) =>
+        new(await GetSolarSystemAsync(address, cancellationToken), Asteroids.GetValueOrDefault(address));
+
+    public List<AsteroidHint> AsteroidHints { get; } = [];
+
+    public Task<IReadOnlyList<AsteroidHint>> GetAsteroidHintsAsync(CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<AsteroidHint>>(AsteroidHints.ToList());
+
+    /// <summary>The mining report list, newest first; one page holds them all.</summary>
+    public List<AsteroidReport> AsteroidReports { get; } = [];
+
+    public Task<IReadOnlyList<AsteroidReport>> GetAsteroidReportsAsync(int page = 1, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<AsteroidReport>>(page == 1 ? AsteroidReports.ToList() : []);
+
     public Task SendSpyAsync(Coordinates target, PlanetType targetType, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
     /// <summary>Fleets of the planets read with an id; <see cref="Fleet"/> for the others.</summary>
@@ -61,9 +80,14 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public List<PlanetId?> FleetReads { get; } = [];
 
+    /// <summary>When set, answers the reads with an id instead of <see cref="Fleets"/> (e.g. fleets that change).</summary>
+    public Func<PlanetId, FleetSnapshot>? FleetOf { get; set; }
+
     public Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default)
     {
         FleetReads.Add(planet);
+        if (planet is { } requested && FleetOf is not null)
+            return Task.FromResult(FleetOf(requested));
         return Task.FromResult(planet is { } id && Fleets.TryGetValue(id, out var fleet) ? fleet : Fleet);
     }
 
@@ -88,6 +112,22 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
             SentOrigins.Add(origin);
         }
         return Task.FromResult(outcome);
+    }
+
+    /// <summary>The event list; <see cref="MovementReads"/> counts the reads.</summary>
+    public List<FleetMovement> FleetMovements { get; } = [];
+
+    public int MovementReads { get; private set; }
+
+    /// <summary>Thrown by every event list read when set.</summary>
+    public Exception? MovementsError { get; set; }
+
+    public Task<IReadOnlyList<FleetMovement>> GetFleetMovementsAsync(CancellationToken cancellationToken = default)
+    {
+        MovementReads++;
+        if (MovementsError is not null)
+            return Task.FromException<IReadOnlyList<FleetMovement>>(MovementsError);
+        return Task.FromResult<IReadOnlyList<FleetMovement>>(FleetMovements.ToList());
     }
 
     /// <summary>The espionage report list, newest first; one page holds them all.</summary>
@@ -140,8 +180,10 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public List<PlanetId> SelectedPlanets { get; } = [];
 
+    public List<OwnPlanet> OwnMoons { get; } = [];
+
     public Task<OwnPlanetsSnapshot> GetOwnPlanetsAsync(CancellationToken cancellationToken = default) =>
-        Task.FromResult(new OwnPlanetsSnapshot(OwnPlanets.ToList(), CurrentPlanet ?? OwnPlanets.FirstOrDefault()?.Id ?? default));
+        Task.FromResult(new OwnPlanetsSnapshot(OwnPlanets.ToList(), CurrentPlanet ?? OwnPlanets.FirstOrDefault()?.Id ?? default) { Moons = OwnMoons.ToList() });
 
     public Dictionary<PlanetId, ShipyardState> Shipyards { get; } = new();
 
@@ -322,4 +364,78 @@ public static class TestData
 
     public static PlayerPlanet Planet(string name, int galaxy, int system, int position, bool moon = false, DateTimeOffset? at = null) =>
         new(name, new Coordinates(galaxy, system, position), moon, at ?? ScanTime);
+}
+
+public sealed class FakeAsteroidStore : IAsteroidStore
+{
+    public AsteroidSettings Settings { get; set; } = AsteroidSettings.Default;
+
+    public List<Asteroid> Asteroids { get; } = [];
+
+    public List<AsteroidMission> Missions { get; } = [];
+
+    public List<AsteroidReport> Reports { get; } = [];
+
+    public AsteroidSettings LoadSettings(string universe) => Settings;
+
+    public void SaveSettings(string universe, AsteroidSettings settings) => Settings = settings;
+
+    public IReadOnlyList<Asteroid> LoadAsteroids(string universe, DateTimeOffset after) =>
+        Asteroids.Where(a => a.DisappearsAt > after).OrderBy(a => a.DisappearsAt).ToList();
+
+    public void SaveAsteroids(string universe, IEnumerable<Asteroid> asteroids)
+    {
+        foreach (var asteroid in asteroids)
+        {
+            var index = Asteroids.FindIndex(a => a.Coordinates == asteroid.Coordinates && a.DisappearsAt > asteroid.SeenAt);
+            if (index >= 0)
+                Asteroids[index] = Asteroids[index] with { DisappearsAt = asteroid.DisappearsAt };
+            else
+                Asteroids.Add(asteroid);
+        }
+    }
+
+    public IReadOnlyList<AsteroidMission> LoadMissions(string universe) => Missions.ToList();
+
+    public void AddMissions(string universe, IEnumerable<AsteroidMission> missions) => Missions.AddRange(missions);
+
+    public IReadOnlyList<AsteroidReport> LoadReports(string universe) => Reports.OrderBy(r => r.Time).ToList();
+
+    public void AddReports(string universe, IEnumerable<AsteroidReport> reports) =>
+        Reports.AddRange(reports.Where(r => Reports.All(k => k.Id != r.Id)));
+}
+
+/// <summary>A clock that stands still until something waits on it: a delay passes at once and moves the clock on.</summary>
+public sealed class InstantTimeProvider(DateTimeOffset start) : TimeProvider
+{
+    private readonly object _sync = new();
+    private DateTimeOffset _now = start;
+
+    public override DateTimeOffset GetUtcNow()
+    {
+        lock (_sync)
+            return _now;
+    }
+
+    public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+    {
+        if (dueTime != Timeout.InfiniteTimeSpan)
+        {
+            lock (_sync)
+                _now += dueTime;
+            Task.Run(() => callback(state));
+        }
+        return new NoTimer();
+    }
+
+    private sealed class NoTimer : ITimer
+    {
+        public bool Change(TimeSpan dueTime, TimeSpan period) => true;
+
+        public void Dispose()
+        {
+        }
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
 }

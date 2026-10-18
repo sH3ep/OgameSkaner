@@ -169,11 +169,53 @@ public static class RaidPlanner
     public static long ExpectedLoot(EspionageReport report, RaidSettings settings) =>
         (long)(report.TotalResources * (settings.LootPercent / 100.0));
 
-    /// <summary>Cargo ships for <paramref name="loot"/> plus the margin; 0 when the capacity is unknown.</summary>
-    public static long ShipsNeeded(long loot, long capacityPerShip, RaidSettings settings) =>
-        capacityPerShip <= 0 || loot <= 0
-            ? 0
-            : CeilingDivide(loot * (100L + Math.Max(0, settings.CargoMarginPercent)), 100L * capacityPerShip); // integers: 2.75M × 1.1 isn't exact
+    /// <summary>A later attack on the same planet must land at least this long after the one before it.</summary>
+    public static readonly TimeSpan MinWaveGap = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// The loot of the <paramref name="wave"/>-th attack (1 = the first) on the report's resources: each attack takes
+    /// <see cref="RaidSettings.LootPercent"/> of what the attacks before it left.
+    /// </summary>
+    public static long WaveLoot(EspionageReport report, RaidSettings settings, int wave)
+    {
+        var share = Math.Clamp(settings.LootPercent, 1, 100) / 100.0;
+        return (long)(report.TotalResources * share * Math.Pow(1 - share, Math.Max(0, wave - 1)));
+    }
+
+    /// <summary>
+    /// How much later an attack landing at <paramref name="arrival"/> must land to come <see cref="MinWaveGap"/> after one
+    /// landing at <paramref name="previous"/>; zero or less when it already does.
+    /// </summary>
+    public static TimeSpan LandingShortfall(DateTimeOffset arrival, DateTimeOffset previous) => previous + MinWaveGap - arrival;
+
+    /// <summary>Cargo capacity an attack for <paramref name="loot"/> needs: the loot plus the margin.</summary>
+    public static long CargoNeeded(long loot, RaidSettings settings) =>
+        loot <= 0 ? 0 : CeilingDivide(loot * (100L + Math.Max(0, settings.CargoMarginPercent)), 100L); // integers: 2.75M × 1.1 isn't exact
+
+    /// <summary>
+    /// The cargo ships for <paramref name="cargo"/> capacity in priority order: as many of the first type as needed
+    /// (or as there are), then the next types for the rest. Types without ships or a known capacity are skipped; the
+    /// fleet carries less than <paramref name="cargo"/> when the ships run out.
+    /// </summary>
+    public static IReadOnlyList<ShipStack> CargoFleet(
+        long cargo, IReadOnlyList<string> priority, Func<string, long> available, Func<string, long> capacityPerShip)
+    {
+        var fleet = new List<ShipStack>();
+        var left = cargo;
+        foreach (var type in priority.Distinct())
+        {
+            if (left <= 0)
+                break;
+            var capacity = capacityPerShip(type);
+            var ships = Math.Min(available(type), capacity > 0 ? CeilingDivide(left, capacity) : 0);
+            if (ships <= 0)
+                continue;
+            fleet.Add(new ShipStack(type, ships));
+            left -= ships * capacity;
+        }
+
+        return fleet;
+    }
 
     private static long CeilingDivide(long dividend, long divisor) => (dividend + divisor - 1) / divisor;
 

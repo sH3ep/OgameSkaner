@@ -1,0 +1,142 @@
+<UserControl x:Class="OgameSkaner.App.Views.DefenseView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:DefenseViewModel}"
+             d:DesignHeight="600" d:DesignWidth="1000">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*" MinWidth="460" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" MinWidth="300" />
+        </Grid.ColumnDefinitions>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="3*" />
+            </Grid.RowDefinitions>
+
+            <GroupBox Header="Hostile fleets">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" FontWeight="SemiBold" />
+                    <DataGrid ItemsSource="{Binding Threats}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column" SelectionMode="Single" Background="Transparent" IsReadOnly="True">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Mission" Binding="{Binding Mission}" />
+                            <DataGridTextColumn Header="From" Binding="{Binding From}" />
+                            <DataGridTextColumn Header="Target" Binding="{Binding Target}" />
+                            <DataGridTextColumn Header="Ships" Binding="{Binding Ships, StringFormat=N0}" />
+                            <DataGridTextColumn Header="Arrives" Binding="{Binding Arrives}" SortMemberPath="ArrivesSortKey" />
+                            <DataGridTextColumn Header="Left" Binding="{Binding TimeLeft}" SortMemberPath="ArrivesSortKey" />
+                            <DataGridTextColumn Header="Escape at" Binding="{Binding EscapeAt}" />
+                            <DataGridTextColumn Header="State" Binding="{Binding State}" Width="*" MinWidth="120" />
+                        </DataGrid.Columns>
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Background" Value="#FCF8E3" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsAttack}" Value="True">
+                                        <Setter Property="Background" Value="#F2DEDE" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                    </DataGrid>
+                </DockPanel>
+            </GroupBox>
+
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
+
+            <GroupBox Grid.Row="2" Header="Log">
+                <ListBox ItemsSource="{Binding Log}" />
+            </GroupBox>
+        </Grid>
+
+        <GridSplitter Grid.Column="1" />
+
+        <GroupBox Grid.Column="2" Header="Attack protection">
+            <ScrollViewer Style="{StaticResource PanelScroll}">
+                <StackPanel MinWidth="280">
+                    <Grid Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" MinWidth="80" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="Check every (s)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding CheckIntervalSeconds, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="How often the game's event list is read (one request). Keep it below the shortest flight an attacker needs to reach you." />
+                        <TextBlock Grid.Row="1" Text="Leave before impact (s)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EscapeSecondsBeforeArrival, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="The fleet leaves this long before the attack lands (at once when the attack is seen later). Leaving late keeps the fleet home if the attacker turns back." />
+                        <TextBlock Grid.Row="2" Text="Escape speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EscapeSpeedPercent, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="A slow flight keeps the fleet in the air, out of reach, for longer" />
+                    </Grid>
+
+                    <TextBlock Text="When a planet is attacked" FontWeight="SemiBold" Margin="0,0,0,4" />
+                    <RadioButton Content="Only alert" Margin="0,0,0,4" GroupName="EscapeMode"
+                                 IsChecked="{Binding EscapeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Off}" />
+                    <RadioButton Content="Escape the fleet to the planet's moon" Margin="0,0,0,4" GroupName="EscapeMode"
+                                 IsChecked="{Binding EscapeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Moon}" />
+                    <CheckBox Content="No moon: escape to the nearest planet" Margin="18,0,0,4" IsChecked="{Binding FallbackToNearestPlanet}"
+                              IsEnabled="{Binding EscapeMode, Converter={StaticResource EnumEquals}, ConverterParameter=Moon}" />
+                    <RadioButton Content="Escape the fleet to the nearest planet" Margin="0,0,0,4" GroupName="EscapeMode"
+                                 IsChecked="{Binding EscapeMode, Converter={StaticResource EnumEquals}, ConverterParameter=NearestPlanet}" />
+                    <CheckBox Content="Take the planet's resources along" Margin="0,4,0,4" IsChecked="{Binding TakeResources}"
+                              ToolTip="Deuterium (minus the fuel), then crystal, then metal, as far as the escaping ships' cargo holds them" />
+                    <CheckBox Content="Alert about spy probes" Margin="0,0,0,4" IsChecked="{Binding NotifyEspionage}" />
+                    <CheckBox Content="Start with the app" Margin="0,0,0,4" IsChecked="{Binding AutoStart}"
+                              ToolTip="Start the protection when the app starts or this universe gets selected" />
+                    <CheckBox Content="Test mode (don't send fleets)" Margin="0,0,0,6" FontWeight="SemiBold" IsChecked="{Binding TestMode}"
+                              ToolTip="Alert and log what would be sent, but keep the fleet home" />
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="Start" Command="{Binding RunCommand}"
+                                ToolTip="Watch the event list, alert about hostile fleets and escape the attacked planets' fleets" />
+                        <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                    </StackPanel>
+
+                    <TextBlock Text="Alerts (all universes)" FontWeight="SemiBold" Margin="0,10,0,4" />
+                    <ItemsControl ItemsSource="{Binding Channels}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <CheckBox Content="{Binding DisplayName}" IsChecked="{Binding IsEnabled}" Margin="0,0,0,4" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="Sound file" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Column="1" Text="{Binding SoundFile}" ToolTip="A .wav file; empty = the Windows alarm sound" />
+                        <Button Grid.Column="2" Content="…" MinWidth="0" Padding="8,2" Command="{Binding BrowseSoundCommand}" />
+                        <Button Grid.Column="3" Content="✕" MinWidth="0" Padding="8,2" Command="{Binding ClearSoundCommand}" ToolTip="Use the Windows alarm sound" />
+                        <TextBlock Grid.Row="1" Text="Repeat (attacks)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SoundRepeat, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="How often the sound plays for an attack (spy probes play it once, info like a done escape not at all)" />
+                    </Grid>
+                    <Button Content="Send test alert" Command="{Binding TestAlertCommand}" HorizontalAlignment="Left" />
+                </StackPanel>
+            </ScrollViewer>
+        </GroupBox>
+    </Grid>
+</UserControl>

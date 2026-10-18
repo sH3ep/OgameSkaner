@@ -16,7 +16,7 @@ public sealed class OwnPlanetService(IOwnPlanetStore store, TimeProvider timePro
     public async Task<OwnPlanetRefresh> RefreshAsync(IOgamexClient client, CancellationToken cancellationToken = default)
     {
         var snapshot = await client.GetOwnPlanetsAsync(cancellationToken).ConfigureAwait(false);
-        var list = new OwnPlanetList(snapshot.Planets, timeProvider.GetLocalNow());
+        var list = new OwnPlanetList(snapshot.Planets, timeProvider.GetLocalNow()) { Moons = snapshot.Moons };
         store.Save(client.Universe.Name, list);
         return new OwnPlanetRefresh(list, snapshot.CurrentPlanet);
     }

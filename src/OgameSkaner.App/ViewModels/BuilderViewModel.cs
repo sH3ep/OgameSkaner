@@ -30,8 +30,10 @@ public sealed partial class BuilderViewModel : PageViewModel
         OwnPlanetService ownPlanets,
         IBuildSettingsStore store,
         IDialogService dialogs,
-        AutomationActivity activity)
+        AutomationActivity activity,
+        RunningModules running)
     {
+        running.Track(this, RunCommand);
         _activity = activity;
         _context = context;
         _simulated = simulated;
@@ -96,7 +98,8 @@ public sealed partial class BuilderViewModel : PageViewModel
     public static IReadOnlyList<BuilderModeOption> Modes { get; } =
     [
         new(BuilderMode.Simulated, "Simulated (fastest order)"),
-        new(BuilderMode.ByPrice, "By price (cheapest first)")
+        new(BuilderMode.ByPrice, "By price (cheapest first)"),
+        new(BuilderMode.ByLevel, "By level (keep the offsets)")
     ];
 
 

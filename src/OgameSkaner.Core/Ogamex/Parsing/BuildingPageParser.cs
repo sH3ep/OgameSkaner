@@ -30,7 +30,11 @@ public sealed record BuildingPage(
     int? FreeFields,
     bool VacationMode,
     ResourceSet ProductionPerHour,
-    TimeSpan? RunningRemaining = null);
+    TimeSpan? RunningRemaining = null)
+{
+    /// <summary>The player's moons from the sidebar (<see cref="BuildingPageParser.ParseMoons"/>).</summary>
+    public IReadOnlyList<OwnPlanet> Moons { get; init; } = [];
+}
 
 /// <summary>
 /// Parses the building pages. Resources and energy come from the page's <c>var resources = {…}</c> script
@@ -65,7 +69,10 @@ public static partial class BuildingPageParser
                 (long)Math.Round(ReadNumber(script, "metalProduction") * 3600),
                 (long)Math.Round(ReadNumber(script, "crystalProduction") * 3600),
                 (long)Math.Round(ReadNumber(script, "deuteriumProduction") * 3600)),
-            RemainingPattern().Match(html) is { Success: true } remaining ? TimeSpan.FromSeconds(Int(remaining.Groups[1].Value)) : null);
+            RemainingPattern().Match(html) is { Success: true } remaining ? TimeSpan.FromSeconds(Int(remaining.Groups[1].Value)) : null)
+        {
+            Moons = ParseMoons(document)
+        };
     }
 
     /// <summary>Reads the current planet id and the body of the <c>var resources</c> object present on every game page.</summary>
@@ -120,6 +127,39 @@ public static partial class BuildingPageParser
             })
             .OfType<OwnPlanet>()
             .ToList();
+
+    /// <summary>
+    /// The sidebar links <see cref="ParsePlanets"/> skips as moons. The account this was written on had no moon, so the
+    /// markup is inferred: a <c>?planet=</c> link marked as a moon, with the coordinates of its planet's entry and the
+    /// name from its own name span or tooltip.
+    /// </summary>
+    public static IReadOnlyList<OwnPlanet> ParseMoons(HtmlDocument document)
+    {
+        var sidebar = document.GetElementbyId("planet-selection");
+        if (sidebar is null)
+            return [];
+
+        var moons = new List<OwnPlanet>();
+        foreach (var link in sidebar.Descendants("a").Where(IsMoon))
+        {
+            var id = PlanetHrefPattern().Match(link.GetAttributeValue("href", string.Empty));
+            var item = link.AncestorsAndSelf().FirstOrDefault(n => n.HasClass("planet-item")) ?? link;
+            var coordinates = CoordinatesPattern().Match(
+                (ByClass(link, "span", "planet-coords").FirstOrDefault() ?? ByClass(item, "span", "planet-coords").FirstOrDefault())?.InnerText ?? string.Empty);
+            if (!id.Success || !coordinates.Success || moons.Any(m => m.Id.Value == id.Groups[1].Value))
+                continue;
+
+            var name = link.Descendants("span").FirstOrDefault(s => s.GetClasses().Any(c => c.EndsWith("-name", StringComparison.Ordinal)))?.InnerText.Trim();
+            if (string.IsNullOrEmpty(name))
+                name = link.GetAttributeValue("title", null) ?? "Moon";
+            moons.Add(new OwnPlanet(
+                new PlanetId(id.Groups[1].Value),
+                HtmlEntity.DeEntitize(name),
+                new Coordinates(Int(coordinates.Groups[1].Value), Int(coordinates.Groups[2].Value), Int(coordinates.Groups[3].Value))));
+        }
+
+        return moons;
+    }
 
     private static bool IsMoon(HtmlNode link) =>
         link.AncestorsAndSelf().Take(3).Any(n => n.GetClasses().Any(c => c.Contains("moon", StringComparison.OrdinalIgnoreCase)));

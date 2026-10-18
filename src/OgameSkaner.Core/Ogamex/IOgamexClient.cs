@@ -1,5 +1,7 @@
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 
@@ -13,6 +15,16 @@ public interface IOgamexClient : IDisposable
     /// <summary>Downloads and parses one solar system from the galaxy view.</summary>
     /// <exception cref="SessionExpiredException">The server did not return a galaxy page.</exception>
     Task<IReadOnlyList<PlayerPlanet>> GetSolarSystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default);
+
+    /// <summary>Like <see cref="GetSolarSystemAsync"/>, plus the asteroid at position 17 when there is one.</summary>
+    /// <exception cref="SessionExpiredException">The server did not return a galaxy page.</exception>
+    Task<GalaxySystemView> GetGalaxySystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default);
+
+    /// <summary>The galaxy's "Find asteroids" hint: system ranges that may hold an asteroid, one row per asteroid.</summary>
+    Task<IReadOnlyList<AsteroidHint>> GetAsteroidHintsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>One page of asteroid mining reports, newest first.</summary>
+    Task<IReadOnlyList<AsteroidReport>> GetAsteroidReportsAsync(int page = 1, CancellationToken cancellationToken = default);
 
     Task SendSpyAsync(Coordinates target, PlanetType targetType, CancellationToken cancellationToken = default);
 
@@ -30,6 +42,10 @@ public interface IOgamexClient : IDisposable
     /// back as an outcome with the server's message.
     /// </summary>
     Task<FleetSendOutcome> SendFleetAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default);
+
+    /// <summary>The game's event list: own, friendly and hostile fleets in flight (<c>/home/fleetmovementlist</c>).</summary>
+    /// <exception cref="SessionExpiredException">The server did not return the event list.</exception>
+    Task<IReadOnlyList<FleetMovement>> GetFleetMovementsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>One page of espionage reports, newest first, without ships and defenses.</summary>
     Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default);

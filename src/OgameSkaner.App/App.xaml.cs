@@ -6,9 +6,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OgameSkaner.App.Infrastructure;
+using OgameSkaner.App.Infrastructure.Alerts;
 using OgameSkaner.App.ViewModels;
 using OgameSkaner.App.Views;
 using OgameSkaner.Core;
+using OgameSkaner.Core.Domain.Alerts;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
@@ -37,6 +39,10 @@ public partial class App : Application
 
         if (importMessage is not null)
             _host.Services.GetRequiredService<IDialogService>().ShowInfo(importMessage);
+
+        // The attack protection runs without its page being opened.
+        await _host.Services.GetRequiredService<DefenseViewModel>().StartIfEnabledAsync();
+        await _host.Services.GetRequiredService<ExpeditionsViewModel>().StartIfEnabledAsync();
     }
 
     protected override void OnExit(ExitEventArgs e)
@@ -71,6 +77,11 @@ public partial class App : Application
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<IUniverseContext, UniverseContext>();
         builder.Services.AddSingleton<AutomationActivity>();
+        builder.Services.AddSingleton<RunningModules>();
+
+        // The ways alerts reach the player; each shows up on the Defense page (add e-mail or SMS here).
+        builder.Services.AddSingleton<IAlertChannel, WindowsAlertChannel>();
+        builder.Services.AddSingleton<IAlertChannel, SoundAlertChannel>();
 
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
@@ -84,6 +95,9 @@ public partial class App : Application
         builder.Services.AddPage<SchemasViewModel, SchemasView>("Schemas");
         builder.Services.AddPage<OptimizerViewModel, OptimizerView>("Optimizer");
         builder.Services.AddPage<RaidsViewModel, RaidsView>("Raids");
+        builder.Services.AddPage<AsteroidsViewModel, AsteroidsView>("Asteroids");
+        builder.Services.AddPage<ExpeditionsViewModel, ExpeditionsView>("Expeditions");
+        builder.Services.AddPage<DefenseViewModel, DefenseView>("Defense");
         builder.Services.AddPage<ShipyardViewModel, ShipyardView>("Shipyard");
         builder.Services.AddPage<UtilitiesViewModel, UtilitiesView>("Utilities");
 

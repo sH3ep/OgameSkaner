@@ -1,7 +1,11 @@
 using Microsoft.Extensions.DependencyInjection;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services;
+using OgameSkaner.Core.Services.Alerts;
+using OgameSkaner.Core.Services.Asteroids;
 using OgameSkaner.Core.Services.Building;
+using OgameSkaner.Core.Services.Defense;
+using OgameSkaner.Core.Services.Expeditions;
 using OgameSkaner.Core.Services.Optimizer;
 using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Schemas;
@@ -15,7 +19,8 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Registers storage, the OgameX client factory and the domain services.
-    /// The host must also register an <see cref="ISecretProtector"/> and configure <see cref="OgamexOptions"/>.
+    /// The host must also register an <see cref="ISecretProtector"/> and configure <see cref="OgamexOptions"/>; the
+    /// <see cref="Domain.Alerts.IAlertChannel"/>s it registers are the ways alerts reach the player.
     /// </summary>
     public static IServiceCollection AddOgameSkanerCore(this IServiceCollection services, IAppPaths paths)
     {
@@ -27,10 +32,14 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<UniverseDatabases>();
         services.AddSingleton<IPlanetRepository, SqlitePlanetRepository>();
         services.AddSingleton<IBuildSettingsStore, JsonBuildSettingsStore>();
+        services.AddSingleton<IScanSettingsStore, JsonScanSettingsStore>();
         services.AddSingleton<IOwnPlanetStore, JsonOwnPlanetStore>();
         services.AddSingleton<ISchemaStore, JsonSchemaStore>();
         services.AddSingleton<IOptimizerResultStore, JsonOptimizerResultStore>();
         services.AddSingleton<IRaidStore, SqliteRaidStore>();
+        services.AddSingleton<IAsteroidStore, SqliteAsteroidStore>();
+        services.AddSingleton<IDefenseSettingsStore, JsonDefenseSettingsStore>();
+        services.AddSingleton<IExpeditionSettingsStore, JsonExpeditionSettingsStore>();
         services.AddSingleton<LegacyImporter>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
@@ -45,6 +54,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<SimulatedBuildRunner>();
         services.AddSingleton<BuildOrderOptimizer>();
         services.AddSingleton<RaidRunner>();
+        services.AddSingleton<AsteroidRunner>();
+        services.AddSingleton<AlertDispatcher>();
+        services.AddSingleton<AttackMonitor>();
+        services.AddSingleton<ExpeditionRunner>();
 
         return services;
     }

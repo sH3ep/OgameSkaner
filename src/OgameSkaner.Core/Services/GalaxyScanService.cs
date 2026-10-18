@@ -5,7 +5,8 @@ using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.Core.Services;
 
-public sealed record ScanProgress(int Completed, int Total, SolarSystemAddress Current, int PlanetsInSystem);
+/// <param name="PauseUntil">Set while the scan pauses (<see cref="ScanSettings.PauseEverySystems"/>) before the next system.</param>
+public sealed record ScanProgress(int Completed, int Total, SolarSystemAddress Current, int PlanetsInSystem, DateTimeOffset? PauseUntil = null);
 
 public enum ScanOutcome
 {
@@ -16,8 +17,11 @@ public enum ScanOutcome
 
 public sealed record ScanResult(ScanOutcome Outcome, int SystemsScanned, int Total, string? Error = null);
 
-/// <summary>Scans a range of solar systems and stores the results in the universe's planet database.</summary>
-public sealed class GalaxyScanService(IPlanetRepository repository, ILogger<GalaxyScanService> logger)
+/// <summary>
+/// Scans a range of solar systems and stores the results in the universe's planet database, paced by
+/// <see cref="ScanSettings"/>.
+/// </summary>
+public sealed class GalaxyScanService(IPlanetRepository repository, TimeProvider timeProvider, ILogger<GalaxyScanService> logger)
 {
     /// <summary>How many systems are scanned between two saves of the database.</summary>
     public int SaveInterval { get; init; } = 25;
@@ -26,8 +30,10 @@ public sealed class GalaxyScanService(IPlanetRepository repository, ILogger<Gala
         IOgamexClient client,
         ScanRange range,
         IProgress<ScanProgress>? progress = null,
+        ScanSettings? settings = null,
         CancellationToken cancellationToken = default)
     {
+        settings ??= ScanSettings.Default;
         var errors = range.Validate(client.Universe);
         if (errors.Count > 0)
             return new ScanResult(ScanOutcome.Failed, 0, range.Count, string.Join(Environment.NewLine, errors));
@@ -35,6 +41,8 @@ public sealed class GalaxyScanService(IPlanetRepository repository, ILogger<Gala
         var database = await repository.GetAsync(client.Universe.Name, cancellationToken).ConfigureAwait(false);
         var completed = 0;
         var unsaved = 0;
+        DateTimeOffset? lastRequest = null;
+        ScanProgress? last = null;
 
         try
         {
@@ -42,10 +50,22 @@ public sealed class GalaxyScanService(IPlanetRepository repository, ILogger<Gala
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
+                if (lastRequest is { } previous)
+                {
+                    var due = previous + settings.DelayAfter(completed, Random.Shared);
+                    if (settings.PausesAfter(completed) && last is not null)
+                        progress?.Report(last with { PauseUntil = due });
+                    var wait = due - timeProvider.GetUtcNow();
+                    if (wait > TimeSpan.Zero)
+                        await Task.Delay(wait, timeProvider, cancellationToken).ConfigureAwait(false);
+                }
+
+                lastRequest = timeProvider.GetUtcNow();
                 var planets = await client.GetSolarSystemAsync(address, cancellationToken).ConfigureAwait(false);
-                database.ReplaceSystem(address, planets, DateTimeOffset.UtcNow);
+                database.ReplaceSystem(address, planets, timeProvider.GetUtcNow());
                 completed++;
-                progress?.Report(new ScanProgress(completed, range.Count, address, planets.Count));
+                last = new ScanProgress(completed, range.Count, address, planets.Count);
+                progress?.Report(last);
 
                 if (++unsaved >= SaveInterval)
                 {

@@ -1,11 +1,23 @@
 using System.Windows;
+using CommunityToolkit.Mvvm.ComponentModel;
 using Microsoft.Extensions.DependencyInjection;
 using OgameSkaner.App.ViewModels;
 
 namespace OgameSkaner.App.Infrastructure;
 
-/// <summary>A page shown in the navigation menu: its title, view model and view.</summary>
-public sealed record PageDescriptor(string Title, Type ViewModelType, Type ViewType);
+/// <summary>A page shown in the navigation menu: its title, view model and view, and whether its automation runs.</summary>
+public sealed partial class PageDescriptor(string title, Type viewModelType, Type viewType) : ObservableObject
+{
+    public string Title { get; } = title;
+
+    public Type ViewModelType { get; } = viewModelType;
+
+    public Type ViewType { get; } = viewType;
+
+    /// <summary>Set by <see cref="RunningModules"/> while the page's run (or scan) is going.</summary>
+    [ObservableProperty]
+    private bool _isRunning;
+}
 
 public static class PageRegistration
 {

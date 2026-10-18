@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex.Parsing;
@@ -55,7 +57,10 @@ internal sealed class OgamexClient : IOgamexClient
 
     public UniverseProfile Universe { get; }
 
-    public async Task<IReadOnlyList<PlayerPlanet>> GetSolarSystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<PlayerPlanet>> GetSolarSystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default) =>
+        (await GetGalaxySystemAsync(address, cancellationToken).ConfigureAwait(false)).Planets;
+
+    public async Task<GalaxySystemView> GetGalaxySystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default)
     {
         // "_" is the jQuery-style cache buster the game itself sends.
         var uri = $"galaxy/galaxydata?x={address.Galaxy}&y={address.System}&_={Interlocked.Increment(ref _cacheBuster)}";
@@ -63,10 +68,25 @@ internal sealed class OgamexClient : IOgamexClient
         var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
 
         var scannedAt = _timeProvider.GetLocalNow();
-        return GalaxyPageParser.Parse(html)
+        var planets = GalaxyPageParser.Parse(html)
             .Select(row => new PlayerPlanet(
                 row.PlayerName, new Coordinates(address.Galaxy, address.System, row.Position), row.HasMoon, scannedAt, row.Status, row.PlayerId, row.Rank))
             .ToList();
+        return new GalaxySystemView(planets, AsteroidParser.ParseGalaxy(html, address, scannedAt));
+    }
+
+    public async Task<IReadOnlyList<AsteroidHint>> GetAsteroidHintsAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"galaxy/Partial_AsteroidLocation?_={Interlocked.Increment(ref _cacheBuster)}", referer: "galaxy");
+        return AsteroidParser.ParseHints(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+    }
+
+    public async Task<IReadOnlyList<AsteroidReport>> GetAsteroidReportsAsync(int page = 1, CancellationToken cancellationToken = default)
+    {
+        // Mining reports share the "Other" tab with colonization messages.
+        using var request = CreateRequest(HttpMethod.Get, $"messages/messagedata?MessageCategoryType=FLEET_OTHER&page={page}", referer: "messages");
+        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        return AsteroidParser.ParseReports(html, _displayOffset ?? TimeSpan.FromMinutes(_options.TimeZoneOffsetMinutes));
     }
 
     public async Task SendSpyAsync(Coordinates target, PlanetType targetType, CancellationToken cancellationToken = default)
@@ -133,7 +153,10 @@ internal sealed class OgamexClient : IOgamexClient
             response.PlayerPoints,
             response.PlayerFleetPoints,
             status,
-            response.ShowWarning ? response.WarningMessage : null);
+            response.ShowWarning ? response.WarningMessage : null)
+        {
+            ExpeditionDurations = response.ExpeditionKeepValues ?? []
+        };
     }
 
     public async Task<FleetSendOutcome> SendFleetAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default)
@@ -152,6 +175,13 @@ internal sealed class OgamexClient : IOgamexClient
         {
             _planetSwitch.Release();
         }
+    }
+
+    public async Task<IReadOnlyList<FleetMovement>> GetFleetMovementsAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, "home/fleetmovementlist", referer: "home");
+        var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
+        return FleetMovementParser.Parse(html, _timeProvider.GetUtcNow());
     }
 
     public async Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default)
@@ -209,10 +239,11 @@ internal sealed class OgamexClient : IOgamexClient
             mission.Target.Position,
             (int)mission.TargetType,
             mission.SpeedPercentage,
-            Metal: 0,
-            Crystal: 0,
-            Deuterium: 0,
-            (int)mission.Mission);
+            mission.Cargo.Metal,
+            mission.Cargo.Crystal,
+            mission.Cargo.Deuterium,
+            (int)mission.Mission,
+            mission.HoldMinutes);
 
         using var request = CreateRequest(HttpMethod.Post, "fleet/submitfleet", referer: "fleet");
         request.Content = JsonContent.Create(body, options: JsonOptions);
@@ -241,7 +272,7 @@ internal sealed class OgamexClient : IOgamexClient
     {
         // Every game page has the planet list in its sidebar.
         var page = await GetBuildingPageAsync("building/resource", planet: null, cancellationToken).ConfigureAwait(false);
-        return new OwnPlanetsSnapshot(page.Planets, page.CurrentPlanet);
+        return new OwnPlanetsSnapshot(page.Planets, page.CurrentPlanet) { Moons = page.Moons };
     }
 
     public async Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default)

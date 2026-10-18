@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Domain.Asteroids;
+using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Sqlite;
@@ -183,7 +185,7 @@ public class SqliteStorageTests : IDisposable
             // Back to version 1: the database as the first SQLite build left it.
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE rankings; PRAGMA user_version = 1;";
+            command.CommandText = "DROP TABLE rankings; DROP TABLE asteroids; DROP TABLE asteroid_missions; DROP TABLE asteroid_reports; PRAGMA user_version = 1;";
             command.ExecuteNonQuery();
         }
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
@@ -191,8 +193,34 @@ public class SqliteStorageTests : IDisposable
         var store = new SqliteRaidStore(Databases(), _paths);
 
         Assert.Equal(RankingSnapshot.Empty, store.LoadRanking("tron", RankingCategory.Defense)); // the table is back
+        Assert.Empty(new SqliteAsteroidStore(Databases(), _paths).LoadMissions("tron")); // and the asteroid tables
         Assert.Single(Directory.GetFiles(BackupDirectory, "data-*-before-upgrade.db"));
         Assert.Single((await Repository().GetAsync("tron")).Snapshot()); // the data survived
+    }
+
+    [Fact]
+    public void Asteroids_missions_and_reports_are_stored()
+    {
+        var store = new SqliteAsteroidStore(Databases(), _paths);
+        var seen = new DateTimeOffset(2026, 10, 17, 20, 0, 0, TimeSpan.Zero);
+        var asteroid = new Asteroid(new Coordinates(7, 16, 17), seen.AddMinutes(90), seen);
+
+        store.SaveAsteroids("tron", [asteroid]);
+        store.SaveAsteroids("tron", [asteroid with { DisappearsAt = seen.AddMinutes(91), SeenAt = seen.AddMinutes(10) }]); // seen again
+        var mission = new AsteroidMission(asteroid.Coordinates, new Coordinates(7, 130, 6), 340, 4_000_000, seen, seen.AddMinutes(20), seen.AddMinutes(40));
+        store.AddMissions("tron", [mission]);
+        var report = new AsteroidReport("m1", seen.AddMinutes(20), asteroid.Coordinates, AsteroidResultKind.Resources, 4_000_000, new ResourceSet(2_000_000, 1_500_000, 500_000), 0);
+        store.AddReports("tron", [report]);
+        store.AddReports("tron", [report]); // read twice
+        store.SaveSettings("tron", AsteroidSettings.Default with { MarginPercent = 5 });
+
+        var loaded = Assert.Single(store.LoadAsteroids("tron", seen));
+        Assert.Equal(seen.AddMinutes(91), loaded.DisappearsAt);
+        Assert.Equal(seen, loaded.SeenAt);
+        Assert.Empty(store.LoadAsteroids("tron", seen.AddMinutes(91)));
+        Assert.Equal([mission], store.LoadMissions("tron"));
+        Assert.Equal([report], store.LoadReports("tron"));
+        Assert.Equal(5, store.LoadSettings("tron").MarginPercent);
     }
 
     [Fact]

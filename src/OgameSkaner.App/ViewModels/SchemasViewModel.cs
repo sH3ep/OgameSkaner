@@ -38,8 +38,10 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
         OwnPlanetService ownPlanets,
         IDialogService dialogs,
         AutomationActivity activity,
-        IMessenger messenger)
+        IMessenger messenger,
+        RunningModules running)
     {
+        running.Track(this, RunCommand);
         _context = context;
         _store = store;
         _runner = runner;

@@ -15,19 +15,26 @@ public sealed partial class ScannerViewModel : PageViewModel
     private readonly ISessionStore _sessions;
     private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
+    private readonly IScanSettingsStore _settingsStore;
+    private bool _loading;
 
     public ScannerViewModel(
         IUniverseContext context,
         GalaxyScanService scanService,
         ISessionStore sessions,
         IDialogService dialogs,
-        IMessenger messenger)
+        IMessenger messenger,
+        IScanSettingsStore settingsStore,
+        RunningModules running)
     {
+        running.Track(this, ScanCommand);
         _context = context;
         _scanService = scanService;
         _sessions = sessions;
         _dialogs = dialogs;
         _messenger = messenger;
+        _settingsStore = settingsStore;
+        LoadSettings();
 
         // A running scan belongs to the universe it was started for.
         _context.CurrentChanged += (_, _) =>
@@ -35,7 +42,67 @@ public sealed partial class ScannerViewModel : PageViewModel
             ScanCancelCommand.Execute(null);
             StatusText = null;
             ProgressValue = 0;
+            LoadSettings();
         };
+    }
+
+    // Pacing (ScanSettings), saved per universe as soon as a value changes.
+    [ObservableProperty]
+    private int _minDelayMilliseconds;
+
+    [ObservableProperty]
+    private int _maxDelayMilliseconds;
+
+    [ObservableProperty]
+    private int _pauseEverySystems;
+
+    [ObservableProperty]
+    private int _minPauseSeconds;
+
+    [ObservableProperty]
+    private int _maxPauseSeconds;
+
+    partial void OnMinDelayMillisecondsChanged(int value) => SaveSettings();
+
+    partial void OnMaxDelayMillisecondsChanged(int value) => SaveSettings();
+
+    partial void OnPauseEverySystemsChanged(int value) => SaveSettings();
+
+    partial void OnMinPauseSecondsChanged(int value) => SaveSettings();
+
+    partial void OnMaxPauseSecondsChanged(int value) => SaveSettings();
+
+    private ScanSettings Settings => new()
+    {
+        MinDelayMilliseconds = Math.Max(0, MinDelayMilliseconds),
+        MaxDelayMilliseconds = Math.Max(0, MaxDelayMilliseconds),
+        PauseEverySystems = Math.Max(0, PauseEverySystems),
+        MinPauseSeconds = Math.Max(0, MinPauseSeconds),
+        MaxPauseSeconds = Math.Max(0, MaxPauseSeconds)
+    };
+
+    private void LoadSettings()
+    {
+        var settings = _context.Current is { } universe ? _settingsStore.Load(universe.Name) : ScanSettings.Default;
+        _loading = true;
+        try
+        {
+            MinDelayMilliseconds = settings.MinDelayMilliseconds;
+            MaxDelayMilliseconds = settings.MaxDelayMilliseconds;
+            PauseEverySystems = settings.PauseEverySystems;
+            MinPauseSeconds = settings.MinPauseSeconds;
+            MaxPauseSeconds = settings.MaxPauseSeconds;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void SaveSettings()
+    {
+        if (!_loading && _context.Current is { } universe)
+            _settingsStore.Save(universe.Name, Settings);
     }
 
     [ObservableProperty]
@@ -91,10 +158,11 @@ public sealed partial class ScannerViewModel : PageViewModel
         var progress = new Progress<ScanProgress>(p =>
         {
             ProgressValue = p.Completed;
-            StatusText = $"Scanned {p.Current} ({p.Completed}/{p.Total}) – {p.PlanetsInSystem} planets";
+            StatusText = $"Scanned {p.Current} ({p.Completed}/{p.Total}) – {p.PlanetsInSystem} planets"
+                         + (p.PauseUntil is { } until ? $", pausing until {until.ToLocalTime():T}" : "");
         });
 
-        var result = await _scanService.ScanAsync(client, range, progress, cancellationToken);
+        var result = await _scanService.ScanAsync(client, range, progress, Settings, cancellationToken);
 
         StatusText = result.Outcome switch
         {
