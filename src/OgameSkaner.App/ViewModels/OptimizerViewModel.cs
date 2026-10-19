@@ -8,6 +8,7 @@ using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Optimizer;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.App.ViewModels;
@@ -28,6 +29,7 @@ public sealed partial class OptimizerViewModel : PageViewModel
     private readonly IDialogService _dialogs;
     private readonly IMessenger _messenger;
     private readonly IUniverseContext _context;
+    private readonly IActionQueues _queues;
     private AccountBonuses _bonuses = AccountBonuses.Calibration;
     private bool _loading;
 
@@ -37,7 +39,8 @@ public sealed partial class OptimizerViewModel : PageViewModel
         ISchemaStore schemas,
         IDialogService dialogs,
         IMessenger messenger,
-        IUniverseContext context)
+        IUniverseContext context,
+        IActionQueues queues)
     {
         _optimizer = optimizer;
         _store = store;
@@ -45,6 +48,7 @@ public sealed partial class OptimizerViewModel : PageViewModel
         _dialogs = dialogs;
         _messenger = messenger;
         _context = context;
+        _queues = queues;
         Load();
     }
 
@@ -171,7 +175,7 @@ public sealed partial class OptimizerViewModel : PageViewModel
         try
         {
             StatusText = "Reading research, officers, academy and class from the game…";
-            SetBonuses(await client.GetAccountBonusesAsync(cancellationToken));
+            SetBonuses(await _queues.For(client).RunAsync("Optimizer", "Read the account bonuses", ct => client.GetAccountBonusesAsync(ct), ActionPriority.User, cancellationToken));
             SaveSettings();
             ShowResult(SavedResults.FirstOrDefault(r => r.SetupKey == Setup.Key), null);
             StatusText = "Bonuses read from the game.";

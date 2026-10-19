@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:SchemasViewModel}"
              d:DesignHeight="620" d:DesignWidth="1000">
-    <Grid>
+    <Grid infra:Layout.Key="Schemas.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="11*" MinWidth="360" />
             <ColumnDefinition Width="Auto" />
@@ -162,6 +163,8 @@
                             <TextBlock Text="min" VerticalAlignment="Center" Margin="0,0,12,6" />
                             <Button Content="Start" Command="{Binding RunCommand}" />
                             <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                            <Button Content="Check now" Command="{Binding CheckNowCommand}" IsEnabled="{Binding RunCommand.IsRunning}"
+                                    ToolTip="Start the next check now instead of waiting for the time in the log" />
                         </StackPanel>
                         <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" />
                     </StackPanel>

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Abstractions;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
@@ -5,6 +6,7 @@ using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.Core.Tests.Fakes;
@@ -86,6 +88,8 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
     public Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default)
     {
         FleetReads.Add(planet);
+        if (planet is { } selected)
+            CurrentPlanet = selected;
         if (planet is { } requested && FleetOf is not null)
             return Task.FromResult(FleetOf(requested));
         return Task.FromResult(planet is { } id && Fleets.TryGetValue(id, out var fleet) ? fleet : Fleet);
@@ -95,8 +99,16 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         [MissionType.Transport, MissionType.Attack, MissionType.Spy], TimeSpan.FromMinutes(5), 10, 3650,
         "player", "Target", 10, 1_000_000, 0, PlayerStatus.Inactive, null);
 
-    public Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, CancellationToken cancellationToken = default) =>
-        Task.FromResult(Briefing(mission));
+    /// <summary>The origin each briefing was asked for (null: the current planet).</summary>
+    public List<PlanetId?> BriefingOrigins { get; } = [];
+
+    public Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default)
+    {
+        BriefingOrigins.Add(origin);
+        if (origin is { } id)
+            CurrentPlanet = id;
+        return Task.FromResult(Briefing(mission));
+    }
 
     public Func<FleetMission, FleetSendOutcome> SendAnswer { get; set; } = _ => new FleetSendOutcome(true);
 
@@ -105,6 +117,8 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public Task<FleetSendOutcome> SendFleetAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default)
     {
+        if (origin is { } from)
+            CurrentPlanet = from;
         var outcome = SendAnswer(mission);
         if (outcome.Sent)
         {
@@ -138,8 +152,17 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     public List<string> DetailReads { get; } = [];
 
-    public Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default) =>
-        Task.FromResult<IReadOnlyList<EspionageReport>>(page == 1 ? EspionageReports.ToList() : []);
+    /// <summary>The espionage reports (newest first) are cut into pages of this size.</summary>
+    public int ReportPageSize { get; set; } = int.MaxValue;
+
+    public List<int> ReportPageReads { get; } = [];
+
+    public Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default)
+    {
+        ReportPageReads.Add(page);
+        return Task.FromResult<IReadOnlyList<EspionageReport>>(
+            EspionageReports.Skip((int)Math.Min(int.MaxValue, (long)(page - 1) * ReportPageSize)).Take(ReportPageSize).ToList());
+    }
 
     public Task<EspionageReport> GetEspionageReportDetailAsync(EspionageReport report, CancellationToken cancellationToken = default)
     {
@@ -399,6 +422,15 @@ public sealed class FakeAsteroidStore : IAsteroidStore
 
     public void AddMissions(string universe, IEnumerable<AsteroidMission> missions) => Missions.AddRange(missions);
 
+    public void MarkRecalled(string universe, AsteroidMission mission, DateTimeOffset recalledAt)
+    {
+        for (var i = 0; i < Missions.Count; i++)
+        {
+            if (Missions[i].Target == mission.Target && Missions[i].SentAt == mission.SentAt)
+                Missions[i] = Missions[i] with { RecalledAt = recalledAt };
+        }
+    }
+
     public IReadOnlyList<AsteroidReport> LoadReports(string universe) => Reports.OrderBy(r => r.Time).ToList();
 
     public void AddReports(string universe, IEnumerable<AsteroidReport> reports) =>
@@ -438,4 +470,10 @@ public sealed class InstantTimeProvider(DateTimeOffset start) : TimeProvider
 
         public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
+}
+
+/// <summary>Action queues that run each group as soon as it's queued, without pauses or switching back home.</summary>
+public static class TestQueues
+{
+    public static IActionQueues Immediate => new ActionQueues(ActionQueueSettings.Immediate, TimeProvider.System, NullLoggerFactory.Instance);
 }

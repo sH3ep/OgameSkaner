@@ -23,21 +23,12 @@ public class OwnPlanetServiceTests
     }
 
     [Fact]
-    public async Task Inspect_reads_the_planet_with_facilities_and_selects_the_previous_planet_again()
+    public async Task Inspect_reads_the_planet_with_facilities()
     {
         var state = await _service.InspectAsync(_client, Colony.Id);
 
         Assert.Equal(7, state.LevelOf(BuildingType.MetalMine));
         Assert.Equal((Colony.Id, true), Assert.Single(_client.StateRequests));
-        Assert.Equal(Home.Id, _client.CurrentPlanet);
-    }
-
-    [Fact]
-    public async Task Inspect_of_the_current_planet_does_not_switch()
-    {
-        await _service.InspectAsync(_client, Home.Id);
-
-        Assert.Empty(_client.SelectedPlanets);
     }
 
     [Fact]

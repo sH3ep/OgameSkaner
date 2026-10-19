@@ -33,6 +33,8 @@
 
   <ItemGroup>
     <Resource Include="Resources\background.jpg" />
+    <!-- MediaPlayer plays files, not resources: the default alarm of SoundAlertChannel. -->
+    <Content Include="Resources\Sounds\alarmSignal.mp3" CopyToOutputDirectory="PreserveNewest" />
     <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -49,7 +49,7 @@ public class ExpeditionRunnerTests
         KeepFleetSlotsFree = 0
     };
 
-    private ExpeditionRunner Runner() => new(new OwnPlanetService(new FakeOwnPlanetStore(), _time), _time, NullLogger<ExpeditionRunner>.Instance);
+    private ExpeditionRunner Runner() => new(new OwnPlanetService(new FakeOwnPlanetStore(), _time), TestQueues.Immediate, _time, NullLogger<ExpeditionRunner>.Instance);
 
     /// <summary>When each mission of <see cref="FakeOgamexClient.SentMissions"/> was sent.</summary>
     private readonly List<DateTimeOffset> _sentAt = [];
@@ -110,7 +110,6 @@ public class ExpeditionRunnerTests
             Assert.Equal((MissionType.Expedition, PlanetType.Planet, 120, 100), (m.Mission, m.TargetType, m.HoldMinutes!.Value, m.SpeedPercentage)));
         Assert.Equal(new Coordinates(8, 260, 16), _client.SentMissions[0].Target);
         Assert.Equal(new Coordinates(7, 130, 16), _client.SentMissions[2].Target);
-        Assert.Equal(Selected.Id, _client.SelectedPlanets.Last()); // switched back
         Assert.Equal([2, 1, 0], _overviews.Last().Origins.Select(o => o.Flying));
     }
 
@@ -217,7 +216,6 @@ public class ExpeditionRunnerTests
         var result = await RunAsync(Settings((Home, 1)));
 
         Assert.Equal(new ExpeditionRunResult(ExpeditionOutcome.Failed, 0, "expired"), result);
-        Assert.Equal(Selected.Id, _client.SelectedPlanets.Last());
     }
 
     [Fact]

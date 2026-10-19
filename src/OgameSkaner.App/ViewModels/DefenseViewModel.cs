@@ -36,6 +36,13 @@ public sealed partial class DefenseViewModel : PageViewModel
         _store = store;
         _dialogs = dialogs;
 
+        RunCommand.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(RunCommand.IsRunning))
+                NotifyProtection();
+        };
+        Threats.CollectionChanged += (_, _) => NotifyProtection();
+
         LoadAlertSettings();
         _context.CurrentChanged += async (_, _) =>
         {
@@ -48,6 +55,23 @@ public sealed partial class DefenseViewModel : PageViewModel
     }
 
     public ObservableCollection<ThreatItemViewModel> Threats { get; } = [];
+
+    /// <summary>For the sidebar: off, watching, or hostile fleets on their way.</summary>
+    public ProtectionStatus ProtectionStatus =>
+        !RunCommand.IsRunning ? ProtectionStatus.Off : Threats.Count > 0 ? ProtectionStatus.Threatened : ProtectionStatus.Watching;
+
+    public string ProtectionText
+    {
+        get
+        {
+            if (ProtectionStatus != ProtectionStatus.Threatened)
+                return ProtectionStatus == ProtectionStatus.Off ? "Off" : "Watching";
+            var attacks = Threats.Count(t => t.IsAttack);
+            var next = Threats.Min(t => t.Threat.Movement.ArrivesAt).ToLocalTime();
+            var what = attacks > 0 ? $"{attacks} attack(s)" : $"{Threats.Count} hostile fleet(s)";
+            return $"{what}, next at {next:T}";
+        }
+    }
 
     public ObservableCollection<AlertChannelItemViewModel> Channels { get; } = [];
 
@@ -117,7 +141,7 @@ public sealed partial class DefenseViewModel : PageViewModel
         base.OnPropertyChanged(e);
         switch (e.PropertyName)
         {
-            case nameof(StatusText) or nameof(TestMode):
+            case nameof(StatusText) or nameof(TestMode) or nameof(ProtectionStatus) or nameof(ProtectionText):
                 break;
             case nameof(SoundFile) or nameof(SoundRepeat):
                 if (!_loading)
@@ -129,6 +153,10 @@ public sealed partial class DefenseViewModel : PageViewModel
                 break;
         }
     }
+
+    /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
+    [RelayCommand]
+    private void CheckNow() => _monitor.CheckNow();
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -168,12 +196,18 @@ public sealed partial class DefenseViewModel : PageViewModel
     [RelayCommand]
     private void BrowseSound()
     {
-        if (_dialogs.OpenFile("Wave sound (*.wav)|*.wav") is { } path)
+        if (_dialogs.OpenFile("Sound (*.wav;*.mp3)|*.wav;*.mp3") is { } path)
             SoundFile = path;
     }
 
     [RelayCommand]
     private void ClearSound() => SoundFile = null;
+
+    private void NotifyProtection()
+    {
+        OnPropertyChanged(nameof(ProtectionStatus));
+        OnPropertyChanged(nameof(ProtectionText));
+    }
 
     private void OnProgress(DefenseProgress progress)
     {

@@ -6,6 +6,7 @@ using OgameSkaner.App.Infrastructure;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.App.ViewModels;
@@ -16,6 +17,7 @@ public sealed partial class BuilderViewModel : PageViewModel
     private readonly IUniverseContext _context;
     private readonly SimulatedBuildRunner _simulated;
     private readonly OwnPlanetService _ownPlanets;
+    private readonly IActionQueues _queues;
     private readonly IBuildSettingsStore _store;
     private readonly IDialogService _dialogs;
     private readonly AutomationActivity _activity;
@@ -28,6 +30,7 @@ public sealed partial class BuilderViewModel : PageViewModel
         IUniverseContext context,
         SimulatedBuildRunner simulated,
         OwnPlanetService ownPlanets,
+        IActionQueues queues,
         IBuildSettingsStore store,
         IDialogService dialogs,
         AutomationActivity activity,
@@ -38,6 +41,7 @@ public sealed partial class BuilderViewModel : PageViewModel
         _context = context;
         _simulated = simulated;
         _ownPlanets = ownPlanets;
+        _queues = queues;
         _store = store;
         _dialogs = dialogs;
 
@@ -171,7 +175,7 @@ public sealed partial class BuilderViewModel : PageViewModel
         ViewedPlanetInfo = $"Reading {planet}…";
         try
         {
-            var state = await _ownPlanets.InspectAsync(client, planet.Id);
+            var state = await _queues.For(client).RunAsync("Builder", $"Read {planet}", ct => _ownPlanets.InspectAsync(client, planet.Id, ct), ActionPriority.User);
             if (ViewedPlanet?.Planet != planet)
                 return; // another planet was selected meanwhile
 
@@ -276,6 +280,10 @@ public sealed partial class BuilderViewModel : PageViewModel
             _dialogs.ShowError($"Refreshing planets failed: {ex.Message}");
         }
     }
+
+    /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
+    [RelayCommand]
+    private void CheckNow() => _simulated.CheckNow();
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 using OgameSkaner.App.Infrastructure;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Services;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.App.ViewModels;
@@ -14,11 +15,13 @@ public sealed partial class PlayersViewModel : PageViewModel
     private readonly CsvExportService _csvExport;
     private readonly IDialogService _dialogs;
     private readonly IPlanetRepository _repository;
+    private readonly IActionQueues _queues;
     private PlanetDatabase? _database;
     private int _historyRequest;
 
-    public PlayersViewModel(IUniverseContext context, CsvExportService csvExport, IDialogService dialogs, IPlanetRepository repository)
+    public PlayersViewModel(IUniverseContext context, CsvExportService csvExport, IDialogService dialogs, IPlanetRepository repository, IActionQueues queues)
     {
+        _queues = queues;
         _context = context;
         _csvExport = csvExport;
         _dialogs = dialogs;
@@ -130,7 +133,7 @@ public sealed partial class PlayersViewModel : PageViewModel
             return;
 
         var planets = PlanetSearch.ByPlayerName(_database.Snapshot(), SearchText, ExactMatch);
-        Results = planets.Select(p => new PlayerPlanetItemViewModel(p, client)).ToList();
+        Results = planets.Select(p => new PlayerPlanetItemViewModel(p, client, _queues.For(client))).ToList();
 
         var players = planets.Select(p => p.PlayerName).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         Summary = $"{planets.Count:N0} planets, {players:N0} players";

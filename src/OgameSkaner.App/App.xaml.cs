@@ -28,6 +28,7 @@ public partial class App : Application
 
         _host = BuildHost(e.Args);
         DispatcherUnhandledException += OnUnhandledException;
+        Layout.Store = _host.Services.GetRequiredService<LayoutStore>();
 
         PageRegistration.RegisterTemplates(Resources, _host.Services.GetServices<PageDescriptor>());
 
@@ -78,9 +79,12 @@ public partial class App : Application
         builder.Services.AddSingleton<IUniverseContext, UniverseContext>();
         builder.Services.AddSingleton<AutomationActivity>();
         builder.Services.AddSingleton<RunningModules>();
+        builder.Services.AddSingleton<ActionQueueMonitor>();
+        builder.Services.AddSingleton<LayoutStore>();
 
         // The ways alerts reach the player; each shows up on the Defense page (add e-mail or SMS here).
         builder.Services.AddSingleton<IAlertChannel, WindowsAlertChannel>();
+        builder.Services.AddSingleton<AlarmPlayer>();
         builder.Services.AddSingleton<IAlertChannel, SoundAlertChannel>();
 
         builder.Services.AddSingleton<MainViewModel>();
@@ -99,6 +103,7 @@ public partial class App : Application
         builder.Services.AddPage<ExpeditionsViewModel, ExpeditionsView>("Expeditions");
         builder.Services.AddPage<DefenseViewModel, DefenseView>("Defense");
         builder.Services.AddPage<ShipyardViewModel, ShipyardView>("Shipyard");
+        builder.Services.AddPage<QueueViewModel, QueueView>("Queue");
         builder.Services.AddPage<UtilitiesViewModel, UtilitiesView>("Utilities");
 
         return builder.Build();

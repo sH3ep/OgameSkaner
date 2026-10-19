@@ -20,6 +20,16 @@ public enum OperationStatus
     Failed
 }
 
+/// <summary>The attack protection's state, for the sidebar.</summary>
+public enum ProtectionStatus
+{
+    Off,
+    Watching,
+
+    /// <summary>Hostile fleets are on their way.</summary>
+    Threatened
+}
+
 public enum SessionStatus
 {
     Unknown,

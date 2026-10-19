@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Ogamex;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.Core.Services;
@@ -19,9 +20,10 @@ public sealed record ScanResult(ScanOutcome Outcome, int SystemsScanned, int Tot
 
 /// <summary>
 /// Scans a range of solar systems and stores the results in the universe's planet database, paced by
-/// <see cref="ScanSettings"/>.
+/// <see cref="ScanSettings"/>. Each system is one <see cref="IActionQueue"/> group, so a long scan lets the other
+/// modules act in between.
 /// </summary>
-public sealed class GalaxyScanService(IPlanetRepository repository, TimeProvider timeProvider, ILogger<GalaxyScanService> logger)
+public sealed class GalaxyScanService(IPlanetRepository repository, IActionQueues queues, TimeProvider timeProvider, ILogger<GalaxyScanService> logger)
 {
     /// <summary>How many systems are scanned between two saves of the database.</summary>
     public int SaveInterval { get; init; } = 25;
@@ -39,6 +41,7 @@ public sealed class GalaxyScanService(IPlanetRepository repository, TimeProvider
             return new ScanResult(ScanOutcome.Failed, 0, range.Count, string.Join(Environment.NewLine, errors));
 
         var database = await repository.GetAsync(client.Universe.Name, cancellationToken).ConfigureAwait(false);
+        var queue = queues.For(client);
         var completed = 0;
         var unsaved = 0;
         DateTimeOffset? lastRequest = null;
@@ -60,8 +63,11 @@ public sealed class GalaxyScanService(IPlanetRepository repository, TimeProvider
                         await Task.Delay(wait, timeProvider, cancellationToken).ConfigureAwait(false);
                 }
 
-                lastRequest = timeProvider.GetUtcNow();
-                var planets = await client.GetSolarSystemAsync(address, cancellationToken).ConfigureAwait(false);
+                var planets = await queue.RunAsync("Scanner", $"Scan system {address.Galaxy}:{address.System}", ct =>
+                {
+                    lastRequest = timeProvider.GetUtcNow();
+                    return client.GetSolarSystemAsync(address, ct);
+                }, cancellationToken: cancellationToken).ConfigureAwait(false);
                 database.ReplaceSystem(address, planets, timeProvider.GetUtcNow());
                 completed++;
                 last = new ScanProgress(completed, range.Count, address, planets.Count);

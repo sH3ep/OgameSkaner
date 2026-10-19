@@ -4,17 +4,18 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:AsteroidsViewModel}"
              d:DesignHeight="560" d:DesignWidth="1000">
-    <Grid>
+    <Grid infra:Layout.Key="Asteroids.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" MinWidth="460" />
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" MinWidth="280" />
         </Grid.ColumnDefinitions>
 
-        <Grid>
+        <Grid infra:Layout.Key="Asteroids.Left">
             <Grid.RowDefinitions>
                 <RowDefinition Height="3*" />
                 <RowDefinition Height="Auto" />
@@ -35,9 +36,11 @@
                                 ToolTip="Read the new asteroid mining reports from the game's messages" />
                         <Button Content="Send miners" Command="{Binding SendSelectedCommand}" MinWidth="0"
                                 ToolTip="Send miners to the selected open asteroid from the nearest planet that has enough" />
+                        <Button Content="Fleet recalled" Command="{Binding MarkRecalledCommand}" MinWidth="0"
+                                ToolTip="You turned back the miners sent to the selected asteroid: it counts as open again, so the miner (or Send miners) sends to it once more" />
                     </StackPanel>
 
-                    <DataGrid ItemsSource="{Binding Asteroids}" SelectedItem="{Binding SelectedAsteroid}" AutoGenerateColumns="False" CanUserAddRows="False"
+                    <DataGrid infra:Layout.Key="Asteroids.Asteroids" ItemsSource="{Binding Asteroids}" SelectedItem="{Binding SelectedAsteroid}" AutoGenerateColumns="False" CanUserAddRows="False"
                               CanUserDeleteRows="False" HeadersVisibility="Column" SelectionMode="Single" SelectionUnit="FullRow" Background="Transparent" IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Coordinates" Binding="{Binding Coordinates}" SortMemberPath="CoordinatesSortKey" />
@@ -71,7 +74,7 @@
             <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" />
 
             <GroupBox Grid.Row="2" Header="Mining reports">
-                <DataGrid ItemsSource="{Binding Reports}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                <DataGrid infra:Layout.Key="Asteroids.Reports" ItemsSource="{Binding Reports}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" Background="Transparent" IsReadOnly="True">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Time" Binding="{Binding Time}" SortMemberPath="TimeSortKey" />
@@ -105,6 +108,8 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="Extra cargo %" VerticalAlignment="Center" Margin="0,0,6,6" />
@@ -116,17 +121,23 @@
                             <TextBlock Grid.Row="2" Text="Min miners" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding MinMiners, Converter={StaticResource GroupedNumber}}"
                                      ToolTip="At least this many miners per asteroid" />
-                            <TextBlock Grid.Row="3" Text="Arrive before gone (s)" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ArrivalSafetySeconds, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBlock Grid.Row="3" Text="Max miners" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding MaxMiners, Converter={StaticResource GroupedNumber}}"
+                                     ToolTip="At most this many miners per asteroid, also without an estimate (empty or 0 = no limit)" />
+                            <TextBlock Grid.Row="4" Text="Min capacity %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding MinCoveragePercent, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Don't send miners whose cargo holds less than this share of the estimated resources (0 = always send)" />
+                            <TextBlock Grid.Row="5" Text="Arrive before gone (s)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ArrivalSafetySeconds, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Miners are only sent when they arrive at least this long before the asteroid disappears" />
-                            <TextBlock Grid.Row="4" Text="Fleet slots used %" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding FleetSlotUsePercent, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBlock Grid.Row="6" Text="Fleet slots used %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding FleetSlotUsePercent, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="Mining fleets fill at most this share of all fleet slots (counting the fleets already flying)" />
-                            <TextBlock Grid.Row="5" Text="Check every (min)" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding CheckIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
+                            <TextBlock Grid.Row="7" Text="Check every (min)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding CheckIntervalMinutes, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="The runner looks for new asteroids at least this often (sooner when a report is due or miners return)" />
-                            <TextBlock Grid.Row="6" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
-                            <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding SpeedPercentage, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock Grid.Row="8" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                            <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding SpeedPercentage, UpdateSourceTrigger=PropertyChanged}" />
                         </Grid>
 
                         <CheckBox Content="Test mode (don't send fleets)" IsChecked="{Binding TestMode}" Margin="0,0,0,6" FontWeight="SemiBold"
@@ -135,6 +146,8 @@
                             <Button Content="Start" Command="{Binding RunCommand}"
                                     ToolTip="Read reports, find asteroids, send miners to every one they reach in time, and repeat" />
                             <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                            <Button Content="Check now" Command="{Binding CheckNowCommand}" IsEnabled="{Binding RunCommand.IsRunning}"
+                                    ToolTip="Start the next check now instead of waiting for the time in the log" />
                         </StackPanel>
                         <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" />
                     </StackPanel>

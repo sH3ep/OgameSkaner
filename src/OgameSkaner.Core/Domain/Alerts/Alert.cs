@@ -36,7 +36,7 @@ public sealed record AlertSettings
     /// <summary>The <see cref="IAlertChannel.Id"/>s alerts go to.</summary>
     public IReadOnlyList<string> EnabledChannels { get; init; } = ["windows", "sound"];
 
-    /// <summary>A .wav file the sound channel plays; null = the Windows alarm sound.</summary>
+    /// <summary>A .wav or .mp3 file the sound channel plays; null = the app's alarm signal.</summary>
     public string? SoundFile { get; init; }
 
     /// <summary>How often the sound plays per alert.</summary>

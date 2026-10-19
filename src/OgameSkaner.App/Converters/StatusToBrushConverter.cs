@@ -5,15 +5,15 @@ using OgameSkaner.App.ViewModels;
 
 namespace OgameSkaner.App.Converters;
 
-/// <summary>Maps <see cref="OperationStatus"/> and <see cref="SessionStatus"/> to an indicator colour.</summary>
+/// <summary>Maps <see cref="OperationStatus"/>, <see cref="SessionStatus"/> and <see cref="ProtectionStatus"/> to an indicator colour.</summary>
 public sealed class StatusToBrushConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
     {
-        OperationStatus.Succeeded or SessionStatus.Valid => Brushes.LimeGreen,
-        OperationStatus.Failed or SessionStatus.Invalid => Brushes.Red,
+        OperationStatus.Succeeded or SessionStatus.Valid or ProtectionStatus.Watching => Brushes.LimeGreen,
+        OperationStatus.Failed or SessionStatus.Invalid or ProtectionStatus.Threatened => Brushes.Red,
         OperationStatus.Pending or SessionStatus.Checking => Brushes.Orange,
-        SessionStatus.Unknown => Brushes.Gray,
+        SessionStatus.Unknown or ProtectionStatus.Off => Brushes.Gray,
         _ => Brushes.Transparent
     };
 

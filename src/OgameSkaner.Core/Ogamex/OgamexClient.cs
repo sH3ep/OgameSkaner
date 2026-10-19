@@ -35,6 +35,9 @@ internal sealed class OgamexClient : IOgamexClient
 
     private long _cacheBuster;
 
+    /// <summary>The planet the server showed last (its current planet); null until a page told.</summary>
+    private string? _currentPlanet;
+
     /// <summary>Time zone the game shows dates in, learned from the fleet page's clock; null until then.</summary>
     private TimeSpan? _displayOffset;
 
@@ -56,6 +59,10 @@ internal sealed class OgamexClient : IOgamexClient
     }
 
     public UniverseProfile Universe { get; }
+
+    public PlanetId? CurrentPlanet => Volatile.Read(ref _currentPlanet) is { } id ? new PlanetId(id) : null;
+
+    private void Shown(PlanetId planet) => Volatile.Write(ref _currentPlanet, planet.Value);
 
     public async Task<IReadOnlyList<PlayerPlanet>> GetSolarSystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default) =>
         (await GetGalaxySystemAsync(address, cancellationToken).ConfigureAwait(false)).Planets;
@@ -116,7 +123,26 @@ internal sealed class OgamexClient : IOgamexClient
         }
     }
 
-    public async Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, CancellationToken cancellationToken = default)
+    public async Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default)
+    {
+        if (origin is null)
+            return await ReadBriefingAsync(mission, cancellationToken).ConfigureAwait(false);
+
+        // The briefing flies from the current planet: switch to the origin first when another request moved away.
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            if (CurrentPlanet != origin)
+                await ReadFleetPageAsync(origin, cancellationToken).ConfigureAwait(false);
+            return await ReadBriefingAsync(mission, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+    }
+
+    private async Task<FleetBriefing> ReadBriefingAsync(FleetMission mission, CancellationToken cancellationToken)
     {
         using var request = CreateRequest(HttpMethod.Post, "fleet/fleetpage3data", referer: "fleet");
         request.Content = JsonContent.Create(
@@ -218,8 +244,12 @@ internal sealed class OgamexClient : IOgamexClient
         var fleet = FleetPageParser.Parse(html);
 
         // An unknown planet id is ignored and the current planet is shown instead.
-        if (planet is { } expected && BuildingPageParser.TryReadPage(html, out var shown, out _) && shown != expected)
-            throw new OgamexException($"Planet {expected} is not available on {Universe.Name}. Refresh the planet list.");
+        if (BuildingPageParser.TryReadPage(html, out var shown, out _))
+        {
+            Shown(shown);
+            if (planet is { } expected && shown != expected)
+                throw new OgamexException($"Planet {expected} is not available on {Universe.Name}. Refresh the planet list.");
+        }
 
         if (fleet.ServerClock is { } clock)
         {
@@ -279,6 +309,7 @@ internal sealed class OgamexClient : IOgamexClient
     {
         using var request = CreateRequest(HttpMethod.Get, $"hangar?planet={Uri.EscapeDataString(planet.Value)}", referer: "hangar");
         var state = HangarPageParser.Parse(await SendSwitchingPlanetAsync(request, cancellationToken).ConfigureAwait(false));
+        Shown(state.Planet);
         if (state.Planet != planet)
             throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
         return state;
@@ -300,6 +331,7 @@ internal sealed class OgamexClient : IOgamexClient
             using var pageRequest = CreateRequest(HttpMethod.Get, $"{page}?planet={Uri.EscapeDataString(planet.Value)}", referer: page);
             if (!BuildingPageParser.TryReadPage(await SendForStringAsync(pageRequest, cancellationToken).ConfigureAwait(false), out var shown, out _))
                 throw new SessionExpiredException($"The server did not return the {page} page. Check the token and session id.");
+            Shown(shown);
             if (shown != planet)
                 throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
 
@@ -330,8 +362,12 @@ internal sealed class OgamexClient : IOgamexClient
         using var request = CreateRequest(HttpMethod.Get, $"home?planet={Uri.EscapeDataString(planet.Value)}", referer: "home");
         var html = await SendSwitchingPlanetAsync(request, cancellationToken).ConfigureAwait(false);
         var temperature = OverviewPageParser.ParseTemperature(html);
-        if (BuildingPageParser.TryReadPage(html, out var shown, out _) && shown != planet)
-            throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
+        if (BuildingPageParser.TryReadPage(html, out var shown, out _))
+        {
+            Shown(shown);
+            if (shown != planet)
+                throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
+        }
         return temperature;
     }
 
@@ -376,10 +412,24 @@ internal sealed class OgamexClient : IOgamexClient
 
     public async Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default)
     {
-        using var request = CreateRequest(HttpMethod.Post, "building/increasebuilding", referer: "building/resource");
-        request.Content = JsonContent.Create(new IncreaseBuildingRequest(BuildingCatalog.Get(building).ServerId, planet.Value), options: JsonOptions);
+        // The server refuses an upgrade for another planet than its current one ("different planet"): switch first when
+        // another request (another module, an escape) moved away, and let no switch in between.
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        BuildingResponse response;
+        try
+        {
+            if (CurrentPlanet != planet)
+                await LoadBuildingPageAsync("building/resource", planet, cancellationToken).ConfigureAwait(false);
 
-        var response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+            using var request = CreateRequest(HttpMethod.Post, "building/increasebuilding", referer: "building/resource");
+            request.Content = JsonContent.Create(new IncreaseBuildingRequest(BuildingCatalog.Get(building).ServerId, planet.Value), options: JsonOptions);
+            response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+
         if (response.IsSuccess)
             return EnqueueOutcome.Queued;
 
@@ -392,12 +442,27 @@ internal sealed class OgamexClient : IOgamexClient
     /// <exception cref="OgamexException">The server returned another planet (unknown or lost planet id).</exception>
     private async Task<BuildingPage> GetBuildingPageAsync(string path, PlanetId? planet, CancellationToken cancellationToken)
     {
+        if (planet is null)
+            return await LoadBuildingPageAsync(path, null, cancellationToken).ConfigureAwait(false);
+
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await LoadBuildingPageAsync(path, planet, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+    }
+
+    /// <summary>Like <see cref="GetBuildingPageAsync"/>; the caller holds the planet lock for a switch.</summary>
+    private async Task<BuildingPage> LoadBuildingPageAsync(string path, PlanetId? planet, CancellationToken cancellationToken)
+    {
         var uri = planet is { } id ? $"{path}?planet={Uri.EscapeDataString(id.Value)}" : path;
         using var request = CreateRequest(HttpMethod.Get, uri, referer: path);
-        var html = planet is null
-            ? await SendForStringAsync(request, cancellationToken).ConfigureAwait(false)
-            : await SendSwitchingPlanetAsync(request, cancellationToken).ConfigureAwait(false);
-        var page = BuildingPageParser.Parse(html);
+        var page = BuildingPageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        Shown(page.CurrentPlanet);
 
         // An unknown planet id is silently ignored and the current planet is returned instead.
         if (planet is { } expected && page.CurrentPlanet != expected)

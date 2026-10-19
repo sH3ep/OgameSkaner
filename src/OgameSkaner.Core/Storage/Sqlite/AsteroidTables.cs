@@ -9,7 +9,7 @@ namespace OgameSkaner.Core.Storage.Sqlite;
 internal static class AsteroidTables
 {
     private const string MissionColumns =
-        "galaxy, system, position, origin_galaxy, origin_system, origin_position, miners, estimated_resources, sent_at, arrives_at, returns_at";
+        "galaxy, system, position, origin_galaxy, origin_system, origin_position, miners, estimated_resources, sent_at, arrives_at, returns_at, recalled_at";
 
     private const string ReportColumns = "id, time, galaxy, system, position, kind, available, metal, crystal, deuterium, dark_matter";
 
@@ -68,7 +68,8 @@ internal static class AsteroidTables
                 reader.GetInt64(7),
                 Sql.Time(reader.GetInt64(8)),
                 Sql.Time(reader.GetInt64(9)),
-                Sql.Time(reader.GetInt64(10))));
+                Sql.Time(reader.GetInt64(10)),
+                reader.NullableInt64(11) is { } recalled ? Sql.Time(recalled) : null));
         }
 
         return missions;
@@ -79,7 +80,7 @@ internal static class AsteroidTables
         using var command = Sql.Prepare(connection, transaction,
             $"""
             INSERT INTO asteroid_missions ({MissionColumns})
-            VALUES ($g, $s, $p, $og, $os, $op, $miners, $estimate, $sent, $arrives, $returns)
+            VALUES ($g, $s, $p, $og, $os, $op, $miners, $estimate, $sent, $arrives, $returns, $recalled)
             """);
 
         foreach (var m in missions)
@@ -88,8 +89,19 @@ internal static class AsteroidTables
                 .Set("$og", m.Origin.Galaxy).Set("$os", m.Origin.System).Set("$op", m.Origin.Position)
                 .Set("$miners", m.Miners).Set("$estimate", m.EstimatedResources)
                 .Set("$sent", Sql.Ticks(m.SentAt)).Set("$arrives", Sql.Ticks(m.ArrivesAt)).Set("$returns", Sql.Ticks(m.ReturnsAt))
+                .Set("$recalled", m.RecalledAt is { } recalled ? Sql.Ticks(recalled) : null)
                 .ExecuteNonQuery();
         }
+    }
+
+    /// <summary>Marks the missions to <paramref name="target"/> sent at <paramref name="sentAt"/> as turned back.</summary>
+    public static void MarkRecalled(SqliteConnection connection, Coordinates target, DateTimeOffset sentAt, DateTimeOffset recalledAt)
+    {
+        using var command = Sql.Prepare(connection, null,
+            "UPDATE asteroid_missions SET recalled_at = $recalled WHERE galaxy = $g AND system = $s AND position = $p AND sent_at = $sent");
+        command.Set("$g", target.Galaxy).Set("$s", target.System).Set("$p", target.Position)
+            .Set("$sent", Sql.Ticks(sentAt)).Set("$recalled", Sql.Ticks(recalledAt))
+            .ExecuteNonQuery();
     }
 
     public static IReadOnlyList<AsteroidReport> Reports(SqliteConnection connection)

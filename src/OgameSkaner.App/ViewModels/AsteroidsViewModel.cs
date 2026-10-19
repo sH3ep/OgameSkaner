@@ -54,7 +54,7 @@ public sealed partial class AsteroidsViewModel : PageViewModel
     public ObservableCollection<string> Log { get; } = [];
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(SendSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(SendSelectedCommand), nameof(MarkRecalledCommand))]
     private AsteroidItemViewModel? _selectedAsteroid;
 
     [ObservableProperty]
@@ -65,6 +65,12 @@ public sealed partial class AsteroidsViewModel : PageViewModel
 
     [ObservableProperty]
     private long _minMiners;
+
+    [ObservableProperty]
+    private long? _maxMiners;
+
+    [ObservableProperty]
+    private int _minCoveragePercent;
 
     [ObservableProperty]
     private int _arrivalSafetySeconds;
@@ -150,7 +156,7 @@ public sealed partial class AsteroidsViewModel : PageViewModel
         EstimateInfo = overview.Estimate is { } estimate
             ? $"Next asteroid: ~{estimate.Resources:N0} resources (from the report of {estimate.Basis.Time.ToLocalTime():g}), "
               + $"so miners for {estimate.Resources * (1 + settings.MarginPercent / 100.0):N0} cargo; {gains}."
-            : $"No mining report with resources yet: {settings.MinersWithoutEstimate:N0} miners per asteroid. {gains}.";
+            : $"No mining report with resources yet: {AsteroidPlanner.MinersNeeded(null, 0, settings):N0} miners per asteroid. {gains}.";
     }
 
     [RelayCommand(CanExecute = nameof(CanAct))]
@@ -170,9 +176,38 @@ public sealed partial class AsteroidsViewModel : PageViewModel
         return ActAsync(client => _runner.SendAsync(client, CurrentSettings(), Progress(), only: [target]), n => $"{n} mining fleet(s) sent");
     }
 
+    /// <summary>The player turned the selected asteroid's miners back: it's open again and gets miners once more.</summary>
+    [RelayCommand(CanExecute = nameof(CanMarkRecalled))]
+    private void MarkRecalled()
+    {
+        if (_context.Current is not { } universe || SelectedAsteroid is not { } selected || !CanMarkRecalled())
+            return;
+        var asteroid = selected.Target.Asteroid;
+        try
+        {
+            AddLog(_runner.MarkRecalled(universe.Name, asteroid)
+                ? $"[{asteroid.Coordinates}]: miners marked as recalled, the asteroid is open again"
+                : $"[{asteroid.Coordinates}]: no miners sent to mark as recalled");
+        }
+        catch (Microsoft.Data.Sqlite.SqliteException ex)
+        {
+            AddLog($"Marking the miners as recalled failed: {ex.Message}");
+        }
+
+        Refresh();
+    }
+
+    // The runner picks the asteroid up on its next cycle, so this works while it runs too.
+    private bool CanMarkRecalled() =>
+        SelectedAsteroid is { State: AsteroidState.Sent or AsteroidState.Mined } selected && selected.Target.Asteroid.DisappearsAt > DateTimeOffset.Now;
+
     private bool CanAct() => !IsBusy && !RunCommand.IsRunning;
 
     private bool CanSendSelected() => CanAct() && SelectedAsteroid is { State: AsteroidState.Open };
+
+    /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
+    [RelayCommand]
+    private void CheckNow() => _runner.CheckNow();
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -248,6 +283,8 @@ public sealed partial class AsteroidsViewModel : PageViewModel
             MarginPercent = settings.MarginPercent;
             MinersWithoutEstimate = settings.MinersWithoutEstimate;
             MinMiners = settings.MinMiners;
+            MaxMiners = settings.MaxMiners;
+            MinCoveragePercent = settings.MinCoveragePercent;
             ArrivalSafetySeconds = settings.ArrivalSafetySeconds;
             FleetSlotUsePercent = settings.FleetSlotUsePercent;
             CheckIntervalMinutes = settings.CheckIntervalMinutes;
@@ -276,6 +313,8 @@ public sealed partial class AsteroidsViewModel : PageViewModel
         MarginPercent = Math.Max(0, MarginPercent),
         MinersWithoutEstimate = Math.Max(1, MinersWithoutEstimate),
         MinMiners = Math.Max(1, MinMiners),
+        MaxMiners = MaxMiners is > 0 ? MaxMiners : null, // empty or 0 = no limit
+        MinCoveragePercent = Math.Clamp(MinCoveragePercent, 0, 100),
         ArrivalSafetySeconds = Math.Max(0, ArrivalSafetySeconds),
         FleetSlotUsePercent = Math.Clamp(FleetSlotUsePercent, 0, 100),
         CheckIntervalMinutes = Math.Max(1, CheckIntervalMinutes),

@@ -9,6 +9,7 @@ using OgameSkaner.Core.Services.Expeditions;
 using OgameSkaner.Core.Services.Optimizer;
 using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Schemas;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
 using OgameSkaner.Core.Storage.Sqlite;
@@ -38,11 +39,13 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IOptimizerResultStore, JsonOptimizerResultStore>();
         services.AddSingleton<IRaidStore, SqliteRaidStore>();
         services.AddSingleton<IAsteroidStore, SqliteAsteroidStore>();
+        services.AddSingleton<IActionHistoryStore, SqliteActionHistoryStore>();
         services.AddSingleton<IDefenseSettingsStore, JsonDefenseSettingsStore>();
         services.AddSingleton<IExpeditionSettingsStore, JsonExpeditionSettingsStore>();
         services.AddSingleton<LegacyImporter>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
+        services.AddSingleton<IActionQueues, ActionQueues>();
 
         services.AddSingleton<GalaxyScanService>();
         services.AddSingleton<FleetEscapeService>();

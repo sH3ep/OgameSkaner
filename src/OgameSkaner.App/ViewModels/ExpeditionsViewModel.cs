@@ -145,6 +145,10 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
     [RelayCommand]
     private void SelectNoShips() => SetShipsSelected(false);
 
+    /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
+    [RelayCommand]
+    private void CheckNow() => _runner.CheckNow();
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
     {

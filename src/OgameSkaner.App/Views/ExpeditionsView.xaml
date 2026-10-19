@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:ExpeditionsViewModel}"
              d:DesignHeight="600" d:DesignWidth="1000">
-    <Grid>
+    <Grid infra:Layout.Key="Expeditions.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" MinWidth="460" />
             <ColumnDefinition Width="Auto" />
@@ -30,7 +31,7 @@
                         <Button Content="None" Command="{Binding UseNoneCommand}" />
                         <TextBlock Text="{Binding PlanetsInfo}" VerticalAlignment="Center" Margin="6,0,0,0" />
                     </DockPanel>
-                    <DataGrid ItemsSource="{Binding Origins}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                    <DataGrid infra:Layout.Key="Expeditions.Origins" ItemsSource="{Binding Origins}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                               HeadersVisibility="Column" SelectionMode="Single" Background="Transparent">
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="Use" SortMemberPath="IsUsed">
@@ -121,6 +122,8 @@
                         <Button Content="Start" Command="{Binding RunCommand}"
                                 ToolTip="Send expeditions to position 16 of each ticked place's system whenever slots and ships are free" />
                         <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                        <Button Content="Check now" Command="{Binding CheckNowCommand}" IsEnabled="{Binding RunCommand.IsRunning}"
+                                ToolTip="Start the next check now instead of waiting for the time in the log" />
                     </StackPanel>
                 </StackPanel>
             </ScrollViewer>

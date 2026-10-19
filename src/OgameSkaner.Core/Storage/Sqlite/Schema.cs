@@ -89,6 +89,23 @@ internal static class Schema
             kind INTEGER NOT NULL, available INTEGER NOT NULL,
             metal INTEGER NOT NULL, crystal INTEGER NOT NULL, deuterium INTEGER NOT NULL, dark_matter INTEGER NOT NULL);
         CREATE INDEX asteroid_reports_time ON asteroid_reports (time);
+        """,
+
+        // 4: miners the player turned back, so the asteroid can get miners again.
+        """
+        ALTER TABLE asteroid_missions ADD COLUMN recalled_at INTEGER;
+        """,
+
+        // 5: every finished action queue group, kept 30 days for analysis (priority and state as their names; wait_ms
+        // and run_ms are null for a group cancelled before it started).
+        """
+        CREATE TABLE action_history (
+            id INTEGER PRIMARY KEY,
+            owner TEXT NOT NULL, description TEXT NOT NULL, priority TEXT NOT NULL, state TEXT NOT NULL,
+            queued_at INTEGER NOT NULL, started_at INTEGER, finished_at INTEGER NOT NULL,
+            wait_ms INTEGER, run_ms INTEGER, error TEXT);
+        CREATE INDEX action_history_finished ON action_history (finished_at);
+        CREATE INDEX action_history_owner ON action_history (owner, finished_at);
         """
     ];
 

@@ -4,6 +4,7 @@ using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.Core.Services.Raiding;
@@ -26,23 +27,33 @@ public sealed record RaidRunResult(RaidOutcome Outcome, int Attacks, int Spies, 
 /// The same steps are available one by one for the page's buttons.
 /// </summary>
 /// <remarks>
-/// Fleets leave from the planet selected in the game at the start of the cycle, or with
-/// <see cref="RaidSettings.UseNearestPlanet"/> from the nearest own planet that has the cargo ships. Each send switches
-/// to its origin under the client's planet lock, and the game is switched back afterwards.
+/// Fleets leave from the player's planet (<see cref="IActionQueue.HomePlanet"/>), or with
+/// <see cref="RaidSettings.UseNearestPlanet"/> from the nearest ticked planet that has the cargo ships or probes (targets
+/// then go in rank/loot order, not by distance). Reading, spying
+/// and each attack wave are <see cref="IActionQueue"/> groups; the buttons' actions are one player group each.
 /// </remarks>
 public sealed class RaidRunner(
     OwnPlanetService ownPlanets,
+    IActionQueues queues,
     IPlanetRepository planetRepository,
     IRaidStore store,
     TimeProvider timeProvider,
     ILogger<RaidRunner> logger)
 {
+    private readonly WakeUp _wakeUp = new();
+
+    /// <summary>Ends the running loop's wait, so the next cycle starts now ("Check now"); no effect without a run.</summary>
+    public void CheckNow() => _wakeUp.Now();
+
     public const string ProbeType = "SPY_PROBE";
 
+    private const string Owner = "Raids";
+
+    /// <summary>Message pages a cycle reads at most (it stops at the first report already stored).</summary>
     private const int ReportPages = 3;
 
-    /// <summary>Pages read when every report in the messages is loaded.</summary>
-    private const int AllReportPages = 20;
+    /// <summary>Message pages the "Load reports" button reads at most, to catch up after a long break.</summary>
+    private const int ManualReportPages = 20;
 
     /// <summary>A run reads the defense ranking again when it's older (the game updates it every few minutes to hours).</summary>
     public static readonly TimeSpan RankingMaxAge = TimeSpan.FromHours(6);
@@ -75,7 +86,11 @@ public sealed class RaidRunner(
     /// Reads the whole defense ranking (every page) and stores each player's points: 0 means no defenses worth a point,
     /// so the player's planets are safe from defenses. Returns the number of players read.
     /// </summary>
-    public async Task<int> ReadDefenseRankingAsync(IOgamexClient client, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default)
+    public Task<int> ReadDefenseRankingAsync(
+        IOgamexClient client, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default, ActionPriority priority = ActionPriority.User) =>
+        queues.For(client).RunAsync(Owner, "Read the defense ranking", ct => ReadDefenseRankingCoreAsync(client, progress, ct), priority, cancellationToken);
+
+    private async Task<int> ReadDefenseRankingCoreAsync(IOgamexClient client, IProgress<RaidProgress>? progress, CancellationToken cancellationToken)
     {
         var first = await client.GetRankingPageAsync(RankingCategory.Defense, 1, cancellationToken).ConfigureAwait(false);
         var entries = new List<RankingEntry>(first.Entries);
@@ -99,6 +114,7 @@ public sealed class RaidRunner(
         int attacks = 0, spies = 0;
         try
         {
+            _wakeUp.Reset();
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -118,7 +134,8 @@ public sealed class RaidRunner(
                 }
 
                 Report(progress, $"Next check at {timeProvider.GetLocalNow().Add(wait):T}");
-                await Task.Delay(wait, timeProvider, cancellationToken).ConfigureAwait(false);
+                if (await _wakeUp.DelayAsync(wait, timeProvider, cancellationToken).ConfigureAwait(false))
+                    Report(progress, "Checking now.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -131,20 +148,26 @@ public sealed class RaidRunner(
         }
     }
 
+    /// <summary>The "Load reports" button: the new espionage reports, up to <see cref="ManualReportPages"/> pages.</summary>
+    public Task<int> ReadReportsAsync(
+        IOgamexClient client, RaidSettings settings, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default) =>
+        queues.For(client).RunAsync(Owner, "Read the new espionage reports",
+            ct => ReadReportsCoreAsync(client, settings, progress, ct, ManualReportPages), ActionPriority.User, cancellationToken);
+
     /// <summary>
-    /// Reads the espionage reports the store doesn't know yet, with ships and defenses when still fresh enough.
-    /// <paramref name="all"/> loads every report in the messages (up to <see cref="AllReportPages"/> pages) with its
-    /// details, including stored ones read without details before.
+    /// Reads the espionage reports the store doesn't know yet, newest first, and stops at the first page with a stored
+    /// one (the list is newest first, so everything after it was read before). Ships and defenses are read only for
+    /// reports young enough to attack on (<see cref="RaidSettings.ReportMaxAge"/>); older ones keep the summary.
     /// </summary>
-    public async Task<int> ReadReportsAsync(
-        IOgamexClient client, RaidSettings settings, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default, bool all = false)
+    private async Task<int> ReadReportsCoreAsync(
+        IOgamexClient client, RaidSettings settings, IProgress<RaidProgress>? progress, CancellationToken cancellationToken, int maxPages = ReportPages)
     {
         var universe = client.Universe.Name;
-        var known = store.LoadReportIds(universe, withDetailsOnly: all).ToHashSet();
-        var cutoff = all ? DateTimeOffset.MinValue : timeProvider.GetUtcNow() - settings.ReportMaxAge;
+        var known = store.LoadReportIds(universe).ToHashSet();
+        var cutoff = timeProvider.GetUtcNow() - settings.ReportMaxAge;
         var fresh = new List<EspionageReport>();
 
-        for (var page = 1; page <= (all ? AllReportPages : ReportPages); page++)
+        for (var page = 1; page <= maxPages; page++)
         {
             var list = await client.GetEspionageReportsAsync(page, cancellationToken).ConfigureAwait(false);
             var unknown = list.Where(r => known.Add(r.Id)).ToList();
@@ -168,7 +191,7 @@ public sealed class RaidRunner(
             }
 
             // The list is newest first: a page with reports read before ends the new ones.
-            if (list.Count == 0 || (!all && unknown.Count < list.Count))
+            if (list.Count == 0 || unknown.Count < list.Count)
                 break;
         }
 
@@ -177,7 +200,7 @@ public sealed class RaidRunner(
             store.AddReports(universe, fresh);
             Report(progress, $"Read {fresh.Count} new espionage report(s)");
         }
-        else if (all)
+        else if (maxPages == ManualReportPages)
         {
             Report(progress, "No new espionage reports in the messages.");
         }
@@ -185,29 +208,37 @@ public sealed class RaidRunner(
         return fresh.Count;
     }
 
-    /// <summary>Spies on <paramref name="targets"/> from the current planet, in every free fleet slot but one.</summary>
+    /// <summary>Spies on <paramref name="targets"/> from the current (or nearest ticked) planet, in every free fleet slot but one.</summary>
     public Task<int> SpyAsync(
         IOgamexClient client, IReadOnlyList<RaidTarget> targets, RaidSettings settings, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default) =>
-        RunManualAsync(client, settings, progress, cancellationToken, (refresh, origins, slots) =>
-            SpyAsync(client, targets.Take(RaidPlanner.SpySlotBudget(slots)).ToList(), settings, Home(origins, refresh), progress, cancellationToken));
+        RunManualAsync(client, settings, progress, $"Spy on {targets.Count} planet(s)", (origins, slots, ct) =>
+            SpyAsync(client, targets.Take(RaidPlanner.SpySlotBudget(slots)).ToList(), settings, origins, progress, ct), cancellationToken);
 
     /// <summary>Attacks <paramref name="targets"/> (with fresh reports), as far as the free fleet slots allow.</summary>
     public Task<int> AttackAsync(
         IOgamexClient client, IReadOnlyList<RaidTarget> targets, RaidSettings settings, IProgress<RaidProgress>? progress = null, CancellationToken cancellationToken = default) =>
-        RunManualAsync(client, settings, progress, cancellationToken, (_, origins, slots) =>
-            AttackAsync(client, targets.Where(t => t.Report is not null).ToList(), settings, origins, slots.Free, progress, cancellationToken));
+        RunManualAsync(client, settings, progress, $"Attack {targets.Count} planet(s)", (origins, slots, ct) =>
+            AttackAsync(client, targets.Where(t => t.Report is not null).ToList(), settings, origins, slots.Free, progress, ct), cancellationToken);
 
-    private async Task<int> RunManualAsync(
+    /// <summary>A button's action as one player group (the waves it queues run inside it).</summary>
+    private Task<int> RunManualAsync(
         IOgamexClient client,
         RaidSettings settings,
         IProgress<RaidProgress>? progress,
-        CancellationToken cancellationToken,
-        Func<OwnPlanetRefresh, IReadOnlyList<Origin>, FleetSlots, Task<int>> action)
+        string description,
+        Func<IReadOnlyList<Origin>, FleetSlots, CancellationToken, Task<int>> action,
+        CancellationToken cancellationToken)
     {
-        var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
-        try
+        var queue = queues.For(client);
+        return queue.RunAsync(Owner, description, async ct =>
         {
-            var origins = await ReadOriginsAsync(client, refresh, settings, cancellationToken).ConfigureAwait(false);
+            var origins = await ReadOriginsAsync(client, queue, settings, ct).ConfigureAwait(false);
+            if (origins.Count == 0)
+            {
+                Report(progress, NoOriginMessage);
+                return 0;
+            }
+
             var slots = Slots(origins);
             if (slots.Free == 0)
             {
@@ -215,81 +246,86 @@ public sealed class RaidRunner(
                 return 0;
             }
 
-            return await action(refresh, origins, slots).ConfigureAwait(false);
-        }
-        finally
-        {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, progress).ConfigureAwait(false);
-        }
+            return await action(origins, slots, ct).ConfigureAwait(false);
+        }, ActionPriority.User, cancellationToken);
     }
 
     private async Task<(int Attacks, int Spies, TimeSpan Wait)> RunCycleAsync(
         IOgamexClient client, RaidSettings settings, IProgress<RaidProgress>? progress, CancellationToken cancellationToken)
     {
-        var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
-        try
+        var queue = queues.For(client);
+        var origins = await queue.RunAsync(Owner, "Read the fleets and espionage reports", async ct =>
         {
-            var origins = await ReadOriginsAsync(client, refresh, settings, cancellationToken).ConfigureAwait(false);
-            var slots = Slots(origins);
-            var budget = RaidPlanner.SlotBudget(slots, settings);
-
-            await ReadReportsAsync(client, settings, progress, cancellationToken).ConfigureAwait(false);
-            if (DefenseRankingReadAt(client.Universe.Name) is not { } rankingAt || timeProvider.GetUtcNow() - rankingAt >= RankingMaxAge)
-                await ReadDefenseRankingAsync(client, progress, cancellationToken).ConfigureAwait(false);
-            var targets = await GetTargetsAsync(client.Universe.Name, settings, cancellationToken).ConfigureAwait(false);
-            Report(progress, Summary(targets, slots, budget, RaidPlanner.SpySlotBudget(slots)));
-
-            var attacks = 0;
-            var spies = 0;
-            if (budget > 0)
-            {
-                IReadOnlyList<RaidTarget> ready = targets.Where(t => t.State == RaidTargetState.Ready).OrderByDescending(t => t.ExpectedLoot).ToList();
-                if (settings.NearestTargetsFirst)
-                    ready = RaidPlanner.NearestFirst(ready, origins.Select(o => o.Planet.Coordinates).ToList(), client.Universe);
-                attacks = await AttackAsync(client, ready, settings, origins, budget, progress, cancellationToken).ConfigureAwait(false);
-            }
-
-            var spyBudget = RaidPlanner.SpySlotBudget(slots, attacks);
-            if (spyBudget > 0)
-            {
-                var home = Home(origins, refresh);
-                IReadOnlyList<RaidTarget> needSpy = targets.Where(t => t.State == RaidTargetState.NeedsSpy).ToList();
-                if (settings.NearestTargetsFirst)
-                    needSpy = RaidPlanner.NearestFirst(needSpy, [home.Planet.Coordinates], client.Universe);
-                spies = await SpyAsync(client, needSpy.Take(spyBudget).ToList(), settings, home, progress, cancellationToken).ConfigureAwait(false);
-            }
-
-            return (attacks, spies, NextWait(client.Universe.Name));
-        }
-        finally
+            var read = await ReadOriginsAsync(client, queue, settings, ct).ConfigureAwait(false);
+            await ReadReportsCoreAsync(client, settings, progress, ct).ConfigureAwait(false);
+            return read;
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (origins.Count == 0)
         {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, progress).ConfigureAwait(false);
+            Report(progress, NoOriginMessage);
+            return (0, 0, IdleWait);
         }
+
+        var slots = Slots(origins);
+        var budget = RaidPlanner.SlotBudget(slots, settings);
+        // Sending from the nearest planet goes for the best targets anywhere instead.
+        var byDistance = settings.NearestTargetsFirst && !settings.UseNearestPlanet;
+
+        if (DefenseRankingReadAt(client.Universe.Name) is not { } rankingAt || timeProvider.GetUtcNow() - rankingAt >= RankingMaxAge)
+            await ReadDefenseRankingAsync(client, progress, cancellationToken, ActionPriority.Automation).ConfigureAwait(false);
+        var targets = await GetTargetsAsync(client.Universe.Name, settings, cancellationToken).ConfigureAwait(false);
+        Report(progress, Summary(targets, slots, budget, RaidPlanner.SpySlotBudget(slots, settings)));
+
+        var attacks = 0;
+        var spies = 0;
+        if (budget > 0)
+        {
+            IReadOnlyList<RaidTarget> ready = targets.Where(t => t.State == RaidTargetState.Ready).OrderByDescending(t => t.ExpectedLoot).ToList();
+            if (byDistance)
+                ready = RaidPlanner.NearestFirst(ready, origins.Select(o => o.Planet.Coordinates).ToList(), client.Universe);
+            attacks = await AttackAsync(client, ready, settings, origins, budget, progress, cancellationToken).ConfigureAwait(false);
+        }
+
+        var spyBudget = RaidPlanner.SpySlotBudget(slots, settings, attacks);
+        if (spyBudget == 0 && targets.Any(t => t.State == RaidTargetState.NeedsSpy))
+            Report(progress, $"No spying: {slots.Used + attacks}/{slots.Max} fleet slots in use, the limit is {settings.FleetSlotUsePercent}%.");
+        if (spyBudget > 0)
+        {
+            IReadOnlyList<RaidTarget> needSpy = targets.Where(t => t.State == RaidTargetState.NeedsSpy).ToList();
+            if (byDistance)
+                needSpy = RaidPlanner.NearestFirst(needSpy, [Home(origins).Planet.Coordinates], client.Universe);
+            var chosen = needSpy.Take(spyBudget).ToList();
+            if (chosen.Count > 0)
+                spies = await queue.RunAsync(Owner, $"Spy on {chosen.Count} planet(s)", ct => SpyAsync(client, chosen, settings, origins, progress, ct), cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+        }
+
+        return (attacks, spies, NextWait(client.Universe.Name));
     }
 
+    /// <summary>Each spy leaves from the nearest of <paramref name="origins"/> that still has <see cref="RaidSettings.ProbeCount"/> probes.</summary>
     private async Task<int> SpyAsync(
-        IOgamexClient client, IReadOnlyList<RaidTarget> targets, RaidSettings settings, Origin home, IProgress<RaidProgress>? progress, CancellationToken cancellationToken)
+        IOgamexClient client, IReadOnlyList<RaidTarget> targets, RaidSettings settings, IReadOnlyList<Origin> origins, IProgress<RaidProgress>? progress, CancellationToken cancellationToken)
     {
         if (targets.Count == 0)
             return 0;
-
-        var probes = home.Fleet.QuantityOf(ProbeType);
-        if (probes < settings.ProbeCount)
-        {
-            Report(progress, $"Not enough spy probes on {home.Planet.Name} ({probes:N0} of {settings.ProbeCount}).");
-            return 0;
-        }
 
         var sent = new List<RaidRecord>();
         try
         {
             foreach (var target in targets)
             {
-                if (probes < settings.ProbeCount)
+                var home = RaidPlanner.ChooseOrigin(target.Planet.Coordinates, origins.Where(o => o.Cargo(ProbeType) >= settings.ProbeCount),
+                    o => o.Planet.Coordinates, o => o.Cargo(ProbeType), settings.ProbeCount, client.Universe);
+                if (home is null)
+                {
+                    var probes = origins.Sum(o => o.Cargo(ProbeType));
+                    Report(progress, $"Not enough spy probes on {string.Join(", ", origins.Select(o => o.Planet.Name))} ({probes:N0} left, {settings.ProbeCount} per spy).");
                     break;
+                }
 
                 var mission = new FleetMission(target.Planet.Coordinates, PlanetType.Planet, MissionType.Spy, [new ShipStack(ProbeType, settings.ProbeCount)], settings.SpeedPercentage);
-                var briefing = await client.GetFleetBriefingAsync(mission, cancellationToken).ConfigureAwait(false);
+                var briefing = await client.GetFleetBriefingAsync(mission, home.Planet.Id, cancellationToken).ConfigureAwait(false);
                 if (!briefing.AvailableMissions.Contains(MissionType.Spy))
                 {
                     Report(progress, $"{Describe(target)}: spying isn't possible ({briefing.Warning ?? "no spy mission"})");
@@ -309,7 +345,7 @@ public sealed class RaidRunner(
                     break;
                 }
 
-                probes -= settings.ProbeCount;
+                home.Use(ProbeType, settings.ProbeCount);
                 var now = timeProvider.GetUtcNow();
                 sent.Add(new RaidRecord(
                     target.Planet.Coordinates, PlanetType.Planet, target.Planet.PlayerName, MissionType.Spy, home.Planet.Coordinates,
@@ -351,111 +387,19 @@ public sealed class RaidRunner(
         long CapacityOf(string type) => capacities.GetValueOrDefault(type);
         long CargoOn(Origin o) => priority.Distinct().Sum(t => o.Cargo(t) * CapacityOf(t));
 
+        var queue = queues.For(client);
         var sent = new List<RaidRecord>();
         var landing = new Dictionary<Coordinates, DateTimeOffset>(); // when the last wave sent to a target lands
-        // The briefing flies from the game's current planet: the last fleet page read selected it.
-        var selected = origins[^1].Planet.Id;
         try
         {
             var wave = targets.ToList();
             for (var number = 1; number <= Math.Max(1, settings.MaxAttacksPerTarget) && wave.Count > 0; number++)
             {
-                var next = new List<RaidTarget>();
-                foreach (var target in wave)
-                {
-                    if (sent.Count >= slots)
-                        return sent.Count;
-
-                    var loot = target.Report is { } report ? RaidPlanner.WaveLoot(report, settings, number) : target.ExpectedLoot;
-                    if (number > 1 && loot < settings.MinLoot)
-                        continue;
-
-                    var waveName = number > 1 ? $" (attack {number})" : "";
-                    var needed = RaidPlanner.CargoNeeded(loot, settings);
-                    var origin = RaidPlanner.ChooseOrigin(target.Planet.Coordinates, origins, o => o.Planet.Coordinates, CargoOn, needed, client.Universe);
-                    if (origin is null)
-                    {
-                        if (settings.TestMode && number == 1)
-                        {
-                            // Without ships the page shows no cargo capacity, so the count can't be worked out.
-                            Report(progress, $"[Test] Would attack {Describe(target)} for {loot:N0}, but there's no {cargoName} on {string.Join(", ", origins.Select(o => o.Planet.Name))} to work out the ship count");
-                            continue;
-                        }
-
-                        Report(progress, $"No {cargoName} left on {string.Join(", ", origins.Select(o => o.Planet.Name))}.");
-                        return sent.Count;
-                    }
-
-                    var fleet = RaidPlanner.CargoFleet(needed, priority, origin.Cargo, CapacityOf);
-                    var ships = fleet.Sum(f => f.Quantity);
-                    var carried = Math.Min(loot, fleet.Sum(f => f.Quantity * CapacityOf(f.ShipType)));
-                    var fleetName = Describe(fleet);
-                    if (carried < settings.MinLoot)
-                    {
-                        Report(progress, $"{Describe(target)}{waveName}: {fleetName} would carry only {carried:N0}, skipped");
-                        continue;
-                    }
-
-                    if (selected != origin.Planet.Id)
-                    {
-                        await client.GetFleetAsync(origin.Planet.Id, cancellationToken).ConfigureAwait(false);
-                        selected = origin.Planet.Id;
-                    }
-
-                    var mission = new FleetMission(target.Planet.Coordinates, PlanetType.Planet, MissionType.Attack, fleet, settings.SpeedPercentage);
-                    var briefing = await client.GetFleetBriefingAsync(mission, cancellationToken).ConfigureAwait(false);
-                    if (!briefing.AvailableMissions.Contains(MissionType.Attack))
-                    {
-                        Report(progress, $"{Describe(target)}{waveName}: attacking isn't possible ({briefing.Warning ?? "no attack mission"})");
-                        continue;
-                    }
-                    if (briefing.PlayerStatus != PlayerStatus.None && !briefing.PlayerStatus.IsRaidable())
-                    {
-                        Report(progress, $"{Describe(target)}{waveName}: the player is no longer a raidable inactive ({briefing.PlayerStatus.ToLetters()})");
-                        continue;
-                    }
-
-                    // A later wave must land after the one before it, so it finds what that one left: slower if need be.
-                    if (landing.TryGetValue(target.Planet.Coordinates, out var previous))
-                    {
-                        var slowed = await LandAfterAsync(client, mission, briefing, previous, cancellationToken).ConfigureAwait(false);
-                        if (slowed is null)
-                        {
-                            Report(progress, $"{Describe(target)}{waveName}: from {origin.Planet.Name} it would land before the previous attack even at 10% speed, not sent");
-                            continue;
-                        }
-                        (mission, briefing) = slowed.Value;
-                    }
-
-                    var speed = mission.SpeedPercentage != settings.SpeedPercentage ? $" at {mission.SpeedPercentage}% speed" : "";
-                    if (settings.TestMode)
-                    {
-                        Use(origin, fleet);
-                        landing[target.Planet.Coordinates] = timeProvider.GetUtcNow() + briefing.OneWayFlight;
-                        next.Add(target);
-                        Report(progress, $"[Test] Would attack {Describe(target)}{waveName} from {origin.Planet.Name} with {fleetName}{speed} for {carried:N0} (flight {briefing.OneWayFlight:g})");
-                        continue;
-                    }
-
-                    var outcome = await client.SendFleetAsync(mission, origin.Planet.Id, cancellationToken).ConfigureAwait(false);
-                    if (!outcome.Sent)
-                    {
-                        Report(progress, $"Attack on {Describe(target)}{waveName} was refused: {outcome.Message}");
-                        return sent.Count;
-                    }
-
-                    Use(origin, fleet);
-                    var now = timeProvider.GetUtcNow();
-                    landing[target.Planet.Coordinates] = now + briefing.OneWayFlight;
-                    next.Add(target);
-                    // A mixed fleet is stored as its types joined with "+" and the total ship count.
-                    sent.Add(new RaidRecord(
-                        target.Planet.Coordinates, PlanetType.Planet, target.Planet.PlayerName, MissionType.Attack, origin.Planet.Coordinates,
-                        string.Join("+", fleet.Select(f => f.ShipType)), ships, carried, now, now + briefing.OneWayFlight, now + 2 * briefing.OneWayFlight));
-                    Report(progress, $"Attacking {Describe(target)}{waveName} from {origin.Planet.Name} with {fleetName}{speed} for {carried:N0}, "
-                                     + $"landing {(now + briefing.OneWayFlight).ToLocalTime():T}, back at {(now + 2 * briefing.OneWayFlight).ToLocalTime():T}");
-                }
-
+                var (current, n) = (wave, number);
+                var description = number == 1 ? $"Attack {wave.Count} planet(s)" : $"Attack {wave.Count} planet(s) again (attack {number})";
+                var (next, more) = await queue.RunAsync(Owner, description, ct => WaveAsync(current, n, ct), cancellationToken: cancellationToken).ConfigureAwait(false);
+                if (!more)
+                    break;
                 wave = next;
             }
         }
@@ -465,6 +409,102 @@ public sealed class RaidRunner(
         }
 
         return sent.Count;
+
+        // Each wave is one queue group; false when the slots or the cargo ships ran out.
+        async Task<(List<RaidTarget> Next, bool More)> WaveAsync(List<RaidTarget> wave, int number, CancellationToken cancellationToken)
+        {
+            var next = new List<RaidTarget>();
+            foreach (var target in wave)
+            {
+                if (sent.Count >= slots)
+                    return (next, false);
+
+                var loot = target.Report is { } report ? RaidPlanner.WaveLoot(report, settings, number) : target.ExpectedLoot;
+                if (number > 1 && loot < settings.MinLoot)
+                    continue;
+
+                var waveName = number > 1 ? $" (attack {number})" : "";
+                var needed = RaidPlanner.CargoNeeded(loot, settings);
+                var origin = RaidPlanner.ChooseOrigin(target.Planet.Coordinates, origins, o => o.Planet.Coordinates, CargoOn, needed, client.Universe);
+                if (origin is null)
+                {
+                    if (settings.TestMode && number == 1)
+                    {
+                        // Without ships the page shows no cargo capacity, so the count can't be worked out.
+                        Report(progress, $"[Test] Would attack {Describe(target)} for {loot:N0}, but there's no {cargoName} on {string.Join(", ", origins.Select(o => o.Planet.Name))} to work out the ship count");
+                        continue;
+                    }
+
+                    Report(progress, $"No {cargoName} left on {string.Join(", ", origins.Select(o => o.Planet.Name))}.");
+                    return (next, false);
+                }
+
+                var fleet = RaidPlanner.CargoFleet(needed, priority, origin.Cargo, CapacityOf);
+                var ships = fleet.Sum(f => f.Quantity);
+                var carried = Math.Min(loot, fleet.Sum(f => f.Quantity * CapacityOf(f.ShipType)));
+                var fleetName = Describe(fleet);
+                if (carried < settings.MinLoot)
+                {
+                    Report(progress, $"{Describe(target)}{waveName}: {fleetName} would carry only {carried:N0}, skipped");
+                    continue;
+                }
+
+                var mission = new FleetMission(target.Planet.Coordinates, PlanetType.Planet, MissionType.Attack, fleet, settings.SpeedPercentage);
+                var briefing = await client.GetFleetBriefingAsync(mission, origin.Planet.Id, cancellationToken).ConfigureAwait(false);
+                if (!briefing.AvailableMissions.Contains(MissionType.Attack))
+                {
+                    Report(progress, $"{Describe(target)}{waveName}: attacking isn't possible ({briefing.Warning ?? "no attack mission"})");
+                    continue;
+                }
+                if (briefing.PlayerStatus != PlayerStatus.None && !briefing.PlayerStatus.IsRaidable())
+                {
+                    Report(progress, $"{Describe(target)}{waveName}: the player is no longer a raidable inactive ({briefing.PlayerStatus.ToLetters()})");
+                    continue;
+                }
+
+                // A later wave must land after the one before it, so it finds what that one left: slower if need be.
+                if (landing.TryGetValue(target.Planet.Coordinates, out var previous))
+                {
+                    var slowed = await LandAfterAsync(client, origin.Planet.Id, mission, briefing, previous, cancellationToken).ConfigureAwait(false);
+                    if (slowed is null)
+                    {
+                        Report(progress, $"{Describe(target)}{waveName}: from {origin.Planet.Name} it would land before the previous attack even at 10% speed, not sent");
+                        continue;
+                    }
+                    (mission, briefing) = slowed.Value;
+                }
+
+                var speed = mission.SpeedPercentage != settings.SpeedPercentage ? $" at {mission.SpeedPercentage}% speed" : "";
+                if (settings.TestMode)
+                {
+                    Use(origin, fleet);
+                    landing[target.Planet.Coordinates] = timeProvider.GetUtcNow() + briefing.OneWayFlight;
+                    next.Add(target);
+                    Report(progress, $"[Test] Would attack {Describe(target)}{waveName} from {origin.Planet.Name} with {fleetName}{speed} for {carried:N0} (flight {briefing.OneWayFlight:g})");
+                    continue;
+                }
+
+                var outcome = await client.SendFleetAsync(mission, origin.Planet.Id, cancellationToken).ConfigureAwait(false);
+                if (!outcome.Sent)
+                {
+                    Report(progress, $"Attack on {Describe(target)}{waveName} was refused: {outcome.Message}");
+                    return (next, false);
+                }
+
+                Use(origin, fleet);
+                var now = timeProvider.GetUtcNow();
+                landing[target.Planet.Coordinates] = now + briefing.OneWayFlight;
+                next.Add(target);
+                // A mixed fleet is stored as its types joined with "+" and the total ship count.
+                sent.Add(new RaidRecord(
+                    target.Planet.Coordinates, PlanetType.Planet, target.Planet.PlayerName, MissionType.Attack, origin.Planet.Coordinates,
+                    string.Join("+", fleet.Select(f => f.ShipType)), ships, carried, now, now + briefing.OneWayFlight, now + 2 * briefing.OneWayFlight));
+                Report(progress, $"Attacking {Describe(target)}{waveName} from {origin.Planet.Name} with {fleetName}{speed} for {carried:N0}, "
+                                 + $"landing {(now + briefing.OneWayFlight).ToLocalTime():T}, back at {(now + 2 * briefing.OneWayFlight).ToLocalTime():T}");
+            }
+
+            return (next, true);
+        }
     }
 
     /// <summary>
@@ -474,14 +514,14 @@ public sealed class RaidRunner(
     /// early.
     /// </summary>
     private async Task<(FleetMission Mission, FleetBriefing Briefing)?> LandAfterAsync(
-        IOgamexClient client, FleetMission mission, FleetBriefing briefing, DateTimeOffset previous, CancellationToken cancellationToken)
+        IOgamexClient client, PlanetId origin, FleetMission mission, FleetBriefing briefing, DateTimeOffset previous, CancellationToken cancellationToken)
     {
         for (var speed = mission.SpeedPercentage; ; speed -= 10)
         {
             if (speed != mission.SpeedPercentage)
             {
                 mission = mission with { SpeedPercentage = speed };
-                briefing = await client.GetFleetBriefingAsync(mission, cancellationToken).ConfigureAwait(false);
+                briefing = await client.GetFleetBriefingAsync(mission, origin, cancellationToken).ConfigureAwait(false);
             }
 
             var shortfall = RaidPlanner.LandingShortfall(timeProvider.GetUtcNow() + briefing.OneWayFlight, previous);
@@ -497,20 +537,25 @@ public sealed class RaidRunner(
         }
     }
 
-    /// <summary>The current planet's fleet, and with <see cref="RaidSettings.UseNearestPlanet"/> every other planet's too.</summary>
-    private static async Task<IReadOnlyList<Origin>> ReadOriginsAsync(
-        IOgamexClient client, OwnPlanetRefresh refresh, RaidSettings settings, CancellationToken cancellationToken)
+    /// <summary>
+    /// The player's planet's fleet (the queue's home planet, else the game's current one), or with
+    /// <see cref="RaidSettings.UseNearestPlanet"/> the fleets of the ticked planets (<see cref="RaidSettings.OriginPlanetIds"/>,
+    /// the player's planet first when ticked); empty when none is ticked.
+    /// </summary>
+    private async Task<IReadOnlyList<Origin>> ReadOriginsAsync(IOgamexClient client, IActionQueue queue, RaidSettings settings, CancellationToken cancellationToken)
     {
-        var current = refresh.List.Planets.FirstOrDefault(p => p.Id == refresh.CurrentPlanet);
+        var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
+        var homeId = queue.HomePlanet ?? refresh.CurrentPlanet;
+        var current = refresh.List.Planets.FirstOrDefault(p => p.Id == homeId);
         if (current is null)
         {
-            // The current planet isn't a planet (a moon?): send from what the fleet page shows.
-            var fleet = await client.GetFleetAsync(cancellationToken: cancellationToken).ConfigureAwait(false);
-            return [new Origin(new OwnPlanet(refresh.CurrentPlanet, fleet.CurrentPlanet.ToString(), fleet.CurrentPlanet), fleet)];
+            // The player's planet isn't a planet (a moon?): send from what its fleet page shows.
+            var fleet = await client.GetFleetAsync(homeId, cancellationToken).ConfigureAwait(false);
+            return [new Origin(new OwnPlanet(homeId, fleet.CurrentPlanet.ToString(), fleet.CurrentPlanet), fleet)];
         }
 
         var planets = settings.UseNearestPlanet
-            ? refresh.List.Planets.OrderBy(p => p.Id == current.Id ? 0 : 1).ToList()
+            ? refresh.List.Planets.Where(p => settings.OriginPlanetIds.Contains(p.Id.Value)).OrderBy(p => p.Id == current.Id ? 0 : 1).ToList()
             : [current];
         var origins = new List<Origin>();
         foreach (var planet in planets)
@@ -518,8 +563,10 @@ public sealed class RaidRunner(
         return origins;
     }
 
-    private static Origin Home(IReadOnlyList<Origin> origins, OwnPlanetRefresh refresh) =>
-        origins.FirstOrDefault(o => o.Planet.Id == refresh.CurrentPlanet) ?? origins[0];
+    private const string NoOriginMessage = "No planet is ticked to send raids from (Send from the nearest planet).";
+
+    /// <summary>The player's planet: <see cref="ReadOriginsAsync"/> puts it first.</summary>
+    private static Origin Home(IReadOnlyList<Origin> origins) => origins[0];
 
     private static FleetSlots Slots(IReadOnlyList<Origin> origins) =>
         origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)
@@ -545,19 +592,6 @@ public sealed class RaidRunner(
         if (sent.Count == 0)
             return;
         store.AddRaids(universe, sent);
-    }
-
-    private async Task SwitchBackAsync(IOgamexClient client, PlanetId planet, IProgress<RaidProgress>? progress)
-    {
-        try
-        {
-            await client.SelectPlanetAsync(planet, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (OgamexException ex)
-        {
-            logger.LogWarning(ex, "Could not switch {Universe} back to planet {Planet}", client.Universe.Name, planet);
-            Report(progress, $"Could not switch back to the planet selected before: {ex.Message}");
-        }
     }
 
     private static string Summary(IReadOnlyList<RaidTarget> targets, FleetSlots slots, int attackBudget, int spyBudget)

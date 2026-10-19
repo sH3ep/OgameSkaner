@@ -2,11 +2,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Ogamex;
+using OgameSkaner.Core.Services.Scheduling;
 
 namespace OgameSkaner.App.ViewModels;
 
 /// <summary>One row of the players list, with spy actions for the planet and its moon.</summary>
-public sealed partial class PlayerPlanetItemViewModel(PlayerPlanet planet, IOgamexClient client) : ObservableObject
+public sealed partial class PlayerPlanetItemViewModel(PlayerPlanet planet, IOgamexClient client, IActionQueue queue) : ObservableObject
 {
     public PlayerPlanet Planet { get; } = planet;
 
@@ -51,7 +52,13 @@ public sealed partial class PlayerPlanetItemViewModel(PlayerPlanet planet, IOgam
     {
         try
         {
-            await client.SendSpyAsync(Planet.Coordinates, type);
+            // The probes leave from the game's current planet: the player's, not one an automation switched to.
+            await queue.RunAsync("Players", $"Spy on [{Planet.Coordinates}]", async ct =>
+            {
+                if (queue.HomePlanet is { } home && client.CurrentPlanet != home)
+                    await client.SelectPlanetAsync(home, ct);
+                await client.SendSpyAsync(Planet.Coordinates, type, ct);
+            }, ActionPriority.User);
             return (OperationStatus.Succeeded, $"Spy probes sent at {DateTime.Now:T}");
         }
         catch (OgamexException ex)

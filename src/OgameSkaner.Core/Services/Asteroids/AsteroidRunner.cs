@@ -5,6 +5,7 @@ using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Raiding;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.Core.Services.Asteroids;
@@ -47,25 +48,37 @@ public sealed record AsteroidOverview(
 
 /// <summary>
 /// Asteroid mining. Each cycle of <see cref="RunAsync"/> reads the new mining reports, sends Asteroid Miners to the known
-/// asteroids they reach in time, then reads the galaxy's "Find asteroids" hint and scans the hinted systems that may hold
-/// an asteroid not known yet, nearest first, sending miners to each one as soon as it's found and stopping when no miners
-/// or fleet slots are left. Each fleet takes as many miners as the estimated resources need
+/// asteroids they reach in time (the one gone soonest first), then reads the galaxy's "Find asteroids" hint and scans the
+/// hinted systems that may hold an asteroid not known yet, nearest first, sending miners to the asteroids found after each
+/// group of <see cref="ScanBatch"/> systems (gone soonest first) and stopping when no miners or fleet slots are left. Each fleet takes as many miners as the estimated resources need
 /// (<see cref="AsteroidEstimator"/>). Then it sleeps until a report is due, a fleet returns or
 /// <see cref="AsteroidSettings.CheckIntervalMinutes"/> passed.
 /// </summary>
 /// <remarks>
 /// Asteroids appear only in the galaxy with most of the player's planets and are the player's alone. Each asteroid gets
-/// its miners from the nearest own planet that has enough; the game is switched back to the planet selected before.
-/// The systems scanned are saved to the galaxy database too.
+/// its miners from the nearest own planet that has enough. The systems scanned are saved to the galaxy database too.
+/// Reading and sending to the known asteroids is one <see cref="IActionQueue"/> group, the scan one group per
+/// <see cref="ScanBatch"/> systems.
 /// </remarks>
 public sealed class AsteroidRunner(
     OwnPlanetService ownPlanets,
+    IActionQueues queues,
     IPlanetRepository planetRepository,
     IAsteroidStore store,
     TimeProvider timeProvider,
     ILogger<AsteroidRunner> logger)
 {
+    private readonly WakeUp _wakeUp = new();
+
+    /// <summary>Ends the running loop's wait, so the next cycle starts now ("Check now"); no effect without a run.</summary>
+    public void CheckNow() => _wakeUp.Now();
+
     public const string MinerType = "ASTEROID_MINER";
+
+    private const string Owner = "Asteroids";
+
+    /// <summary>Systems scanned per queue group.</summary>
+    private const int ScanBatch = 5;
 
     /// <summary>Report pages read per cycle (newest first; reading stops at a known report).</summary>
     private const int ReportPages = 5;
@@ -96,12 +109,26 @@ public sealed class AsteroidRunner(
             reports.Count(r => AsteroidEstimator.Day(r.Time) == today && AsteroidEstimator.IsSuccess(r)));
     }
 
+    /// <summary>
+    /// Records that the player turned back the miners sent to <paramref name="asteroid"/>, so it's open again and gets
+    /// miners once more (from the running miner's next cycle or "Send miners"). False when it has no miners sent.
+    /// </summary>
+    public bool MarkRecalled(string universe, Asteroid asteroid)
+    {
+        var now = timeProvider.GetUtcNow();
+        if (Target(asteroid, store.LoadMissions(universe), now).Mission is not { } mission)
+            return false;
+        store.MarkRecalled(universe, mission, now);
+        return true;
+    }
+
     public async Task<AsteroidRunResult> RunAsync(
         IOgamexClient client, AsteroidSettings settings, IProgress<AsteroidProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         int sent = 0, found = 0;
         try
         {
+            _wakeUp.Reset();
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -121,7 +148,8 @@ public sealed class AsteroidRunner(
                 }
 
                 Report(progress, $"Next check at {timeProvider.GetLocalNow().Add(wait):T}");
-                await Task.Delay(wait, timeProvider, cancellationToken).ConfigureAwait(false);
+                if (await _wakeUp.DelayAsync(wait, timeProvider, cancellationToken).ConfigureAwait(false))
+                    Report(progress, "Checking now.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -135,7 +163,10 @@ public sealed class AsteroidRunner(
     }
 
     /// <summary>Reads the mining reports the store doesn't know yet.</summary>
-    public async Task<int> ReadReportsAsync(IOgamexClient client, IProgress<AsteroidProgress>? progress = null, CancellationToken cancellationToken = default)
+    public Task<int> ReadReportsAsync(IOgamexClient client, IProgress<AsteroidProgress>? progress = null, CancellationToken cancellationToken = default) =>
+        queues.For(client).RunAsync(Owner, "Read the mining reports", ct => ReadReportsCoreAsync(client, progress, ct), ActionPriority.User, cancellationToken);
+
+    private async Task<int> ReadReportsCoreAsync(IOgamexClient client, IProgress<AsteroidProgress>? progress, CancellationToken cancellationToken)
     {
         var universe = client.Universe.Name;
         var known = store.LoadReports(universe).Select(r => r.Id).ToHashSet();
@@ -168,11 +199,11 @@ public sealed class AsteroidRunner(
     public Task<int> FindAsync(IOgamexClient client, IProgress<AsteroidProgress>? progress = null, CancellationToken cancellationToken = default)
     {
         var from = ownPlanets.GetStored(client.Universe.Name).Planets.Select(p => p.Coordinates).ToList();
-        return ScanAsync(client, from, null, progress, cancellationToken);
+        return ScanAsync(client, from, null, ActionPriority.User, progress, cancellationToken);
     }
 
     /// <summary>
-    /// Sends miners to the known open asteroids (nearest first) that they reach in time, within the fleet slots the
+    /// Sends miners to the known open asteroids (gone soonest first) that they reach in time, within the fleet slots the
     /// settings allow. Returns the number of fleets sent.
     /// </summary>
     public async Task<int> SendAsync(
@@ -182,62 +213,57 @@ public sealed class AsteroidRunner(
         if (OpenAsteroids(client.Universe.Name, only).Count == 0)
             return 0;
 
-        var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
-        try
+        return await queues.For(client).RunAsync(Owner, "Send miners to the known asteroids", async ct =>
         {
-            var round = await StartRoundAsync(client, refresh, settings, cancellationToken).ConfigureAwait(false);
-            await SendToKnownAsync(client, round, settings, progress, only, cancellationToken).ConfigureAwait(false);
+            var round = await StartRoundAsync(client, settings, ct).ConfigureAwait(false);
+            await SendToKnownAsync(client, round, settings, progress, only, ct).ConfigureAwait(false);
             return round.Sent;
-        }
-        finally
-        {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, progress).ConfigureAwait(false);
-        }
+        }, ActionPriority.User, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
     /// Reads the reports, sends miners to the known open asteroids, then scans for new ones nearest first and sends
-    /// miners to each as soon as it's found; the scan stops when no miners or fleet slots are left.
+    /// miners to those found after each scan group, gone soonest first; the scan stops when no miners or fleet slots are left.
     /// </summary>
     private async Task<(int Sent, int Found)> RunCycleAsync(
         IOgamexClient client, AsteroidSettings settings, IProgress<AsteroidProgress>? progress, CancellationToken cancellationToken)
     {
-        await ReadReportsAsync(client, progress, cancellationToken).ConfigureAwait(false);
-        var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
-        try
+        var (round, more) = await queues.For(client).RunAsync(Owner, "Read the mining reports, send to the known asteroids", async ct =>
         {
-            var round = await StartRoundAsync(client, refresh, settings, cancellationToken).ConfigureAwait(false);
-            if (!await SendToKnownAsync(client, round, settings, progress, null, cancellationToken).ConfigureAwait(false))
-                return (round.Sent, 0);
+            await ReadReportsCoreAsync(client, progress, ct).ConfigureAwait(false);
+            var round = await StartRoundAsync(client, settings, ct).ConfigureAwait(false);
+            return (round, await SendToKnownAsync(client, round, settings, progress, null, ct).ConfigureAwait(false));
+        }, cancellationToken: cancellationToken).ConfigureAwait(false);
+        if (!more)
+            return (round.Sent, 0);
 
-            var found = await ScanAsync(client, round.WithMiners(), async asteroid =>
-            {
-                await TrySendAsync(client, round, asteroid, settings, progress, cancellationToken).ConfigureAwait(false);
-                return CanSend(round, progress);
-            }, progress, cancellationToken).ConfigureAwait(false);
-            return (round.Sent, found);
-        }
-        finally
+        var found = await ScanAsync(client, round.WithMiners(), async (asteroid, ct) =>
         {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, progress).ConfigureAwait(false);
-        }
+            await TrySendAsync(client, round, asteroid, settings, progress, ct).ConfigureAwait(false);
+            return CanSend(round, progress);
+        }, ActionPriority.Automation, progress, cancellationToken).ConfigureAwait(false);
+        return (round.Sent, found);
     }
 
     /// <summary>
     /// Scans the hinted systems that may hold an asteroid not known yet, nearest to <paramref name="from"/> first, until
-    /// each hint row has its asteroid. <paramref name="onFound"/> gets every new asteroid as soon as it's seen and
-    /// returns whether to go on scanning. The systems scanned are saved to the galaxy database.
+    /// each hint row has its asteroid. <paramref name="onFound"/> gets the new asteroids at the end of each scan group (the
+    /// one gone soonest first) and
+    /// returns whether to go on scanning (it runs in the scan's queue group). The systems scanned are saved to the galaxy
+    /// database.
     /// </summary>
     private async Task<int> ScanAsync(
         IOgamexClient client,
         IReadOnlyCollection<Coordinates> from,
-        Func<Asteroid, Task<bool>>? onFound,
+        Func<Asteroid, CancellationToken, Task<bool>>? onFound,
+        ActionPriority priority,
         IProgress<AsteroidProgress>? progress,
         CancellationToken cancellationToken)
     {
         var universe = client.Universe.Name;
+        var queue = queues.For(client);
         var now = timeProvider.GetUtcNow();
-        var hints = await client.GetAsteroidHintsAsync(cancellationToken).ConfigureAwait(false);
+        var hints = await queue.RunAsync(Owner, "Read the asteroid locations", ct => client.GetAsteroidHintsAsync(ct), priority, cancellationToken).ConfigureAwait(false);
         if (hints.Count == 0)
         {
             Report(progress, "The game shows no asteroid locations.");
@@ -256,34 +282,15 @@ public sealed class AsteroidRunner(
             return 0;
 
         var database = await planetRepository.GetAsync(universe, cancellationToken).ConfigureAwait(false);
+        var order = AsteroidPlanner.ScanOrder(searches, from, client.Universe);
+        var next = 0;
         var scanned = 0;
         var found = new List<Coordinates>();
         try
         {
-            foreach (var address in AsteroidPlanner.ScanOrder(searches, from, client.Universe))
+            while (await queue.RunAsync(Owner, $"Scan for asteroids ({scanned} of up to {order.Count} systems done)", ScanBatchAsync, priority, cancellationToken)
+                       .ConfigureAwait(false))
             {
-                // The rows still without an asteroid (the ones found are matched as in AsteroidPlanner.Uncovered).
-                var left = AsteroidPlanner.Uncovered(searches, found);
-                if (left.Count == 0)
-                    break;
-                if (!left.Any(s => s.Contains(new Coordinates(address.Galaxy, address.System, 17))))
-                    continue;
-
-                cancellationToken.ThrowIfCancellationRequested();
-                var view = await client.GetGalaxySystemAsync(address, cancellationToken).ConfigureAwait(false);
-                database.ReplaceSystem(address, view.Planets, timeProvider.GetUtcNow());
-                scanned++;
-                if (view.Asteroid is not { } asteroid || !known.Add(asteroid.Coordinates))
-                    continue;
-
-                found.Add(asteroid.Coordinates);
-                store.SaveAsteroids(universe, [asteroid]);
-                Report(progress, $"Asteroid at [{asteroid.Coordinates}], gone at {asteroid.DisappearsAt.ToLocalTime():T}");
-                if (onFound is not null && !await onFound(asteroid).ConfigureAwait(false))
-                {
-                    Report(progress, "Scan stopped: no miners or fleet slots left to send.");
-                    break;
-                }
             }
         }
         finally
@@ -294,6 +301,61 @@ public sealed class AsteroidRunner(
 
         Report(progress, $"Scanned {scanned} system(s), found {found.Count} new asteroid(s)");
         return found.Count;
+
+        // Up to ScanBatch systems, then the batch's new asteroids to onFound, the one gone soonest first; false when the
+        // scan is over.
+        async Task<bool> ScanBatchAsync(CancellationToken ct)
+        {
+            var more = true;
+            var batchFound = new List<Asteroid>();
+            for (var batch = 0; batch < ScanBatch;)
+            {
+                if (next >= order.Count)
+                {
+                    more = false;
+                    break;
+                }
+
+                var address = order[next++];
+
+                // The rows still without an asteroid (the ones found are matched as in AsteroidPlanner.Uncovered).
+                var left = AsteroidPlanner.Uncovered(searches, found);
+                if (left.Count == 0)
+                {
+                    more = false;
+                    break;
+                }
+                if (!left.Any(s => s.Contains(new Coordinates(address.Galaxy, address.System, 17))))
+                    continue;
+
+                ct.ThrowIfCancellationRequested();
+                var view = await client.GetGalaxySystemAsync(address, ct).ConfigureAwait(false);
+                database.ReplaceSystem(address, view.Planets, timeProvider.GetUtcNow());
+                scanned++;
+                batch++;
+                if (view.Asteroid is not { } asteroid || !known.Add(asteroid.Coordinates))
+                    continue;
+
+                found.Add(asteroid.Coordinates);
+                batchFound.Add(asteroid);
+                store.SaveAsteroids(universe, [asteroid]);
+                Report(progress, $"Asteroid at [{asteroid.Coordinates}], gone at {asteroid.DisappearsAt.ToLocalTime():T}");
+            }
+
+            if (onFound is not null)
+            {
+                foreach (var asteroid in batchFound.OrderBy(a => a.DisappearsAt))
+                {
+                    if (!await onFound(asteroid, ct).ConfigureAwait(false))
+                    {
+                        Report(progress, "Scan stopped: no miners or fleet slots left to send.");
+                        return false;
+                    }
+                }
+            }
+
+            return more && next < order.Count;
+        }
     }
 
     private List<Asteroid> OpenAsteroids(string universe, IReadOnlyCollection<Coordinates>? only)
@@ -306,9 +368,10 @@ public sealed class AsteroidRunner(
             .ToList();
     }
 
-    /// <summary>Reads every planet's fleet, so each asteroid gets its miners from the nearest planet that has enough.</summary>
-    private async Task<Round> StartRoundAsync(IOgamexClient client, OwnPlanetRefresh refresh, AsteroidSettings settings, CancellationToken cancellationToken)
+    /// <summary>Reads the planets and every planet's fleet, so each asteroid gets its miners from the nearest planet that has enough.</summary>
+    private async Task<Round> StartRoundAsync(IOgamexClient client, AsteroidSettings settings, CancellationToken cancellationToken)
     {
+        var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
         var origins = new List<Origin>();
         foreach (var planet in refresh.List.Planets)
             origins.Add(new Origin(planet, await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false)));
@@ -318,14 +381,18 @@ public sealed class AsteroidRunner(
         return new Round(origins, slots, AsteroidPlanner.SlotBudget(slots, settings), cargo, store.LoadReports(client.Universe.Name));
     }
 
-    /// <summary>Sends miners to the known open asteroids, nearest first. Returns whether more can be sent.</summary>
+    /// <summary>
+    /// Sends miners to the known open asteroids, the one gone soonest first (the miners and slots go where the time runs
+    /// out, a later one may still get them next cycle), nearest first among equals. Returns whether more can be sent.
+    /// </summary>
     private async Task<bool> SendToKnownAsync(
         IOgamexClient client, Round round, AsteroidSettings settings, IProgress<AsteroidProgress>? progress,
         IReadOnlyCollection<Coordinates>? only, CancellationToken cancellationToken)
     {
         var from = round.WithMiners();
         var open = OpenAsteroids(client.Universe.Name, only)
-            .OrderBy(a => from.Count == 0 ? 0 : from.Min(c => RaidPlanner.Distance(c, a.Coordinates, client.Universe)))
+            .OrderBy(a => a.DisappearsAt)
+            .ThenBy(a => from.Count == 0 ? 0 : from.Min(c => RaidPlanner.Distance(c, a.Coordinates, client.Universe)))
             .ToList();
         foreach (var asteroid in open)
         {
@@ -415,10 +482,8 @@ public sealed class AsteroidRunner(
         string? reason = null;
         foreach (var origin in new[] { best, nearest }.Distinct())
         {
-            // The briefing flies from the current planet: reading the origin's fleet page selects it.
-            await client.GetFleetAsync(origin.Planet.Id, cancellationToken).ConfigureAwait(false);
             var probe = new FleetMission(target, PlanetType.Planet, MissionType.AsteroidMining, [new ShipStack(MinerType, Math.Min(needed, origin.Miners))], settings.SpeedPercentage);
-            var briefing = await client.GetFleetBriefingAsync(probe, cancellationToken).ConfigureAwait(false);
+            var briefing = await client.GetFleetBriefingAsync(probe, origin.Planet.Id, cancellationToken).ConfigureAwait(false);
             if (!briefing.AvailableMissions.Contains(MissionType.AsteroidMining))
             {
                 reason = briefing.Warning ?? "the game doesn't offer mining it (gone already?)";
@@ -435,6 +500,13 @@ public sealed class AsteroidRunner(
             // The day the miners arrive decides the gains (the count restarts at 00:00 UTC).
             var estimate = AsteroidEstimator.Estimate(reports, now + briefing.OneWayFlight);
             var miners = Math.Min(AsteroidPlanner.MinersNeeded(estimate?.Resources, cargo, settings), origin.Miners);
+            if (!AsteroidPlanner.CoversEnough(miners, estimate?.Resources, cargo, settings))
+            {
+                // The chosen planet has the most miners (or enough), so another one can't do better.
+                reason = $"{miners:N0} miners from {origin.Planet.Name} carry {miners * cargo:N0}, less than {settings.MinCoveragePercent}% of the estimated {estimate!.Resources:N0}";
+                break;
+            }
+
             return (probe with { Ships = [new ShipStack(MinerType, miners)] }, origin, briefing.OneWayFlight, estimate);
         }
 
@@ -448,6 +520,7 @@ public sealed class AsteroidRunner(
         var now = timeProvider.GetUtcNow();
         var interval = TimeSpan.FromMinutes(Math.Max(1, settings.CheckIntervalMinutes));
         var next = store.LoadMissions(universe)
+            .Where(m => m.RecalledAt is null)
             .SelectMany(m => new[] { m.ArrivesAt + ReportDelay, m.ReturnsAt })
             .Where(t => t > now)
             .Select(t => t - now)
@@ -458,8 +531,9 @@ public sealed class AsteroidRunner(
 
     private static AsteroidTarget Target(Asteroid asteroid, IReadOnlyList<AsteroidMission> missions, DateTimeOffset now)
     {
-        // A mission belongs to the asteroid when sent after it was first seen (an earlier one went to an earlier asteroid there).
-        var mission = missions.LastOrDefault(m => m.Target == asteroid.Coordinates && m.SentAt >= asteroid.SeenAt);
+        // A mission belongs to the asteroid when sent after it was first seen (an earlier one went to an earlier asteroid
+        // there); one the player turned back doesn't count.
+        var mission = missions.LastOrDefault(m => m.Target == asteroid.Coordinates && m.SentAt >= asteroid.SeenAt && m.RecalledAt is null);
         var state = mission is not null
             ? mission.ArrivesAt <= now ? AsteroidState.Mined : AsteroidState.Sent
             : asteroid.DisappearsAt <= now ? AsteroidState.Expired : AsteroidState.Open;
@@ -475,19 +549,6 @@ public sealed class AsteroidRunner(
         AsteroidResultKind.Container => "a container",
         _ => "nothing found"
     };
-
-    private async Task SwitchBackAsync(IOgamexClient client, PlanetId planet, IProgress<AsteroidProgress>? progress)
-    {
-        try
-        {
-            await client.SelectPlanetAsync(planet, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (OgamexException ex)
-        {
-            logger.LogWarning(ex, "Could not switch {Universe} back to planet {Planet}", client.Universe.Name, planet);
-            Report(progress, $"Could not switch back to the planet selected before: {ex.Message}");
-        }
-    }
 
     private static void Report(IProgress<AsteroidProgress>? progress, string message) => progress?.Report(new AsteroidProgress(message));
 

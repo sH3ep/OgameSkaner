@@ -116,7 +116,8 @@ How does the server know which planet we mean?
   switches the current planet, and everything afterwards (also in the browser) happens on that planet.
   POST bodies also carry `__PlanetId`. `GET /building/resource?planet=<guid>` returns that planet's page in one request
   (tested with the only planet); an unknown id is ignored and the current planet is returned, so verify `currentPlanetId`.
-  Consequence: while automation runs, the browser's current planet changes; we could switch back to the original planet at the end.
+  Consequence: while automation runs, the browser's current planet changes. The action queue (`Services/Scheduling`)
+  runs one module's group at a time and selects the player's planet again once it's idle.
 
 ## 3. Building levels
 Current level of every building in `BuildingType`: mines, solar plant, fusion reactor, storages (resources page) and robotics factory, shipyard, research lab, nanite factory (facilities page).

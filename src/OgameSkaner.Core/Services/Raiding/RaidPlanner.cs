@@ -220,13 +220,25 @@ public static class RaidPlanner
     private static long CeilingDivide(long dividend, long divisor) => (dividend + divisor - 1) / divisor;
 
     /// <summary>Fleet slots attacks may still fill: the allowed share of all slots minus those in use.</summary>
-    public static int SlotBudget(FleetSlots slots, RaidSettings settings) =>
-        Math.Max(0, (int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0) - slots.Used);
+    public static int SlotBudget(FleetSlots slots, RaidSettings settings) => Math.Max(0, AllowedSlots(slots, settings) - slots.Used);
+
+    /// <summary>
+    /// Fleet slots the raid cycle's spy missions may fill: none once the fleets in use (with the <paramref name="sentSince"/>
+    /// sent since the slots were read) reach <see cref="RaidSettings.FleetSlotUsePercent"/>, so probes don't keep flying
+    /// while the slots are full; below it every slot but one (<see cref="SpySlotBudget(FleetSlots, int)"/>), so a batch
+    /// of probes may go past the share.
+    /// </summary>
+    public static int SpySlotBudget(FleetSlots slots, RaidSettings settings, int sentSince = 0) =>
+        slots.Used + sentSince >= AllowedSlots(slots, settings) ? 0 : SpySlotBudget(slots, sentSince);
+
+    /// <summary><see cref="RaidSettings.FleetSlotUsePercent"/> of all fleet slots.</summary>
+    private static int AllowedSlots(FleetSlots slots, RaidSettings settings) =>
+        (int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0);
 
     /// <summary>
     /// Fleet slots spy missions may still fill: every slot but one (kept free for the player), minus those in use and
-    /// the <paramref name="sentSince"/> fleets sent since the slots were read. Probes are back within minutes, so they
-    /// don't follow <see cref="RaidSettings.FleetSlotUsePercent"/>.
+    /// the <paramref name="sentSince"/> fleets sent since the slots were read; "Spy selected" uses it as is, the raid
+    /// cycle only below <see cref="RaidSettings.FleetSlotUsePercent"/> (<see cref="SpySlotBudget(FleetSlots, RaidSettings, int)"/>).
     /// </summary>
     public static int SpySlotBudget(FleetSlots slots, int sentSince = 0) =>
         Math.Max(0, slots.Max - 1 - slots.Used - sentSince);

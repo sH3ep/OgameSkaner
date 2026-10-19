@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:RaidsViewModel}"
              d:DesignHeight="560" d:DesignWidth="1000">
-    <Grid>
+    <Grid infra:Layout.Key="Raids.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" MinWidth="460" />
             <ColumnDefinition Width="Auto" />
@@ -43,7 +44,7 @@
                     <Button Content="Select ready" Command="{Binding SelectReadyCommand}" MinWidth="0" />
                     <Button Content="Select to spy" Command="{Binding SelectNeedingSpyCommand}" MinWidth="0" />
                     <Button Content="Load reports" Command="{Binding ReadReportsCommand}" MinWidth="0"
-                            ToolTip="Load every espionage report from the game's messages, with ships and defenses. Reported planets show up here even before the galaxy is scanned." />
+                            ToolTip="Load the new espionage reports from the game's messages (newest first, stopping at the first one already loaded; ships and defenses for reports still valid). Reported planets show up here even before the galaxy is scanned." />
                     <Button Content="Defense ranking" Command="{Binding ReadDefenseRankingCommand}" MinWidth="0"
                             ToolTip="{Binding DefenseRankingInfo}" />
                     <Button Content="Spy selected" Command="{Binding SpySelectedCommand}" MinWidth="0"
@@ -52,7 +53,7 @@
                             ToolTip="Attack the selected planets that have a report, with the cargo ships their loot needs" />
                 </StackPanel>
 
-                <DataGrid x:Name="TargetsGrid" ItemsSource="{Binding Targets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                <DataGrid infra:Layout.Key="Raids.Targets" x:Name="TargetsGrid" ItemsSource="{Binding Targets}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                           HeadersVisibility="Column" SelectionUnit="FullRow" Background="Transparent" IsReadOnly="False"
                           EnableRowVirtualization="True">
                     <DataGrid.Columns>
@@ -174,19 +175,41 @@
                                      ToolTip="Older reports are spied again before attacking" />
                             <TextBlock Grid.Row="8" Text="Fleet slots used %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding FleetSlotUsePercent, UpdateSourceTrigger=PropertyChanged}"
-                                     ToolTip="Attacks fill at most this share of all fleet slots. Spy missions may use every slot but one (probes are back within minutes)." />
+                                     ToolTip="Attacks fill at most this share of all fleet slots. Spying stops once this share is in use; below it a batch of probes may use every slot but one." />
                             <TextBlock Grid.Row="9" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding SpeedPercentage, UpdateSourceTrigger=PropertyChanged}" />
                             <TextBlock Grid.Row="10" Text="Only def. rank ≤" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="10" Grid.Column="1" Text="{Binding RaidMaxRankingDefensePoints, Converter={StaticResource GroupedNumber}}"
                                      ToolTip="The raider only spies on and attacks players with at most this many defense points in the ranking (0 = only players without defenses). Players not in the ranking are skipped while this is set. Empty = no limit." />
-                            <CheckBox Grid.Row="11" Grid.ColumnSpan="2" Content="Send from the nearest planet with cargo ships" IsChecked="{Binding UseNearestPlanet}"
-                                      ToolTip="Otherwise every fleet leaves from the planet selected in the game" Margin="0,0,0,6" />
+                            <StackPanel Grid.Row="11" Grid.ColumnSpan="2" Margin="0,0,6,6">
+                                <CheckBox Content="Send from the nearest planet" IsChecked="{Binding UseNearestPlanet}" Margin="0,0,0,4"
+                                          ToolTip="Each attack and spy leaves from the nearest ticked planet that has the ships, and targets are taken from the whole universe: best ranked first for spies, most loot first for attacks. Otherwise every fleet leaves from the planet selected in the game." />
+                                <DockPanel Margin="18,0,0,4" IsEnabled="{Binding UseNearestPlanet}">
+                                    <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshPlanetsCommand}" Margin="0" MinWidth="0" Padding="8,2"
+                                            ToolTip="Reads your planets from the game" />
+                                    <Button DockPanel.Dock="Right" Content="None" Command="{Binding SelectNoOriginsCommand}" Margin="0,0,4,0" MinWidth="0" Padding="8,2" />
+                                    <Button DockPanel.Dock="Right" Content="All" Command="{Binding SelectAllOriginsCommand}" Margin="0,0,4,0" MinWidth="0" Padding="8,2" />
+                                    <TextBlock Text="Send from" VerticalAlignment="Center" />
+                                </DockPanel>
+                                <ListBox ItemsSource="{Binding OriginPlanets}" MaxHeight="150" Margin="18,0,0,0" IsEnabled="{Binding UseNearestPlanet}"
+                                         ToolTip="Fleets leave only from the ticked planets; new planets come unticked">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:PlanetSelectionItemViewModel}">
+                                            <StackPanel Orientation="Horizontal" Margin="0,1">
+                                                <CheckBox IsChecked="{Binding IsSelected}" VerticalAlignment="Center" Margin="0,0,6,0" />
+                                                <TextBlock Text="{Binding Name}" Width="110" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{Binding Coordinates}" Foreground="#555" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
                             <TextBlock Grid.Row="13" Text="Low loot: spy again after (h)" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding LowLootRespyHours, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="A planet whose newest report has less loot than Min loot isn't spied on again for this many hours, which saves probes and fleet slots (0 = off)" />
-                            <CheckBox Grid.Row="12" Grid.ColumnSpan="2" Content="Nearest targets first" IsChecked="{Binding NearestTargetsFirst}"
-                                      ToolTip="The raider spies on and attacks nearer targets first (fleets come back sooner). Targets at the same distance: most loot first for attacks, best ranked first for spies. Distance counts from the planets fleets can leave from." Margin="0,0,0,6" />
+                            <CheckBox Grid.Row="12" Grid.ColumnSpan="2" Content="Nearest targets first" IsChecked="{Binding NearestTargetsFirst}" IsEnabled="{Binding CanOrderByDistance}"
+                                      ToolTip="The raider spies on and attacks nearer targets first (fleets come back sooner). Targets at the same distance: most loot first for attacks, best ranked first for spies. Off while sending from the nearest planet." Margin="0,0,0,6"
+                                      ToolTipService.ShowOnDisabled="True" />
                             <TextBlock Grid.Row="14" Text="Max attacks per report" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding MaxAttacksPerTarget, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="One report can get several attacks: each takes Loot % of what the ones before it left and goes only while that is at least Min loot (with 50%: 2 attacks from 2× min loot, 3 from 4×). Each lands after the one before it, waiting or flying slower if needed. 1 = one attack per report." />
@@ -198,6 +221,8 @@
                             <Button Content="Start" Command="{Binding RunCommand}"
                                     ToolTip="Read reports, attack ready planets, spy on the next ones, and repeat as fleets return" />
                             <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                            <Button Content="Check now" Command="{Binding CheckNowCommand}" IsEnabled="{Binding RunCommand.IsRunning}"
+                                    ToolTip="Start the next check now instead of waiting for the time in the log" />
                         </StackPanel>
                         <TextBlock Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" />
                     </StackPanel>

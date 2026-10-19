@@ -58,12 +58,20 @@ public sealed record RaidSettings
     /// </summary>
     public long? MaxRankingDefensePoints { get; init; }
 
-    /// <summary>Send each attack from the nearest own planet that has enough cargo ships, instead of the current planet.</summary>
+    /// <summary>
+    /// Send each attack and spy from the nearest planet of <see cref="OriginPlanetIds"/> that has the ships, instead of
+    /// the current planet. Targets then keep their usual order over the whole universe (best ranked first for spies,
+    /// most loot first for attacks): <see cref="NearestTargetsFirst"/> is ignored.
+    /// </summary>
     public bool UseNearestPlanet { get; init; }
+
+    /// <summary>The planets (ids) fleets may leave from with <see cref="UseNearestPlanet"/>; empty = none.</summary>
+    public IReadOnlyList<string> OriginPlanetIds { get; init; } = [];
 
     /// <summary>
     /// The raider spies on and attacks nearer targets first (the fleets are back sooner, so the slots are used more
-    /// often): ties keep the usual order, most loot first for attacks and best ranked first for spies.
+    /// often): ties keep the usual order, most loot first for attacks and best ranked first for spies. Ignored with
+    /// <see cref="UseNearestPlanet"/>.
     /// </summary>
     public bool NearestTargetsFirst { get; init; } = true;
 

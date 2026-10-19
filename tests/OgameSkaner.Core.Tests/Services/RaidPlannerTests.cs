@@ -223,6 +223,19 @@ public class RaidPlannerTests
     }
 
     [Theory]
+    [InlineData(0, 0, 11, 90, 10)] // under the limit (9 of 11): every slot but one, past the limit
+    [InlineData(7, 0, 11, 90, 3)]
+    [InlineData(8, 0, 11, 90, 2)]
+    [InlineData(9, 0, 11, 90, 0)] // the limit is reached: no spying
+    [InlineData(6, 3, 11, 90, 0)] // reached with the attacks just sent
+    [InlineData(6, 2, 11, 90, 2)]
+    [InlineData(10, 0, 11, 100, 0)] // every slot but one is used anyway
+    public void Spies_go_out_only_below_the_fleet_slot_limit(int used, int sentSince, int max, int percent, int expected)
+    {
+        Assert.Equal(expected, RaidPlanner.SpySlotBudget(new FleetSlots(used, max), Settings with { FleetSlotUsePercent = percent }, sentSince));
+    }
+
+    [Theory]
     [InlineData(8, 260, 3, 8, 250, 10, 3_650)] // measured by the game's briefing
     [InlineData(8, 260, 3, 8, 260, 9, 1_030)]
     [InlineData(8, 260, 3, 8, 260, 3, 5)]

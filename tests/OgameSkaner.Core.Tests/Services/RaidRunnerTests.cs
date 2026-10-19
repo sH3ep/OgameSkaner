@@ -17,6 +17,8 @@ public class RaidRunnerTests
     private static readonly PlayerPlanet Second = Inactive("Second", new Coordinates(8, 250, 10), rank: 909);
     private static readonly PlayerPlanet Third = Inactive("Third", new Coordinates(1, 1, 1), rank: 1500);
 
+    private static readonly IReadOnlyList<string> Both = [Home.Id.Value, Colony.Id.Value];
+
     private readonly FakeOgamexClient _client = new(new UniverseProfile("tron"));
     private readonly FakePlanetRepository _planets = new();
     private readonly FakeRaidStore _store = new();
@@ -36,7 +38,7 @@ public class RaidRunnerTests
     }
 
     private RaidRunner Runner(TimeProvider? clock = null) =>
-        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), _planets, _store, clock ?? TimeProvider.System, NullLogger<RaidRunner>.Instance);
+        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), TestQueues.Immediate, _planets, _store, clock ?? TimeProvider.System, NullLogger<RaidRunner>.Instance);
 
     /// <summary>Runs one cycle: the run is cancelled when it announces the next check.</summary>
     private Task<RaidRunResult> RunCycleAsync(RaidSettings settings, CancellationTokenSource? cancellation = null)
@@ -63,7 +65,70 @@ public class RaidRunnerTests
         Assert.All(_client.SentMissions, m => Assert.Equal([new ShipStack(RaidRunner.ProbeType, 5)], m.Ships));
         Assert.All(_client.SentOrigins, o => Assert.Equal(Home.Id, o));
         Assert.Equal(2, _store.Raids.Count(r => r.Mission == MissionType.Spy));
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last()); // switched back
+    }
+
+    [Fact]
+    public async Task Spy_briefings_fly_from_the_home_planet_even_after_reading_the_other_fleets()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 0, slotsUsed: 8);
+        _client.Fleets[Colony.Id] = Fleet(Colony, heavyCargo: 0, slotsUsed: 8);
+
+        await RunCycleAsync(RaidSettings.Default with { NearestTargetsFirst = false, UseNearestPlanet = true, OriginPlanetIds = [Home.Id.Value] });
+
+        Assert.Equal(Home.Id, _client.FleetReads.Last()); // only the ticked planet is read
+        Assert.NotEmpty(_client.BriefingOrigins);
+        Assert.All(_client.BriefingOrigins, o => Assert.Equal(Home.Id, o));
+    }
+
+    [Fact]
+    public async Task With_nearest_planet_spies_go_best_ranked_first_from_the_nearest_ticked_planet()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 0, slotsUsed: 8); // 2 spies
+        _client.Fleets[Colony.Id] = Fleet(Colony, heavyCargo: 0, slotsUsed: 8);
+
+        await RunCycleAsync(RaidSettings.Default with { UseNearestPlanet = true, OriginPlanetIds = Both }); // nearest targets first is ignored
+
+        // Rank 31 and 909, although Third is nearer to Home than Rich; Rich (galaxy 5) is next to the colony.
+        Assert.Equal([Rich.Coordinates, Second.Coordinates], _client.SentMissions.Select(m => m.Target));
+        Assert.Equal([Colony.Id, Home.Id], _client.SentOrigins);
+        Assert.Equal(_client.SentOrigins, _client.BriefingOrigins);
+    }
+
+    [Fact]
+    public async Task With_nearest_planet_an_unticked_planet_sends_nothing()
+    {
+        _client.Fleets[Colony.Id] = Fleet(Colony, heavyCargo: 500, slotsUsed: 0);
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
+
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, UseNearestPlanet = true, OriginPlanetIds = [Home.Id.Value] });
+
+        Assert.NotEmpty(_client.SentOrigins);
+        Assert.All(_client.SentOrigins, o => Assert.Equal(Home.Id, o));
+        Assert.DoesNotContain(Colony.Id, _client.FleetReads);
+    }
+
+    [Fact]
+    public async Task With_nearest_planet_and_no_planet_ticked_nothing_is_sent()
+    {
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
+
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, UseNearestPlanet = true });
+
+        Assert.Empty(_client.SentMissions);
+        Assert.Contains(_log, l => l.StartsWith("No planet is ticked", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task With_nearest_planet_the_most_loot_is_attacked_first_not_the_nearest()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 1_000, slotsUsed: 0);
+        AddReport(Second, resources: new ResourceSet(2_000_000, 0, 0), defense: 0, fleet: 0); // next to Home
+        AddReport(Rich, resources: new ResourceSet(8_000_000, 0, 0), defense: 0, fleet: 0);
+
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, UseNearestPlanet = true, OriginPlanetIds = Both });
+
+        Assert.Equal([Rich.Coordinates, Second.Coordinates],
+            _client.SentMissions.Where(m => m.Mission == MissionType.Attack).Select(m => m.Target));
     }
 
     [Fact]
@@ -75,6 +140,48 @@ public class RaidRunnerTests
 
         // From Home 8:260:3: Second (same galaxy), then Third (galaxy 1, two steps with the wrap), not Rich (galaxy 5, three steps)
         Assert.Equal([Second.Coordinates, Third.Coordinates], _client.SentMissions.Select(m => m.Target));
+    }
+
+    [Fact]
+    public async Task Load_reports_stops_at_the_first_page_with_a_stored_report()
+    {
+        _client.ReportPageSize = 2;
+        foreach (var name in new[] { "n1", "n2", "n3", "old1", "old2", "old3" }) // newest first
+        {
+            var report = new EspionageReport(name, Rich.Coordinates, PlanetType.Planet, _now.AddSeconds(-30), "Rich", null, PlayerStatus.Inactive, new ResourceSet(1, 0, 0), 0);
+            _client.EspionageReports.Add(report);
+            _client.ReportDetails[name] = report with { Ships = new UnitSection(0, []), Defenses = new UnitSection(0, []) };
+        }
+        _store.AddReports("tron", _client.EspionageReports.Skip(3).ToList()); // the old ones were loaded before
+
+        var read = await Runner().ReadReportsAsync(_client, RaidSettings.Default);
+
+        Assert.Equal(3, read);
+        Assert.Equal([1, 2], _client.ReportPageReads); // page 2 holds "old1": nothing after it is new
+        Assert.Equal(["n1", "n2", "n3"], _client.DetailReads);
+        Assert.Equal(6, _store.LoadReportIds("tron").Count);
+    }
+
+    [Fact]
+    public async Task Check_now_starts_the_next_cycle_at_once()
+    {
+        var runner = Runner();
+        var checks = 0;
+
+        var result = await runner.RunAsync(_client, RaidSettings.Default, new SyncProgress(p =>
+        {
+            _log.Add(p.Message);
+            if (!p.Message.StartsWith("Next check", StringComparison.Ordinal))
+                return;
+            if (++checks == 1)
+                runner.CheckNow(); // the wait is minutes long
+            else
+                _cancellation.Cancel();
+        }), _cancellation.Token).WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Equal(RaidOutcome.Cancelled, result.Outcome);
+        Assert.Equal(2, checks);
+        Assert.Contains("Checking now.", _log);
     }
 
     [Fact]
@@ -119,14 +226,25 @@ public class RaidRunnerTests
     }
 
     [Fact]
-    public async Task Attacks_keep_the_slot_share_while_spies_use_all_slots_but_one()
+    public async Task At_the_slot_limit_nothing_is_attacked_or_spied_on()
     {
-        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 9); // 90% of 11 = 9: no attack slot left
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 9); // 90% of 11 = 9: the limit is reached
         AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
 
         await RunCycleAsync(RaidSettings.Default with { MinLoot = 1 });
 
-        Assert.Equal([MissionType.Spy], _client.SentMissions.Select(m => m.Mission)); // the 10th slot; the 11th stays free
+        Assert.Empty(_client.SentMissions);
+        Assert.Contains(_log, l => l.StartsWith("No spying: 9/11", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Below_the_slot_limit_spies_may_go_past_it_but_leave_one_slot_free()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 8); // 1 below the limit of 9
+
+        await RunCycleAsync(RaidSettings.Default);
+
+        Assert.Equal([MissionType.Spy, MissionType.Spy], _client.SentMissions.Select(m => m.Mission)); // slots 9 and 10; the 11th stays free
     }
 
     [Fact]
@@ -135,12 +253,11 @@ public class RaidRunnerTests
         _client.Fleets[Colony.Id] = Fleet(Colony, heavyCargo: 500, slotsUsed: 0);
         AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
 
-        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, UseNearestPlanet = true });
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, UseNearestPlanet = true, OriginPlanetIds = Both });
 
         var index = _client.SentMissions.FindIndex(m => m.Mission == MissionType.Attack);
         Assert.Equal(Colony.Id, _client.SentOrigins[index]);
         Assert.Equal([new ShipStack("HEAVY_CARGO", 121)], _client.SentMissions[index].Ships);
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last());
     }
 
     [Fact]
@@ -224,10 +341,10 @@ public class RaidRunnerTests
         // 10 minutes from Home, 2 from Colony at full speed.
         _client.Briefing = mission => new FleetBriefing(
             [MissionType.Attack, MissionType.Spy],
-            TimeSpan.FromMinutes((_client.FleetReads.Last() == Colony.Id ? 2.0 : 10.0) * 100 / mission.SpeedPercentage),
+            TimeSpan.FromMinutes((_client.CurrentPlanet == Colony.Id ? 2.0 : 10.0) * 100 / mission.SpeedPercentage),
             10, 3650, "player", "Target", 10, 1_000_000, 0, PlayerStatus.Inactive, null);
         AddReport(Rich, resources: new ResourceSet(4_000_000, 0, 0), defense: 0, fleet: 0);
-        var settings = RaidSettings.Default with { MinLoot = 1_000_000, UseNearestPlanet = true };
+        var settings = RaidSettings.Default with { MinLoot = 1_000_000, UseNearestPlanet = true, OriginPlanetIds = Both };
         var runner = Runner(clock);
         await runner.ReadReportsAsync(_client, settings);
         var targets = await runner.GetTargetsAsync("tron", settings);

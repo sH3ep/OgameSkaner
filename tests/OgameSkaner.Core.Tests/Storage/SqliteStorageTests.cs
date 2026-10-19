@@ -3,6 +3,7 @@ using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Raiding;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Sqlite;
 using OgameSkaner.Core.Tests.Fakes;
@@ -185,7 +186,7 @@ public class SqliteStorageTests : IDisposable
             // Back to version 1: the database as the first SQLite build left it.
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE rankings; DROP TABLE asteroids; DROP TABLE asteroid_missions; DROP TABLE asteroid_reports; PRAGMA user_version = 1;";
+            command.CommandText = "DROP TABLE rankings; DROP TABLE asteroids; DROP TABLE asteroid_missions; DROP TABLE asteroid_reports; DROP TABLE action_history; PRAGMA user_version = 1;";
             command.ExecuteNonQuery();
         }
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
@@ -219,8 +220,44 @@ public class SqliteStorageTests : IDisposable
         Assert.Equal(seen, loaded.SeenAt);
         Assert.Empty(store.LoadAsteroids("tron", seen.AddMinutes(91)));
         Assert.Equal([mission], store.LoadMissions("tron"));
+        store.MarkRecalled("tron", mission, seen.AddMinutes(5));
+        Assert.Equal([mission with { RecalledAt = seen.AddMinutes(5) }], store.LoadMissions("tron"));
         Assert.Equal([report], store.LoadReports("tron"));
         Assert.Equal(5, store.LoadSettings("tron").MarginPercent);
+    }
+
+    [Fact]
+    public void Action_history_is_stored_and_kept_thirty_days()
+    {
+        var now = DateTimeOffset.Now;
+        ActionGroupInfo Group(string description, DateTimeOffset finished, ActionGroupState state = ActionGroupState.Done, bool started = true) =>
+            new(1, "Raids", description, ActionPriority.Automation, finished.AddSeconds(-30))
+            {
+                State = state, StartedAt = started ? finished.AddSeconds(-10) : null, FinishedAt = finished,
+                Error = state == ActionGroupState.Failed ? "boom" : null
+            };
+        var old = Group("old", now - SqliteActionHistoryStore.KeptFor - TimeSpan.FromHours(1));
+        var failed = Group("failed", now.AddMinutes(-2), ActionGroupState.Failed);
+        var cancelled = Group("cancelled", now.AddMinutes(-1), ActionGroupState.Cancelled, started: false);
+
+        var store = new SqliteActionHistoryStore(Databases(), TimeProvider.System);
+        store.Add("tron", old); // after this run's cleanup
+        store.Add("tron", failed);
+        new SqliteActionHistoryStore(Databases(), TimeProvider.System).Add("tron", cancelled); // the next run cleans up first
+
+        var loaded = store.Load("tron", DateTimeOffset.MinValue);
+        Assert.Equal(["cancelled", "failed"], loaded.Select(g => g.Description));
+        Assert.Equal((ActionGroupState.Failed, "boom", ActionPriority.Automation), (loaded[1].State, loaded[1].Error, loaded[1].Priority));
+        Assert.Equal(failed.StartedAt!.Value.UtcTicks, loaded[1].StartedAt!.Value.UtcTicks);
+        Assert.Null(loaded[0].StartedAt);
+        Assert.Equal(["cancelled"], store.Load("tron", now.AddSeconds(-90)).Select(g => g.Description));
+
+        using var connection = Databases().Open("tron");
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT wait_ms, run_ms FROM action_history WHERE description = 'failed'";
+        using var reader = command.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal((20_000L, 10_000L), (reader.GetInt64(0), reader.GetInt64(1)));
     }
 
     [Fact]

@@ -27,6 +27,18 @@ public sealed class OgamexOptions
 
     public TimeSpan RequestTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>Shortest random pause between two groups of different modules in the action queue (one module's groups run back to back).</summary>
+    public TimeSpan ActionGapMin { get; set; } = TimeSpan.FromSeconds(2);
+
+    /// <summary>Longest random pause between two groups of different modules in the action queue.</summary>
+    public TimeSpan ActionGapMax { get; set; } = TimeSpan.FromSeconds(6);
+
+    /// <summary>
+    /// After this long without a queued group, the game is switched back to the planet that was selected before the queue
+    /// got busy; zero never switches back.
+    /// </summary>
+    public TimeSpan ReturnHomeAfter { get; set; } = TimeSpan.FromSeconds(10);
+
     /// <summary>When set, every response body is written to this directory (useful for capturing test fixtures).</summary>
     public string? DumpResponsesDirectory { get; set; }
 }

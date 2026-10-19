@@ -40,6 +40,7 @@ public class AttackMonitorTests
 
     private AttackMonitor Monitor() => new(
         new OwnPlanetService(new FakeOwnPlanetStore(), _time),
+        TestQueues.Immediate,
         new AlertDispatcher([_channel], _settingsStore, NullLogger<AlertDispatcher>.Instance),
         _time,
         NullLogger<AttackMonitor>.Instance);
@@ -77,7 +78,6 @@ public class AttackMonitorTests
         Assert.Equal([new ShipStack("LIGHT_CARGO", 10)], mission.Ships); // the satellites stay
         Assert.Equal(new ResourceSet(3_100, 2_000, 4_900), mission.Cargo); // 10,000 cargo: deuterium minus 100 fuel first
         Assert.Equal(Home.Id, Assert.Single(_client.SentOrigins));
-        Assert.Contains(Selected.Id, _client.SelectedPlanets); // switched back
 
         Assert.Equal(
             [(AlertSeverity.Critical, "Attack on Home [8:260:3]"), (AlertSeverity.Info, "Fleet escaped from Home")],

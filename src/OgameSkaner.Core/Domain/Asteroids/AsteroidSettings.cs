@@ -14,6 +14,15 @@ public sealed record AsteroidSettings
     /// <summary>At least this many miners per asteroid.</summary>
     public long MinMiners { get; init; } = 1;
 
+    /// <summary>At most this many miners per asteroid (null or 0 = no limit); wins over the other counts.</summary>
+    public long? MaxMiners { get; init; }
+
+    /// <summary>
+    /// Miners aren't sent when their cargo holds less than this share of the estimated resources (too few miners on the
+    /// planet or <see cref="MaxMiners"/>); 0 = always send. Without an estimate there's nothing to compare.
+    /// </summary>
+    public int MinCoveragePercent { get; init; } = 70;
+
     /// <summary>The miners must arrive at least this long before the asteroid disappears.</summary>
     public int ArrivalSafetySeconds { get; init; } = 60;
 

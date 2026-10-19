@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:OptimizerViewModel}"
              d:DesignHeight="620" d:DesignWidth="1000">
-    <Grid>
+    <Grid infra:Layout.Key="Optimizer.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="380" MinWidth="330" />
             <ColumnDefinition Width="Auto" />

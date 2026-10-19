@@ -1,0 +1,72 @@
+<UserControl x:Class="OgameSkaner.App.Views.QueueView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance vm:QueueViewModel}"
+             d:DesignHeight="450" d:DesignWidth="760">
+    <Grid Background="{StaticResource PanelBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Margin="8,8,8,2" TextWrapping="Wrap"
+                   Text="Every module acts in the game through this queue: one group of actions at a time with a short random pause in between, so modules never switch the planet under each other. Attack escapes don't wait." />
+        <TextBlock Grid.Row="1" Margin="8,2,8,4" FontWeight="SemiBold" Text="{Binding Summary}" />
+
+        <DataGrid infra:Layout.Key="Queue.Current" Grid.Row="2" Margin="8,0,8,8" ItemsSource="{Binding Current}" AutoGenerateColumns="False" CanUserAddRows="False"
+                  CanUserDeleteRows="False" CanUserSortColumns="False" HeadersVisibility="Column" Background="Transparent" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="State" Binding="{Binding State}" />
+                <DataGridTextColumn Header="Module" Binding="{Binding Owner}" />
+                <DataGridTextColumn Header="Group" Binding="{Binding Description}" Width="*" MinWidth="200" />
+                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" />
+                <DataGridTextColumn Header="Queued" Binding="{Binding Queued}" />
+                <DataGridTextColumn Header="Started" Binding="{Binding Started}" />
+                <DataGridTextColumn Header="Time" Binding="{Binding Duration}" />
+            </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding State}" Value="Running">
+                            <Setter Property="Background" Value="#DFF0D8" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+
+        <TextBlock Grid.Row="3" Margin="8,0,8,4" FontWeight="SemiBold" Text="Finished lately" />
+        <DataGrid infra:Layout.Key="Queue.Finished" Grid.Row="4" Margin="8,0,8,8" ItemsSource="{Binding Finished}" AutoGenerateColumns="False" CanUserAddRows="False"
+                  CanUserDeleteRows="False" HeadersVisibility="Column" Background="Transparent" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Result" Binding="{Binding State}" />
+                <DataGridTextColumn Header="Module" Binding="{Binding Owner}" />
+                <DataGridTextColumn Header="Group" Binding="{Binding Description}" Width="*" MinWidth="200" />
+                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" />
+                <DataGridTextColumn Header="Started" Binding="{Binding Started}" />
+                <DataGridTextColumn Header="Took" Binding="{Binding Duration}" />
+                <DataGridTextColumn Header="Error" Binding="{Binding Error}" Width="2*" />
+            </DataGrid.Columns>
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding State}" Value="Failed">
+                            <Setter Property="Background" Value="#F2DEDE" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding State}" Value="Cancelled">
+                            <Setter Property="Foreground" Value="#888" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+        </DataGrid>
+    </Grid>
+</UserControl>

@@ -37,6 +37,7 @@ public sealed record AsteroidReport(
     long DarkMatter);
 
 /// <summary>Asteroid Miners the runner sent.</summary>
+/// <param name="RecalledAt">When the player said they turned the fleet back (the asteroid can get miners again); null = not recalled.</param>
 public sealed record AsteroidMission(
     Coordinates Target,
     Coordinates Origin,
@@ -44,7 +45,8 @@ public sealed record AsteroidMission(
     long EstimatedResources,
     DateTimeOffset SentAt,
     DateTimeOffset ArrivesAt,
-    DateTimeOffset ReturnsAt);
+    DateTimeOffset ReturnsAt,
+    DateTimeOffset? RecalledAt = null);
 
 /// <summary>One solar system of the galaxy view: the players' planets and the asteroid at position 17, if any.</summary>
 public sealed record GalaxySystemView(IReadOnlyList<PlayerPlanet> Planets, Asteroid? Asteroid);

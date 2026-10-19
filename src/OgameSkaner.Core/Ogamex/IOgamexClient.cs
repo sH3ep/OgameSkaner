@@ -12,6 +12,12 @@ public interface IOgamexClient : IDisposable
 {
     UniverseProfile Universe { get; }
 
+    /// <summary>
+    /// The game's current planet as the last page showed it (null until one did). Planet-bound requests that name
+    /// their planet switch to it first when this differs, so another module or the player's browser can't misroute them.
+    /// </summary>
+    PlanetId? CurrentPlanet { get; }
+
     /// <summary>Downloads and parses one solar system from the galaxy view.</summary>
     /// <exception cref="SessionExpiredException">The server did not return a galaxy page.</exception>
     Task<IReadOnlyList<PlayerPlanet>> GetSolarSystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default);
@@ -32,10 +38,11 @@ public interface IOgamexClient : IDisposable
     Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// What the fleet page shows before sending <paramref name="mission"/> from the current planet: flight time, possible
-    /// missions and the target player's state (<c>/fleet/fleetpage3data</c>). Nothing is sent.
+    /// What the fleet page shows before sending <paramref name="mission"/> from <paramref name="origin"/> (switching to it
+    /// first unless it's the current planet) or from the current planet: flight time, possible missions and the target
+    /// player's state (<c>/fleet/fleetpage3data</c>). Nothing is sent.
     /// </summary>
-    Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, CancellationToken cancellationToken = default);
+    Task<FleetBriefing> GetFleetBriefingAsync(FleetMission mission, PlanetId? origin = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a fleet from <paramref name="origin"/> (switching to it first) or from the current planet. A refusal comes
@@ -91,7 +98,8 @@ public interface IOgamexClient : IDisposable
     Task<PlanetBuildState> GetPlanetBuildStateAsync(PlanetId planet, bool includeFacilities = true, CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Adds the next level of <paramref name="building"/> to the planet's build queue. The server answers
+    /// Adds the next level of <paramref name="building"/> to the planet's build queue (switching to the planet first
+    /// unless it's the current one). The server answers
     /// "success" even when it ignores an unaffordable item, so callers verify with the next state read.
     /// </summary>
     Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default);

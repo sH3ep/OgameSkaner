@@ -108,12 +108,19 @@ public class OgamexClientBuildingTests
         await Assert.ThrowsAsync<OgamexException>(() => CreateClient().GetPlanetBuildStateAsync(new PlanetId("00000000-0000-0000-0000-000000000000")));
     }
 
+    /// <summary>Building pages for the reads, <paramref name="json"/> for the posts.</summary>
+    private void RespondWithPagesAnd(string json) =>
+        _handler.Respond = r => r.Method == HttpMethod.Get ? Fixture("building_resource.html") : json;
+
     [Fact]
     public async Task Enqueue_posts_the_body_the_game_sends()
     {
-        _handler.Respond = _ => """{"IsSuccess":true,"Message":null,"ValidationErrors":null}""";
+        RespondWithPagesAnd("""{"IsSuccess":true,"Message":null,"ValidationErrors":null}""");
+        var client = CreateClient();
+        await client.SelectPlanetAsync(PlanetId);
+        _handler.Requests.Clear();
 
-        var outcome = await CreateClient().EnqueueBuildingAsync(PlanetId, BuildingType.DeuteriumSynthesizer);
+        var outcome = await client.EnqueueBuildingAsync(PlanetId, BuildingType.DeuteriumSynthesizer);
 
         var request = Assert.Single(_handler.Requests);
         Assert.Equal(HttpMethod.Post, request.Method);
@@ -122,12 +129,28 @@ public class OgamexClientBuildingTests
         Assert.Equal(EnqueueOutcome.Queued, outcome);
     }
 
+    [Fact]
+    public async Task Enqueue_switches_to_the_planet_first_when_another_one_may_be_current()
+    {
+        // Nothing read yet: the game may show any planet (another module's, the player's browser's).
+        RespondWithPagesAnd("""{"IsSuccess":true,"Message":null,"ValidationErrors":null}""");
+        var client = CreateClient();
+
+        await client.EnqueueBuildingAsync(PlanetId, BuildingType.MetalMine);
+        await client.EnqueueBuildingAsync(PlanetId, BuildingType.CrystalMine);
+
+        Assert.Equal(
+            ["GET /building/resource?planet=" + PlanetId.Value, "POST /building/increasebuilding", "POST /building/increasebuilding"],
+            _handler.Requests.Select(r => $"{r.Method} {r.Uri.PathAndQuery}"));
+        Assert.Equal(PlanetId, client.CurrentPlanet);
+    }
+
     [Theory]
     [InlineData("Construction queue is full.", EnqueueResult.QueueFull)]
     [InlineData("First, the required technologies must be researched.", EnqueueResult.Rejected)]
     public async Task Enqueue_maps_refusals(string message, EnqueueResult expected)
     {
-        _handler.Respond = _ => $$"""{"IsSuccess":false,"Message":"{{message}}","ValidationErrors":null}""";
+        RespondWithPagesAnd($$"""{"IsSuccess":false,"Message":"{{message}}","ValidationErrors":null}""");
 
         var outcome = await CreateClient().EnqueueBuildingAsync(PlanetId, BuildingType.NaniteFactory);
 

@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:ShipyardViewModel}"
              d:DesignHeight="450" d:DesignWidth="760">
-    <Grid Background="{StaticResource PanelBackground}">
+    <Grid infra:Layout.Key="Shipyard.Main" Background="{StaticResource PanelBackground}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" MinWidth="300" />
             <ColumnDefinition Width="5" />

@@ -33,6 +33,7 @@ public class SimulatedBuildRunnerTests
     private Task<BuildRunResult> RunAsync(BuildStrategy strategy, BuilderMode mode = BuilderMode.Simulated) =>
         new SimulatedBuildRunner(
                 new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
+                TestQueues.Immediate,
                 new BuildOrderOptimizer(),
                 Options.Create(new OgamexOptions()),
                 TimeProvider.System,
@@ -61,7 +62,6 @@ public class SimulatedBuildRunnerTests
         Assert.Contains(_progress, p => p.Message.StartsWith("Colony [1:2:8]: planned 6 items to M2 C1 D0", StringComparison.Ordinal));
         Assert.Equal(1, _client.TemperatureReads);
         Assert.Equal(1, _client.BonusReads);
-        Assert.Equal(Home.Id, _client.CurrentPlanet); // switched back
     }
 
     [Fact]

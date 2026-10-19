@@ -31,6 +31,7 @@ public class SchemaRunnerTests
     private Task<SchemaRunResult> RunAsync(params SchemaJob[] jobs) =>
         new SchemaRunner(
                 new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
+                TestQueues.Immediate,
                 Options.Create(new OgamexOptions()),
                 TimeProvider.System,
                 NullLogger<SchemaRunner>.Instance)
@@ -54,16 +55,6 @@ public class SchemaRunnerTests
             [(Home.Id, BuildingType.MetalMine), (Home.Id, BuildingType.MetalMine), (Home.Id, BuildingType.MetalMine), (Colony.Id, BuildingType.CrystalMine)],
             _client.EnqueuedBuildings);
         Assert.Contains(_progress, p => p.Planet == Home.Id && p.Status == "done");
-    }
-
-    [Fact]
-    public async Task Switches_back_to_the_planet_selected_before()
-    {
-        _client.CurrentPlanet = Colony.Id;
-
-        await RunAsync(new SchemaJob(Home.Id, MetalTo3));
-
-        Assert.Equal(Colony.Id, _client.CurrentPlanet);
     }
 
     [Fact]

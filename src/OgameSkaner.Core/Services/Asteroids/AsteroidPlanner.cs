@@ -47,16 +47,29 @@ public static class AsteroidPlanner
 
     /// <summary>
     /// Miners for the estimated resources plus the margin; <see cref="AsteroidSettings.MinersWithoutEstimate"/> without
-    /// an estimate or a known cargo capacity.
+    /// an estimate or a known cargo capacity; never more than <see cref="AsteroidSettings.MaxMiners"/>.
     /// </summary>
     public static long MinersNeeded(long? estimate, long cargoPerMiner, AsteroidSettings settings)
     {
+        long needed;
         if (estimate is not { } resources || cargoPerMiner <= 0)
-            return Math.Max(settings.MinMiners, settings.MinersWithoutEstimate);
+            needed = Math.Max(settings.MinMiners, settings.MinersWithoutEstimate);
+        else
+        {
+            var cargo = resources * (1 + Math.Max(0, settings.MarginPercent) / 100.0);
+            needed = Math.Max(Math.Max(1, settings.MinMiners), (long)Math.Ceiling(cargo / cargoPerMiner));
+        }
 
-        var cargo = resources * (1 + Math.Max(0, settings.MarginPercent) / 100.0);
-        return Math.Max(Math.Max(1, settings.MinMiners), (long)Math.Ceiling(cargo / cargoPerMiner));
+        return settings.MaxMiners is > 0 and var max ? Math.Min(needed, max) : needed;
     }
+
+    /// <summary>
+    /// Whether <paramref name="miners"/> carry at least <see cref="AsteroidSettings.MinCoveragePercent"/> of the
+    /// estimate; true without an estimate or a known cargo capacity.
+    /// </summary>
+    public static bool CoversEnough(long miners, long? estimate, long cargoPerMiner, AsteroidSettings settings) =>
+        estimate is not > 0 || cargoPerMiner <= 0 || settings.MinCoveragePercent <= 0
+        || (double)miners * cargoPerMiner >= estimate.Value * Math.Min(100, settings.MinCoveragePercent) / 100.0;
 
     /// <summary>Fleet slots mining fleets may still fill: <see cref="AsteroidSettings.FleetSlotUsePercent"/> of all, minus those in use.</summary>
     public static int SlotBudget(FleetSlots slots, AsteroidSettings settings) =>

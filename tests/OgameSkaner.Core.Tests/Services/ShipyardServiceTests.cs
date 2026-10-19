@@ -22,17 +22,16 @@ public class ShipyardServiceTests
     }
 
     private ShipyardService Service() =>
-        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), NullLogger<ShipyardService>.Instance);
+        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), TestQueues.Immediate, NullLogger<ShipyardService>.Instance);
 
     [Fact]
-    public async Task Orders_the_ships_on_every_selected_planet_and_switches_back()
+    public async Task Orders_the_ships_on_every_selected_planet()
     {
         var results = await Service().OrderAsync(_client, [Colony.Id, Outpost.Id], "BATTLESHIP", 10);
 
         Assert.Equal([(Colony.Id, "BATTLESHIP", 10), (Outpost.Id, "BATTLESHIP", 10)], _client.OrderedShips);
         Assert.Empty(_client.OrderedDefenses);
         Assert.All(results, r => Assert.True(r.Queued));
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last());
     }
 
     [Fact]

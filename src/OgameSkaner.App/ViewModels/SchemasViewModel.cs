@@ -8,6 +8,7 @@ using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Schemas;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Services.Schemas;
 using OgameSkaner.Core.Storage;
 
@@ -25,6 +26,7 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
     private readonly ISchemaStore _store;
     private readonly SchemaRunner _runner;
     private readonly OwnPlanetService _ownPlanets;
+    private readonly IActionQueues _queues;
     private readonly IDialogService _dialogs;
     private readonly AutomationActivity _activity;
     private SchemaRunSettings _settings = new();
@@ -36,6 +38,7 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
         ISchemaStore store,
         SchemaRunner runner,
         OwnPlanetService ownPlanets,
+        IActionQueues queues,
         IDialogService dialogs,
         AutomationActivity activity,
         IMessenger messenger,
@@ -46,6 +49,7 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
         _store = store;
         _runner = runner;
         _ownPlanets = ownPlanets;
+        _queues = queues;
         _dialogs = dialogs;
         _activity = activity;
 
@@ -211,6 +215,10 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
         }
     }
 
+    /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
+    [RelayCommand]
+    private void CheckNow() => _runner.CheckNow();
+
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
     {
@@ -292,7 +300,7 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
         ViewedPlanetInfo = $"Reading {viewed.Planet}…";
         try
         {
-            var state = await _ownPlanets.InspectAsync(client, viewed.Planet.Id);
+            var state = await _queues.For(client).RunAsync("Schemas", $"Read {viewed.Planet}", ct => _ownPlanets.InspectAsync(client, viewed.Planet.Id, ct), ActionPriority.User);
             if (ViewedPlanet != viewed)
                 return;
 

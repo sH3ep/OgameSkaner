@@ -4,6 +4,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:PlayersViewModel}"
              d:DesignHeight="450" d:DesignWidth="760">
@@ -16,7 +17,7 @@
             <CheckBox Content="Exact name" IsChecked="{Binding ExactMatch}" VerticalAlignment="Center" Margin="0,0,0,6" />
         </DockPanel>
 
-        <Grid>
+        <Grid infra:Layout.Key="Players.Main">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" MinWidth="300" />
                 <ColumnDefinition Width="Auto" />

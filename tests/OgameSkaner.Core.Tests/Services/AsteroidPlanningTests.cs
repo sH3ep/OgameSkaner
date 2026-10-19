@@ -53,6 +53,38 @@ public class AsteroidPlanningTests
     }
 
     [Fact]
+    public void The_biggest_of_the_days_last_four_reports_with_resources_is_used()
+    {
+        // Full gains (held / factor before it): 5.0M, 6.0M, 4.8M, 4.9M, 4.7M; the first is older than the last four.
+        var reports = new[]
+        {
+            Mined(Midnight.AddHours(1), 5_000_000),
+            Mined(Midnight.AddHours(2), 5_880_000), // 6,000,000 × 0.98
+            Mined(Midnight.AddHours(3), 0, AsteroidResultKind.DarkMatter), // a success, but no resources
+            Mined(Midnight.AddHours(4), 4_512_000), // 4,800,000 × 0.94
+            Mined(Midnight.AddHours(5), 4_508_000), // 4,900,000 × 0.92
+            Mined(Midnight.AddHours(6), 4_230_000) // 4,700,000 × 0.90
+        };
+
+        var estimate = AsteroidEstimator.Estimate(reports, Midnight.AddHours(7))!;
+
+        Assert.Same(reports[1], estimate.Basis);
+        Assert.Equal(6, estimate.Successes);
+        Assert.Equal(5_280_000, estimate.Resources); // 6,000,000 × 0.88
+    }
+
+    [Fact]
+    public void With_fewer_than_four_reports_today_the_biggest_of_those_is_used()
+    {
+        var reports = new[] { Mined(Midnight.AddDays(-1).AddHours(1), 9_000_000), Mined(Midnight.AddHours(1), 3_000_000), Mined(Midnight.AddHours(2), 3_920_000) };
+
+        var estimate = AsteroidEstimator.Estimate(reports, Midnight.AddHours(3))!;
+
+        Assert.Same(reports[2], estimate.Basis); // 4,000,000 at full gains; yesterday's report doesn't count
+        Assert.Equal(3_840_000, estimate.Resources); // × 0.96
+    }
+
+    [Fact]
     public void The_decline_stops_at_40_percent()
     {
         Assert.Equal(0.4, AsteroidEstimator.Multiplier(30), 6);
@@ -81,6 +113,30 @@ public class AsteroidPlanningTests
         Assert.Equal(10, AsteroidPlanner.MinersNeeded(1_000, 11_750, settings));
         Assert.Equal(1_000_000, AsteroidPlanner.MinersNeeded(null, 11_750, settings));
         Assert.Equal(1_000_000, AsteroidPlanner.MinersNeeded(1_000_000, 0, settings)); // capacity unknown
+    }
+
+    [Fact]
+    public void Max_miners_caps_every_count()
+    {
+        var settings = AsteroidSettings.Default with { MarginPercent = 20, MinMiners = 10, MaxMiners = 50 };
+
+        Assert.Equal(50, AsteroidPlanner.MinersNeeded(1_000_000, 11_750, settings)); // 103 needed
+        Assert.Equal(10, AsteroidPlanner.MinersNeeded(1_000, 11_750, settings));
+        Assert.Equal(50, AsteroidPlanner.MinersNeeded(null, 11_750, settings)); // without estimate
+        Assert.Equal(5, AsteroidPlanner.MinersNeeded(1_000, 11_750, settings with { MaxMiners = 5 })); // wins over the minimum
+        Assert.Equal(103, AsteroidPlanner.MinersNeeded(1_000_000, 11_750, settings with { MaxMiners = 0 })); // 0 = no limit
+    }
+
+    [Fact]
+    public void Miners_go_only_when_they_carry_enough_of_the_estimate()
+    {
+        var settings = AsteroidSettings.Default; // 70%
+
+        Assert.True(AsteroidPlanner.CoversEnough(60, 1_000_000, 11_750, settings)); // 705,000
+        Assert.False(AsteroidPlanner.CoversEnough(59, 1_000_000, 11_750, settings)); // 693,250
+        Assert.True(AsteroidPlanner.CoversEnough(1, null, 11_750, settings)); // no estimate
+        Assert.True(AsteroidPlanner.CoversEnough(1, 1_000_000, 0, settings)); // capacity unknown
+        Assert.True(AsteroidPlanner.CoversEnough(1, 1_000_000, 11_750, settings with { MinCoveragePercent = 0 }));
     }
 
     [Fact]

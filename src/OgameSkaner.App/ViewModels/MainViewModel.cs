@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OgameSkaner.App.Infrastructure;
+using OgameSkaner.App.Infrastructure.Alerts;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
@@ -31,10 +32,14 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
         IUniverseContext context,
         IDialogService dialogs,
         IMessenger messenger,
-        RunningModules running,
+        ActionQueueMonitor queue,
+        DefenseViewModel defense,
+        AlarmPlayer alarm,
         ILogger<MainViewModel> logger)
     {
-        Running = running.Titles;
+        Queue = queue;
+        Defense = defense;
+        Alarm = alarm;
         _services = services;
         _profiles = profiles;
         _sessions = sessions;
@@ -59,8 +64,14 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
 
     public IReadOnlyList<PageDescriptor> Pages { get; }
 
-    /// <summary>Titles of the pages whose automation runs, in menu order.</summary>
-    public ObservableCollection<string> Running { get; }
+    /// <summary>The attack protection's state, for the sidebar.</summary>
+    public DefenseViewModel Defense { get; }
+
+    /// <summary>The alert sound, for the sidebar's "Stop alarm" button.</summary>
+    public AlarmPlayer Alarm { get; }
+
+    /// <summary>The action queue of the selected universe, for the sidebar.</summary>
+    public ActionQueueMonitor Queue { get; }
 
     public ObservableCollection<UniverseProfile> Profiles { get; } = [];
 

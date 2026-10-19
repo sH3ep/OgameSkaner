@@ -6,6 +6,7 @@ using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Alerts;
 using OgameSkaner.Core.Services.Building;
+using OgameSkaner.Core.Services.Scheduling;
 
 namespace OgameSkaner.Core.Services.Defense;
 
@@ -32,9 +33,19 @@ public sealed record DefenseRunResult(DefenseOutcome Outcome, int Detected, int 
 /// </summary>
 /// <remarks>
 /// Attacks on a moon are only alerted: moons aren't in the planet list yet. Fleets aren't recalled after the attack.
+/// The checks don't go through the <see cref="IActionQueue"/>, and escapes run at once next to the other modules' groups
+/// (<see cref="IActionQueue.RunUrgentAsync{T}"/>).
 /// </remarks>
-public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher alerts, TimeProvider timeProvider, ILogger<AttackMonitor> logger)
+public sealed class AttackMonitor(
+    OwnPlanetService ownPlanets, IActionQueues queues, AlertDispatcher alerts, TimeProvider timeProvider, ILogger<AttackMonitor> logger)
 {
+    private readonly WakeUp _wakeUp = new();
+
+    /// <summary>Ends the running loop's wait, so the next cycle starts now ("Check now"); no effect without a run.</summary>
+    public void CheckNow() => _wakeUp.Now();
+
+    private const string Owner = "Defense";
+
     /// <summary>After this many failed checks in a row the player is alerted that the protection is blind.</summary>
     private const int FailuresBeforeAlert = 3;
 
@@ -46,6 +57,7 @@ public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher a
         var run = new RunState(ownPlanets.GetStored(client.Universe.Name).Planets);
         try
         {
+            _wakeUp.Reset();
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -66,7 +78,8 @@ public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher a
                 }
 
                 Report(progress, $"Next check at {timeProvider.GetLocalNow().Add(wait):T}");
-                await Task.Delay(wait, timeProvider, cancellationToken).ConfigureAwait(false);
+                if (await _wakeUp.DelayAsync(wait, timeProvider, cancellationToken).ConfigureAwait(false))
+                    Report(progress, "Checking now.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -156,26 +169,25 @@ public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher a
             Alert(run, client, title, message, movement.Mission == MovementMission.Espionage ? AlertSeverity.Warning : AlertSeverity.Critical);
     }
 
-    /// <summary>Escapes the attacked planets of <paramref name="due"/> (each once) and switches back to the planet selected before.</summary>
-    private async Task EscapeAsync(
+    /// <summary>Escapes the attacked planets of <paramref name="due"/> (each once), without waiting for the action queue.</summary>
+    private Task EscapeAsync(
         IOgamexClient client,
         IReadOnlyList<FleetMovement> due,
         IReadOnlyList<FleetMovement> incoming,
         DefenseSettings settings,
         RunState run,
         IProgress<DefenseProgress>? progress,
-        CancellationToken cancellationToken)
-    {
-        var refresh = await RefreshPlanetsAsync(client, run, cancellationToken).ConfigureAwait(false);
-        var attacked = incoming.Where(m => m.IsAttack).Select(m => m.Target).ToHashSet();
-        try
+        CancellationToken cancellationToken) =>
+        queues.For(client).RunUrgentAsync(Owner, $"Escape from {string.Join(", ", due.Select(m => m.Target).Distinct())}", async ct =>
         {
+            await RefreshPlanetsAsync(client, run, ct).ConfigureAwait(false);
+            var attacked = incoming.Where(m => m.IsAttack).Select(m => m.Target).ToHashSet();
             foreach (var group in due.GroupBy(m => m.Target))
             {
                 var ids = group.Select(m => m.Id).ToList();
                 var target = DefensePlanner.TargetOf(group.First(), run.Planets);
                 var state = target.Planet is { } planet && !target.OnMoon
-                    ? await EscapePlanetAsync(client, planet, attacked, settings, run, progress, cancellationToken).ConfigureAwait(false)
+                    ? await EscapePlanetAsync(client, planet, attacked, settings, run, progress, ct).ConfigureAwait(false)
                     : "Not escaped";
                 foreach (var id in ids)
                 {
@@ -183,12 +195,7 @@ public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher a
                     run.States[id] = state;
                 }
             }
-        }
-        finally
-        {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, progress).ConfigureAwait(false);
-        }
-    }
+        }, cancellationToken);
 
     /// <summary>Deploys the planet's ships to the first destination the server accepts. Returns the threat's new state.</summary>
     private async Task<string> EscapePlanetAsync(
@@ -217,8 +224,7 @@ public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher a
             FleetBriefing briefing;
             try
             {
-                // Read from the current planet, which the fleet read just made the attacked one.
-                briefing = await client.GetFleetBriefingAsync(mission, cancellationToken).ConfigureAwait(false);
+                briefing = await client.GetFleetBriefingAsync(mission, planet.Id, cancellationToken).ConfigureAwait(false);
             }
             catch (OgamexException ex) when (ex is not SessionExpiredException)
             {
@@ -265,24 +271,10 @@ public sealed class AttackMonitor(OwnPlanetService ownPlanets, AlertDispatcher a
         return "Escape failed";
     }
 
-    private async Task<OwnPlanetRefresh> RefreshPlanetsAsync(IOgamexClient client, RunState run, CancellationToken cancellationToken)
+    private async Task RefreshPlanetsAsync(IOgamexClient client, RunState run, CancellationToken cancellationToken)
     {
         var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
         run.Planets = refresh.List.Planets;
-        return refresh;
-    }
-
-    private async Task SwitchBackAsync(IOgamexClient client, PlanetId planet, IProgress<DefenseProgress>? progress)
-    {
-        try
-        {
-            await client.SelectPlanetAsync(planet, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (OgamexException ex)
-        {
-            logger.LogWarning(ex, "Switching back to {Planet} failed", planet);
-            Report(progress, $"Switching back to the selected planet failed: {ex.Message}");
-        }
     }
 
     private Threat DescribeThreat(FleetMovement movement, DefenseSettings settings, RunState run)

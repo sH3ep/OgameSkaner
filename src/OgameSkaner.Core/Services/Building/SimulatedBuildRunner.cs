@@ -6,6 +6,7 @@ using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Services.Optimizer;
+using OgameSkaner.Core.Services.Scheduling;
 
 namespace OgameSkaner.Core.Services.Building;
 
@@ -13,8 +14,9 @@ namespace OgameSkaner.Core.Services.Building;
 /// The Builder's Simulated mode: a continuous loop over the selected planets. Each cycle reads a planet, lets
 /// <see cref="BuildOrderOptimizer"/> find the fastest order from its real state to the strategy's targets (about
 /// <see cref="SimulatedBuildOptions.SimulationsPerPlan"/> simulated orders) and pushes the beginning of that order that
-/// the planet can pay now (<see cref="SimulatedPlanner.Push"/>). Then it switches the game back to the player's planet
-/// and sleeps until the next planned item is due (at most <see cref="SimulatedBuildOptions.CheckInterval"/>).
+/// the planet can pay now (<see cref="SimulatedPlanner.Push"/>), then sleeps until the next planned item is due (at most
+/// <see cref="SimulatedBuildOptions.CheckInterval"/>). Reading and pushing are <see cref="IActionQueue"/> groups, one per
+/// 5 planets; the search runs between groups.
 /// </summary>
 /// <remarks>
 /// A planet is planned again whenever it changed (something got built, queued, or the player did something by hand);
@@ -24,11 +26,22 @@ namespace OgameSkaner.Core.Services.Building;
 /// </remarks>
 public sealed class SimulatedBuildRunner(
     OwnPlanetService ownPlanets,
+    IActionQueues queues,
     BuildOrderOptimizer optimizer,
     IOptions<OgamexOptions> options,
     TimeProvider timeProvider,
     ILogger<SimulatedBuildRunner> logger)
 {
+    private readonly WakeUp _wakeUp = new();
+
+    /// <summary>Ends the running loop's wait, so the next cycle starts now ("Check now"); no effect without a run.</summary>
+    public void CheckNow() => _wakeUp.Now();
+
+    private const string Owner = "Builder";
+
+    /// <summary>Planets read and pushed per queue group.</summary>
+    private const int PlanetsPerGroup = 5;
+
     private static readonly TimeSpan BonusRefresh = TimeSpan.FromHours(1);
 
     /// <summary>A plan is redone after this long even when the planet didn't change (production drifts from the model).</summary>
@@ -46,13 +59,15 @@ public sealed class SimulatedBuildRunner(
         var run = new Run(progress);
         try
         {
-            var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
+            var refresh = await queues.For(client).RunAsync(Owner, "Read the planet list", ct => ownPlanets.RefreshAsync(client, ct), cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
             var planets = refresh.List.Planets.Where(p => request.Planets?.Contains(p.Id) ?? true).ToList();
             if (planets.Count == 0)
                 return run.Result(BuildOutcome.Failed, "None of the selected planets was found. Refresh the planet list and select planets.");
             foreach (var planet in planets)
                 run.Summaries[planet.Id] = new PlanetBuildSummary(planet, 0, BuildStopReason.None);
 
+            _wakeUp.Reset();
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -67,7 +82,8 @@ public sealed class SimulatedBuildRunner(
                     ? TimeSpan.FromTicks(Math.Clamp(due.Ticks, SimulatedBuildOptions.MinCheckInterval.Ticks, settings.CheckInterval.Ticks))
                     : settings.CheckInterval;
                 run.Report($"Next check at {timeProvider.GetLocalNow().Add(wait):T}");
-                await Task.Delay(wait, timeProvider, cancellationToken).ConfigureAwait(false);
+                if (await _wakeUp.DelayAsync(wait, timeProvider, cancellationToken).ConfigureAwait(false))
+                    run.Report("Checking now.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -84,10 +100,10 @@ public sealed class SimulatedBuildRunner(
     private async Task<(bool AllDone, TimeSpan? NextIn)> RunCycleAsync(
         IOgamexClient client, IReadOnlyList<OwnPlanet> planets, BuildStrategy strategy, SimulatedBuildOptions settings, Run run, CancellationToken cancellationToken)
     {
-        OwnPlanetRefresh refresh;
+        var queue = queues.For(client);
         try
         {
-            refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
+            await queue.RunAsync(Owner, "Read the planet list", ct => ownPlanets.RefreshAsync(client, ct), cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (OgamexException ex) when (ex is not SessionExpiredException)
         {
@@ -101,26 +117,20 @@ public sealed class SimulatedBuildRunner(
         {
             if (run.Bonuses is null || timeProvider.GetUtcNow() - run.BonusesReadAt > BonusRefresh)
             {
-                run.Bonuses = await client.GetAccountBonusesAsync(cancellationToken).ConfigureAwait(false);
+                run.Bonuses = await queue.RunAsync(Owner, "Read the account bonuses", ct => client.GetAccountBonusesAsync(ct), cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
                 run.BonusesReadAt = timeProvider.GetUtcNow();
                 run.Report($"Account bonuses read: {run.Bonuses.ClassName}, construction speed +{run.Bonuses.ConstructionSpeed:P0}");
             }
 
-            foreach (var planet in planets)
+            foreach (var batch in planets.Chunk(PlanetsPerGroup))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                try
+                foreach (var (done, due) in await ProcessBatchAsync(queue, client, batch, strategy, settings, run, cancellationToken).ConfigureAwait(false))
                 {
-                    var (done, due) = await ProcessPlanetAsync(client, planet, strategy, settings, run, cancellationToken).ConfigureAwait(false);
                     allDone &= done;
                     if (due is { } d && (nextIn is null || d < nextIn))
                         nextIn = d;
-                }
-                catch (OgamexException ex) when (ex is not SessionExpiredException)
-                {
-                    logger.LogWarning(ex, "Simulated build on {Planet} failed this cycle", planet);
-                    run.Report($"{planet}: {ex.Message} (retrying next cycle)");
-                    allDone = false;
                 }
             }
         }
@@ -129,16 +139,85 @@ public sealed class SimulatedBuildRunner(
             run.Report($"Reading the account bonuses failed: {ex.Message}");
             allDone = false;
         }
-        finally
-        {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, run).ConfigureAwait(false);
-        }
 
         return (allDone, nextIn);
     }
 
-    /// <summary>Plans one planet (or reuses its plan) and pushes what it can pay; returns whether it's done and when to come back.</summary>
-    private async Task<(bool Done, TimeSpan? NextIn)> ProcessPlanetAsync(
+    /// <summary>
+    /// Up to <see cref="PlanetsPerGroup"/> planets: one queue group reads each and pushes what its plan allows. The
+    /// planets that need a new plan are searched after that group (it takes seconds, which would hold up the other
+    /// modules), then a second group reads those again and pushes. Returns, per planet, whether it's done and when to
+    /// come back.
+    /// </summary>
+    private async Task<(bool Done, TimeSpan? NextIn)[]> ProcessBatchAsync(
+        IActionQueue queue, IOgamexClient client, OwnPlanet[] batch, BuildStrategy strategy, SimulatedBuildOptions settings, Run run, CancellationToken cancellationToken)
+    {
+        var steps = await queue.RunAsync(Owner, $"Build on {string.Join(", ", batch.AsEnumerable())}",
+            ct => ReadAndPushAllAsync(client, batch, strategy, settings, run, ct), cancellationToken: cancellationToken).ConfigureAwait(false);
+        var results = steps.Select(s => s.Result).ToArray();
+
+        var planned = new List<int>();
+        for (var i = 0; i < batch.Length; i++)
+        {
+            if (steps[i].NeedsPlan is not { } needed)
+                continue;
+            var memory = run.Planet(batch[i].Id);
+            var plannedAt = timeProvider.GetUtcNow();
+            var plan = await PlanAsync(batch[i], needed.Setup, settings, memory, run, cancellationToken).ConfigureAwait(false);
+            if (plan is null)
+            {
+                results[i] = (false, settings.CheckInterval);
+                continue;
+            }
+            memory.Plan = plan;
+            memory.Signature = needed.Signature;
+            memory.PlannedAt = plannedAt;
+            planned.Add(i);
+        }
+
+        if (planned.Count == 0)
+            return results;
+
+        var replanned = planned.Select(i => batch[i]).ToArray();
+        var pushed = await queue.RunAsync(Owner, $"Build on {string.Join(", ", replanned.AsEnumerable())} (new plan)",
+            ct => ReadAndPushAllAsync(client, replanned, strategy, settings, run, ct), cancellationToken: cancellationToken).ConfigureAwait(false);
+        for (var j = 0; j < planned.Count; j++)
+        {
+            // The planet changed again while the search ran: the next cycle plans from its new state.
+            results[planned[j]] = pushed[j].NeedsPlan is null ? pushed[j].Result : (false, SimulatedBuildOptions.MinCheckInterval);
+        }
+
+        return results;
+    }
+
+    /// <summary>Reads and pushes each planet in turn; one that fails is reported and retried next cycle, the others go on.</summary>
+    private async Task<PlanetStep[]> ReadAndPushAllAsync(
+        IOgamexClient client, IReadOnlyList<OwnPlanet> planets, BuildStrategy strategy, SimulatedBuildOptions settings, Run run, CancellationToken cancellationToken)
+    {
+        var steps = new PlanetStep[planets.Count];
+        for (var i = 0; i < planets.Count; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                steps[i] = await ReadAndPushAsync(client, planets[i], strategy, settings, run, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OgamexException ex) when (ex is not SessionExpiredException)
+            {
+                logger.LogWarning(ex, "Simulated build on {Planet} failed this cycle", planets[i]);
+                run.Report($"{planets[i]}: {ex.Message} (retrying next cycle)");
+                steps[i] = new PlanetStep((false, null));
+            }
+        }
+
+        return steps;
+    }
+
+    /// <summary>What a planet's group did: its result, or the setup to plan when its plan is missing or outdated.</summary>
+    private sealed record PlanetStep((bool Done, TimeSpan? NextIn) Result, (OptimizerSetup Setup, string Signature)? NeedsPlan = null);
+
+    /// <summary>Reads the planet and pushes what its plan (or the mode's order) allows; asks for a plan when there's no valid one.</summary>
+    private async Task<PlanetStep> ReadAndPushAsync(
         IOgamexClient client, OwnPlanet planet, BuildStrategy strategy, SimulatedBuildOptions settings, Run run, CancellationToken cancellationToken)
     {
         var state = await client.GetPlanetBuildStateAsync(planet.Id, includeFacilities: true, cancellationToken).ConfigureAwait(false);
@@ -155,13 +234,13 @@ public sealed class SimulatedBuildRunner(
         if (state.VacationMode)
         {
             run.Finish(planet, BuildStopReason.VacationMode);
-            return (false, null);
+            return new PlanetStep((false, null));
         }
 
         if (settings.Mode is BuilderMode.ByPrice or BuilderMode.ByLevel)
         {
             var order = settings.Mode == BuilderMode.ByLevel ? BuildOrder.ByLevel : BuildOrder.ByPrice;
-            return await BuildInOrderAsync(client, state, strategy, order, "", run, cancellationToken).ConfigureAwait(false);
+            return new PlanetStep(await BuildInOrderAsync(client, state, strategy, order, "", run, cancellationToken).ConfigureAwait(false));
         }
 
         var shipyard = settings.UseSolarSatellites && state.LevelOf(BuildingType.Shipyard) > 0
@@ -174,14 +253,7 @@ public sealed class SimulatedBuildRunner(
         var signature = Signature(state, setup, shipyard?.Satellites ?? 0, pendingSatellites);
         var now = timeProvider.GetUtcNow();
         if (memory.Plan is null || memory.Signature != signature || now - memory.PlannedAt > PlanLifetime)
-        {
-            var plan = await PlanAsync(planet, setup, settings, memory, run, cancellationToken).ConfigureAwait(false);
-            if (plan is null)
-                return (false, settings.CheckInterval);
-            memory.Plan = plan;
-            memory.Signature = signature;
-            memory.PlannedAt = now;
-        }
+            return new PlanetStep(default, (setup, signature));
 
         var steps = memory.Plan.Steps;
         if (steps.Count == 0)
@@ -192,7 +264,7 @@ public sealed class SimulatedBuildRunner(
                 Rules = strategy.Rules.Where(r => !SimulatedPlanner.IsSimulated(r.Building)).ToList(),
                 StorageFillPercent = 0
             };
-            return await BuildInOrderAsync(client, state, others, BuildOrder.ByPrice, "simulated targets queued; ", run, cancellationToken).ConfigureAwait(false);
+            return new PlanetStep(await BuildInOrderAsync(client, state, others, BuildOrder.ByPrice, "simulated targets queued; ", run, cancellationToken).ConfigureAwait(false));
         }
 
         var push = SimulatedPlanner.Push(state, steps, shipyard, QueueCapacity);
@@ -201,14 +273,14 @@ public sealed class SimulatedBuildRunner(
             if (!await SendAsync(client, planet, action, shipyard, pendingSatellites, memory, run, cancellationToken).ConfigureAwait(false))
             {
                 memory.Plan = null; // plan again with the game's answer in mind
-                return (false, settings.CheckInterval);
+                return new PlanetStep((false, settings.CheckInterval));
             }
         }
 
         if (push.Actions.Count > 0)
             memory.Plan = null; // the planet changed; the next cycle plans from the new state
         run.Report($"{planet}: {push.Actions.Count} sent, {steps.Count - push.StepsPushed} to go – {push.Waiting}");
-        return (false, push.NextIn ?? TimeSpan.FromSeconds(steps[^1].FinishSeconds));
+        return new PlanetStep((false, push.NextIn ?? TimeSpan.FromSeconds(steps[^1].FinishSeconds)));
     }
 
     private async Task<OptimizedOrder?> PlanAsync(OwnPlanet planet, OptimizerSetup setup, SimulatedBuildOptions settings, PlanetMemory memory, Run run, CancellationToken cancellationToken)
@@ -319,19 +391,6 @@ public sealed class SimulatedBuildRunner(
         string.Join(",", state.Levels.OrderBy(l => l.Key).Select(l => $"{l.Key}={l.Value}"))
         + "|" + string.Join(",", state.Queue.Select(q => $"{q.Building}{q.Level}{(q.Started ? "*" : "")}"))
         + $"|{satellites}+{pendingSatellites}|{setup.TargetKey}";
-
-    private async Task SwitchBackAsync(IOgamexClient client, PlanetId planet, Run run)
-    {
-        try
-        {
-            await client.SelectPlanetAsync(planet, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (OgamexException ex)
-        {
-            logger.LogWarning(ex, "Could not switch {Universe} back to planet {Planet}", client.Universe.Name, planet);
-            run.Report($"Could not switch back to the planet selected before: {ex.Message}");
-        }
-    }
 
     private sealed record PendingSatellites(int ExpectedCount, DateTimeOffset Until);
 

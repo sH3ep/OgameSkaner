@@ -4,8 +4,10 @@ using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OgameSkaner.App.Infrastructure;
+using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
+using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Storage;
 
@@ -21,17 +23,22 @@ public sealed partial class RaidsViewModel : PageViewModel
     private readonly RaidRunner _runner;
     private readonly IRaidStore _store;
     private readonly IDialogService _dialogs;
+    private readonly OwnPlanetService _ownPlanets;
     private string? _loadedUniverse;
     private bool _loading;
     private IReadOnlyList<RaidTarget> _targets = [];
 
-    public RaidsViewModel(IUniverseContext context, RaidRunner runner, IRaidStore store, IDialogService dialogs, RunningModules running)
+    /// <summary>The ticked origin planets, including ticked planets missing from the list (e.g. before a refresh).</summary>
+    private HashSet<string> _originPlanetIds = [];
+
+    public RaidsViewModel(IUniverseContext context, RaidRunner runner, IRaidStore store, IDialogService dialogs, OwnPlanetService ownPlanets, RunningModules running)
     {
         running.Track(this, RunCommand);
         _context = context;
         _runner = runner;
         _store = store;
         _dialogs = dialogs;
+        _ownPlanets = ownPlanets;
 
         _context.CurrentChanged += (_, _) =>
         {
@@ -56,6 +63,9 @@ public sealed partial class RaidsViewModel : PageViewModel
     private CargoShipOptionViewModel? _selectedCargoShip;
 
     public ObservableCollection<RaidTargetItemViewModel> Targets { get; } = [];
+
+    /// <summary>The own planets with a checkbox: fleets may leave from the ticked ones when sending from the nearest planet.</summary>
+    public ObservableCollection<PlanetSelectionItemViewModel> OriginPlanets { get; } = [];
 
     public ObservableCollection<string> Log { get; } = [];
 
@@ -96,7 +106,11 @@ public sealed partial class RaidsViewModel : PageViewModel
     private int _lowLootRespyHours;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanOrderByDistance))]
     private bool _useNearestPlanet;
+
+    /// <summary>Sending from the nearest planet takes the best targets anywhere, so the distance order is off then.</summary>
+    public bool CanOrderByDistance => !UseNearestPlanet;
 
     [ObservableProperty]
     private bool _nearestTargetsFirst;
@@ -153,7 +167,8 @@ public sealed partial class RaidsViewModel : PageViewModel
             case nameof(HideRejected) or nameof(GalaxyFrom) or nameof(GalaxyTo) or nameof(SystemFrom) or nameof(SystemTo) or nameof(MaxRankingDefensePoints):
                 ShowTargets();
                 break;
-            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip):
+            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip)
+                or nameof(CanOrderByDistance):
                 break;
             default:
                 if (!_loading && _loadedUniverse is not null)
@@ -221,7 +236,7 @@ public sealed partial class RaidsViewModel : PageViewModel
 
     [RelayCommand(CanExecute = nameof(CanAct))]
     private Task ReadReportsAsync() =>
-        ActAsync(client => _runner.ReadReportsAsync(client, CurrentSettings(), Progress(), all: true), n => $"{n} report(s) loaded from the messages");
+        ActAsync(client => _runner.ReadReportsAsync(client, CurrentSettings(), Progress()), n => $"{n} new report(s) loaded from the messages");
 
     [RelayCommand(CanExecute = nameof(CanAct))]
     private Task ReadDefenseRankingAsync() =>
@@ -268,6 +283,76 @@ public sealed partial class RaidsViewModel : PageViewModel
         if (!_loading && _loadedUniverse is not null)
             SaveSettings();
     }
+
+    [RelayCommand]
+    private async Task RefreshPlanetsAsync()
+    {
+        if (_context.Client is not { } client)
+        {
+            _dialogs.ShowError("Select a universe first.");
+            return;
+        }
+
+        try
+        {
+            ShowOriginPlanets((await _ownPlanets.RefreshAsync(client)).List);
+            AddLog($"Planet list refreshed: {OriginPlanets.Count} planets");
+        }
+        catch (Exception ex) when (ex is OgamexException or IOException or UnauthorizedAccessException)
+        {
+            _dialogs.ShowError($"Refreshing planets failed: {ex.Message}");
+        }
+    }
+
+    [RelayCommand]
+    private void SelectAllOrigins() => SetAllOrigins(true);
+
+    [RelayCommand]
+    private void SelectNoOrigins() => SetAllOrigins(false);
+
+    private void SetAllOrigins(bool selected)
+    {
+        _loading = true;
+        try
+        {
+            foreach (var planet in OriginPlanets)
+                planet.IsSelected = selected;
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        OnOriginSelectionChanged();
+    }
+
+    private void OnOriginSelectionChanged()
+    {
+        if (_loading)
+            return;
+
+        foreach (var planet in OriginPlanets)
+        {
+            if (planet.IsSelected)
+                _originPlanetIds.Add(planet.Planet.Id.Value);
+            else
+                _originPlanetIds.Remove(planet.Planet.Id.Value);
+        }
+
+        CargoShipsChanged();
+    }
+
+    /// <summary>New planets come unticked.</summary>
+    private void ShowOriginPlanets(OwnPlanetList list)
+    {
+        OriginPlanets.Clear();
+        foreach (var planet in list.Planets)
+            OriginPlanets.Add(new PlanetSelectionItemViewModel(planet, _originPlanetIds.Contains(planet.Id.Value), OnOriginSelectionChanged));
+    }
+
+    /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
+    [RelayCommand]
+    private void CheckNow() => _runner.CheckNow();
 
     [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunAsync(CancellationToken cancellationToken)
@@ -382,6 +467,8 @@ public sealed partial class RaidsViewModel : PageViewModel
             RaidMaxRankingDefensePoints = settings.MaxRankingDefensePoints;
             LowLootRespyHours = settings.LowLootRespyHours;
             UseNearestPlanet = settings.UseNearestPlanet;
+            _originPlanetIds = settings.OriginPlanetIds.ToHashSet();
+            ShowOriginPlanets(_loadedUniverse is null ? OwnPlanetList.Empty : _ownPlanets.GetStored(_loadedUniverse));
             NearestTargetsFirst = settings.NearestTargetsFirst;
         }
         finally
@@ -419,6 +506,7 @@ public sealed partial class RaidsViewModel : PageViewModel
         MaxRankingDefensePoints = RaidMaxRankingDefensePoints is { } max ? Math.Max(0, max) : null,
         LowLootRespyHours = Math.Max(0, LowLootRespyHours),
         UseNearestPlanet = UseNearestPlanet,
+        OriginPlanetIds = _originPlanetIds.Order(StringComparer.Ordinal).ToList(),
         NearestTargetsFirst = NearestTargetsFirst,
         TestMode = TestMode
     };

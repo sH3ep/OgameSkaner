@@ -16,7 +16,7 @@ public class GalaxyScanServiceTests
     private readonly FakeOgamexClient _client = new(Universe);
 
     private GalaxyScanService CreateService(int saveInterval = 25, TimeProvider? clock = null) =>
-        new(_repository, clock ?? TimeProvider.System, NullLogger<GalaxyScanService>.Instance) { SaveInterval = saveInterval };
+        new(_repository, TestQueues.Immediate, clock ?? TimeProvider.System, NullLogger<GalaxyScanService>.Instance) { SaveInterval = saveInterval };
 
     [Fact]
     public async Task Scans_every_system_reports_progress_and_stores_planets()
@@ -132,7 +132,7 @@ public class FleetEscapeServiceTests
             Fleet = new FleetSnapshot([new ShipStack("SMALL_CARGO", 10)], new Coordinates(2, 50, 7))
         };
 
-        var result = await new FleetEscapeService().EscapeToMoonAsync(client);
+        var result = await new FleetEscapeService(TestQueues.Immediate).EscapeToMoonAsync(client);
 
         Assert.True(result.Sent);
         var mission = Assert.Single(client.SentMissions);
@@ -147,7 +147,7 @@ public class FleetEscapeServiceTests
     {
         var client = new FakeOgamexClient(new UniverseProfile("tron"));
 
-        var result = await new FleetEscapeService().EscapeToMoonAsync(client);
+        var result = await new FleetEscapeService(TestQueues.Immediate).EscapeToMoonAsync(client);
 
         Assert.False(result.Sent);
         Assert.Empty(client.SentMissions);

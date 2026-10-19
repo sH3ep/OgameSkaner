@@ -5,6 +5,7 @@ using OgameSkaner.Core.Domain.Schemas;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Services.Building;
+using OgameSkaner.Core.Services.Scheduling;
 
 namespace OgameSkaner.Core.Services.Schemas;
 
@@ -26,16 +27,24 @@ public sealed record SchemaRunResult(SchemaRunOutcome Outcome, int Pushed, strin
 
 /// <summary>
 /// Feeds the schemas of the given planets into the game as a virtual queue without limit: every cycle it pushes on
-/// each planet what <see cref="SchemaPlanner"/> allows, switches the game back to the planet the player had selected,
-/// and waits <c>interval</c> before the next cycle. It ends when every planet's schema is done, on cancellation, or
+/// each planet what <see cref="SchemaPlanner"/> allows (one <see cref="IActionQueue"/> group per planet) and waits
+/// <c>interval</c> before the next cycle. It ends when every planet's schema is done, on cancellation, or
 /// when the session expires; other errors are reported and retried in the next cycle.
 /// </summary>
 public sealed class SchemaRunner(
     OwnPlanetService ownPlanets,
+    IActionQueues queues,
     IOptions<OgamexOptions> options,
     TimeProvider timeProvider,
     ILogger<SchemaRunner> logger)
 {
+    private readonly WakeUp _wakeUp = new();
+
+    /// <summary>Ends the running loop's wait, so the next cycle starts now ("Check now"); no effect without a run.</summary>
+    public void CheckNow() => _wakeUp.Now();
+
+    private const string Owner = "Schemas";
+
     /// <summary>Safety limit of actions per planet and cycle.</summary>
     private const int MaxActionsPerCycle = 20;
 
@@ -49,6 +58,7 @@ public sealed class SchemaRunner(
         var run = new Run(progress);
         try
         {
+            _wakeUp.Reset();
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -59,7 +69,8 @@ public sealed class SchemaRunner(
                 }
 
                 run.Report($"Next check at {timeProvider.GetLocalNow().Add(interval):T}");
-                await Task.Delay(interval, timeProvider, cancellationToken).ConfigureAwait(false);
+                if (await _wakeUp.DelayAsync(interval, timeProvider, cancellationToken).ConfigureAwait(false))
+                    run.Report("Checking now.");
             }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -75,10 +86,11 @@ public sealed class SchemaRunner(
     /// <summary>One pass over all planets; true when every schema is done.</summary>
     private async Task<bool> RunCycleAsync(IOgamexClient client, IReadOnlyList<SchemaJob> jobs, Run run, CancellationToken cancellationToken)
     {
+        var queue = queues.For(client);
         OwnPlanetRefresh refresh;
         try
         {
-            refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
+            refresh = await queue.RunAsync(Owner, "Read the planet list", ct => ownPlanets.RefreshAsync(client, ct), cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (OgamexException ex) when (ex is not SessionExpiredException)
         {
@@ -88,33 +100,27 @@ public sealed class SchemaRunner(
 
         var planets = refresh.List.Planets.ToDictionary(p => p.Id);
         var allDone = true;
-        try
+        foreach (var job in jobs)
         {
-            foreach (var job in jobs)
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!planets.TryGetValue(job.Planet, out var planet))
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                if (!planets.TryGetValue(job.Planet, out var planet))
-                {
-                    run.Report($"Planet {job.Planet} is not in the planet list any more.", job.Planet, "not found");
-                    continue;
-                }
-
-                try
-                {
-                    var last = await ProcessPlanetAsync(client, planet, job.Schema, run, cancellationToken).ConfigureAwait(false);
-                    allDone &= last is SchemaAction.Done;
-                }
-                catch (OgamexException ex) when (ex is not SessionExpiredException)
-                {
-                    logger.LogWarning(ex, "Schema run on {Planet} failed this cycle", planet);
-                    run.Report($"{planet}: {ex.Message}", planet.Id, "error, retrying next cycle");
-                    allDone = false;
-                }
+                run.Report($"Planet {job.Planet} is not in the planet list any more.", job.Planet, "not found");
+                continue;
             }
-        }
-        finally
-        {
-            await SwitchBackAsync(client, refresh.CurrentPlanet, run).ConfigureAwait(false);
+
+            try
+            {
+                var last = await queue.RunAsync(Owner, $"Build on {planet}", ct => ProcessPlanetAsync(client, planet, job.Schema, run, ct), cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+                allDone &= last is SchemaAction.Done;
+            }
+            catch (OgamexException ex) when (ex is not SessionExpiredException)
+            {
+                logger.LogWarning(ex, "Schema run on {Planet} failed this cycle", planet);
+                run.Report($"{planet}: {ex.Message}", planet.Id, "error, retrying next cycle");
+                allDone = false;
+            }
         }
 
         return allDone;
@@ -195,19 +201,6 @@ public sealed class SchemaRunner(
         var status = action is SchemaAction.Done ? "done" : $"waiting: {action.Reason}";
         run.Report($"{planet}: {status}", planet.Id, status);
         return action;
-    }
-
-    private async Task SwitchBackAsync(IOgamexClient client, PlanetId planet, Run run)
-    {
-        try
-        {
-            await client.SelectPlanetAsync(planet, CancellationToken.None).ConfigureAwait(false);
-        }
-        catch (OgamexException ex)
-        {
-            logger.LogWarning(ex, "Could not switch {Universe} back to planet {Planet}", client.Universe.Name, planet);
-            run.Report($"Could not switch back to the planet selected before: {ex.Message}");
-        }
     }
 
     private sealed record PendingSatellites(int ExpectedCount, DateTimeOffset Until);

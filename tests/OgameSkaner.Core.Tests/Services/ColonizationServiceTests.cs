@@ -27,7 +27,7 @@ public class ColonizationServiceTests
     }
 
     private ColonizationService Service() =>
-        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), NullLogger<ColonizationService>.Instance);
+        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), TestQueues.Immediate);
 
     private static FleetSnapshot Fleet(OwnPlanet planet, int colonyShips) =>
         new(colonyShips > 0 ? [new ShipStack(ColonizationService.ColonyShipType, colonyShips)] : [], planet.Coordinates);
@@ -36,7 +36,7 @@ public class ColonizationServiceTests
         new(missions, TimeSpan.FromMinutes(30), 10, 2890, owner is null ? null : "id", owner, null, 0, 0, PlayerStatus.None, warning);
 
     [Fact]
-    public async Task One_colony_ship_is_sent_from_the_nearest_planet_and_the_game_switched_back()
+    public async Task One_colony_ship_is_sent_from_the_nearest_planet()
     {
         var result = await Service().ColonizeAsync(_client, Target);
 
@@ -48,7 +48,6 @@ public class ColonizationServiceTests
         Assert.Equal([new ShipStack(ColonizationService.ColonyShipType, 1)], mission.Ships);
         Assert.Equal(Near.Id, Assert.Single(_client.SentOrigins));
         Assert.Equal([(PlanetId?)Near.Id], _client.FleetReads); // nearest first, stops at the first with a ship
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last());
     }
 
     [Fact]
@@ -73,7 +72,6 @@ public class ColonizationServiceTests
         Assert.False(result.Sent);
         Assert.Contains("No Colony Ship", result.Message);
         Assert.Empty(_client.SentMissions);
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last());
     }
 
     [Fact]
@@ -97,6 +95,5 @@ public class ColonizationServiceTests
 
         Assert.False(result.Sent);
         Assert.Contains("Not enough deuterium", result.Message);
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last());
     }
 }

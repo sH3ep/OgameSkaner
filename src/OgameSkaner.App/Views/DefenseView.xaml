@@ -4,10 +4,11 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
+             xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:DefenseViewModel}"
              d:DesignHeight="600" d:DesignWidth="1000">
-    <Grid>
+    <Grid infra:Layout.Key="Defense.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" MinWidth="460" />
             <ColumnDefinition Width="Auto" />
@@ -24,7 +25,7 @@
             <GroupBox Header="Hostile fleets">
                 <DockPanel>
                     <TextBlock DockPanel.Dock="Top" Text="{Binding StatusText}" TextWrapping="Wrap" Margin="0,0,0,6" FontWeight="SemiBold" />
-                    <DataGrid ItemsSource="{Binding Threats}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                    <DataGrid infra:Layout.Key="Defense.Threats" ItemsSource="{Binding Threats}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                               HeadersVisibility="Column" SelectionMode="Single" Background="Transparent" IsReadOnly="True">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Mission" Binding="{Binding Mission}" />
@@ -105,6 +106,8 @@
                         <Button Content="Start" Command="{Binding RunCommand}"
                                 ToolTip="Watch the event list, alert about hostile fleets and escape the attacked planets' fleets" />
                         <Button Content="Stop" Command="{Binding RunCancelCommand}" />
+                        <Button Content="Check now" Command="{Binding CheckNowCommand}" IsEnabled="{Binding RunCommand.IsRunning}"
+                                ToolTip="Start the next check now instead of waiting for the time in the log" />
                     </StackPanel>
 
                     <TextBlock Text="Alerts (all universes)" FontWeight="SemiBold" Margin="0,10,0,4" />
@@ -127,12 +130,12 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <TextBlock Text="Sound file" VerticalAlignment="Center" Margin="0,0,6,6" />
-                        <TextBox Grid.Column="1" Text="{Binding SoundFile}" ToolTip="A .wav file; empty = the Windows alarm sound" />
+                        <TextBox Grid.Column="1" Text="{Binding SoundFile}" ToolTip="A .wav or .mp3 file; empty = the app's alarm signal" />
                         <Button Grid.Column="2" Content="…" MinWidth="0" Padding="8,2" Command="{Binding BrowseSoundCommand}" />
-                        <Button Grid.Column="3" Content="✕" MinWidth="0" Padding="8,2" Command="{Binding ClearSoundCommand}" ToolTip="Use the Windows alarm sound" />
+                        <Button Grid.Column="3" Content="✕" MinWidth="0" Padding="8,2" Command="{Binding ClearSoundCommand}" ToolTip="Use the app's alarm signal" />
                         <TextBlock Grid.Row="1" Text="Repeat (attacks)" VerticalAlignment="Center" Margin="0,0,6,6" />
                         <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SoundRepeat, UpdateSourceTrigger=PropertyChanged}"
-                                 ToolTip="How often the sound plays for an attack (spy probes play it once, info like a done escape not at all)" />
+                                 ToolTip="How often the sound plays for an attack (spy probes play it for 3 seconds, info like a done escape not at all; the sidebar's Stop alarm silences it)" />
                     </Grid>
                     <Button Content="Send test alert" Command="{Binding TestAlertCommand}" HorizontalAlignment="Left" />
                 </StackPanel>

@@ -21,6 +21,9 @@ public interface IAsteroidStore
 
     void AddMissions(string universe, IEnumerable<AsteroidMission> missions);
 
+    /// <summary>Marks <paramref name="mission"/> as turned back by the player at <paramref name="recalledAt"/>.</summary>
+    void MarkRecalled(string universe, AsteroidMission mission, DateTimeOffset recalledAt);
+
     /// <summary>The mining reports, oldest first.</summary>
     IReadOnlyList<AsteroidReport> LoadReports(string universe);
 
@@ -75,6 +78,12 @@ public sealed class SqliteAsteroidStore(UniverseDatabases databases, IAppPaths p
         using var transaction = connection.BeginTransaction();
         AsteroidTables.AddMissions(connection, transaction, missions);
         transaction.Commit();
+    }
+
+    public void MarkRecalled(string universe, AsteroidMission mission, DateTimeOffset recalledAt)
+    {
+        using var connection = databases.Open(universe);
+        AsteroidTables.MarkRecalled(connection, mission.Target, mission.SentAt, recalledAt);
     }
 
     public IReadOnlyList<AsteroidReport> LoadReports(string universe)

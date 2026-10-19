@@ -36,7 +36,7 @@ public class AsteroidRunnerTests
     }
 
     private AsteroidRunner Runner() =>
-        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), _planets, _store, TimeProvider.System, NullLogger<AsteroidRunner>.Instance);
+        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), TestQueues.Immediate, _planets, _store, TimeProvider.System, NullLogger<AsteroidRunner>.Instance);
 
     private Asteroid Asteroid(int galaxy, int system, TimeSpan left) => new(new Coordinates(galaxy, system, 17), _now + left, _now);
 
@@ -85,11 +85,33 @@ public class AsteroidRunnerTests
         Assert.All(_client.SentMissions, m => Assert.Equal([new ShipStack(Miner, 1_000_000)], m.Ships));
         Assert.All(_client.SentOrigins, o => Assert.Equal(Home.Id, o)); // Near has only 500
         Assert.Equal([new Coordinates(7, 40, 17), new Coordinates(7, 16, 17)], _store.Missions.Select(m => m.Target)); // nearest first
-        Assert.Equal(Home.Id, _client.SelectedPlanets.Last()); // switched back
     }
 
     [Fact]
-    public async Task The_run_scans_nearest_first_and_sends_miners_as_soon_as_an_asteroid_is_found()
+    public async Task Known_asteroids_get_miners_gone_soonest_first()
+    {
+        _store.SaveAsteroids("tron", [Asteroid(7, 40, TimeSpan.FromHours(1)), Asteroid(7, 16, TimeSpan.FromMinutes(20))]); // 7:40 is nearer to Near
+        _client.Fleets[Home.Id] = Fleet(Home, miners: 1_000_000); // enough for one
+
+        await RunCycleAsync(AsteroidSettings.Default with { MinersWithoutEstimate = 1_000_000 });
+
+        Assert.Equal([new Coordinates(7, 16, 17), new Coordinates(7, 40, 17)], _client.SentMissions.Select(m => m.Target));
+    }
+
+    [Fact]
+    public async Task Asteroids_found_in_one_scan_group_get_miners_gone_soonest_first()
+    {
+        _client.Asteroids.Clear();
+        _client.Asteroids[new SolarSystemAddress(7, 43)] = Asteroid(7, 43, TimeSpan.FromHours(1)); // scanned first (from Near, 75 down)
+        _client.Asteroids[new SolarSystemAddress(7, 41)] = Asteroid(7, 41, TimeSpan.FromMinutes(20));
+
+        await RunCycleAsync(AsteroidSettings.Default with { MinersWithoutEstimate = 1_000_000 });
+
+        Assert.Equal([new Coordinates(7, 41, 17), new Coordinates(7, 43, 17)], _client.SentMissions.Select(m => m.Target));
+    }
+
+    [Fact]
+    public async Task The_run_scans_nearest_first_and_sends_miners_after_the_scan_group_that_found_an_asteroid()
     {
         var sentBeforeScanning16 = -1;
         _client.Briefing = mission =>
@@ -102,7 +124,7 @@ public class AsteroidRunnerTests
 
         // Near (7:130) is closest to the end of the ranges: 75 down to 40, then on to 16 for the second row.
         Assert.Equal(Enumerable.Range(16, 60).Reverse().Select(s => new SolarSystemAddress(7, s)), _client.RequestedSystems);
-        Assert.Equal(0, sentBeforeScanning16); // 7:40 was planned before the scan went on
+        Assert.Equal(0, sentBeforeScanning16); // 7:40 was planned after its group (44 to 40), before the scan went on
         Assert.Equal(2, _client.SentMissions.Count);
     }
 
@@ -116,7 +138,7 @@ public class AsteroidRunnerTests
 
         // Only Home (galaxy 8) has miners, so every system is as far: the rows are scanned in order.
         Assert.Equal([new Coordinates(7, 16, 17)], _store.Missions.Select(m => m.Target));
-        Assert.Equal(new SolarSystemAddress(7, 16), _client.RequestedSystems.Last());
+        Assert.Equal(new SolarSystemAddress(7, 20), _client.RequestedSystems.Last()); // the end of 7:16's scan group (16 to 20)
         Assert.Contains(_log, l => l.StartsWith("No Asteroid Miners left", StringComparison.Ordinal));
     }
 
@@ -153,7 +175,7 @@ public class AsteroidRunnerTests
         _client.Asteroids.Remove(new SolarSystemAddress(7, 40));
         _client.AsteroidHints.RemoveAt(1);
         _client.Briefing = mission => new FleetBriefing(
-            [MissionType.AsteroidMining], _client.FleetReads.Last() == Near.Id ? TimeSpan.FromMinutes(10) : TimeSpan.FromHours(2),
+            [MissionType.AsteroidMining], _client.CurrentPlanet == Near.Id ? TimeSpan.FromMinutes(10) : TimeSpan.FromHours(2),
             10, 20_000, null, null, 0, 0, 0, PlayerStatus.None, null);
         _client.Fleets[Home.Id] = Fleet(Home, miners: 2_000_000);
 
@@ -187,6 +209,30 @@ public class AsteroidRunnerTests
 
         Assert.Equal(0, await Runner().SendAsync(_client, AsteroidSettings.Default));
         Assert.All(Runner().GetOverview("tron").Asteroids, a => Assert.Equal(AsteroidState.Sent, a.State));
+    }
+
+    [Fact]
+    public async Task An_asteroid_whose_miners_were_recalled_gets_miners_again()
+    {
+        await Runner().FindAsync(_client);
+        await Runner().SendAsync(_client, AsteroidSettings.Default);
+        var asteroid = _store.Asteroids.Single(a => a.Coordinates == new Coordinates(7, 16, 17));
+
+        Assert.True(Runner().MarkRecalled("tron", asteroid));
+
+        Assert.Equal(AsteroidState.Open, Runner().GetOverview("tron").Asteroids.Single(t => t.Asteroid == asteroid).State);
+        Assert.Equal(1, await Runner().SendAsync(_client, AsteroidSettings.Default));
+        Assert.Equal(3, _client.SentMissions.Count);
+        Assert.Equal(AsteroidState.Sent, Runner().GetOverview("tron").Asteroids.Single(t => t.Asteroid == asteroid).State);
+    }
+
+    [Fact]
+    public void An_asteroid_without_miners_cannot_be_marked_recalled()
+    {
+        var asteroid = Asteroid(7, 16, TimeSpan.FromHours(1));
+        _store.Asteroids.Add(asteroid);
+
+        Assert.False(Runner().MarkRecalled("tron", asteroid));
     }
 
     [Fact]
