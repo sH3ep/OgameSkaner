@@ -69,7 +69,7 @@ public sealed partial class SchemasViewModel : PageViewModel, IRecipient<SchemaL
     public ObservableCollection<SchemaItemViewModel> Schemas { get; } = [];
 
     /// <summary>Buttons of the building palette; a click appends the building's next level.</summary>
-    public IReadOnlyList<BuildingDefinition> Palette { get; } = BuildingCatalog.All;
+    public IReadOnlyList<BuildingDefinition> Palette { get; } = BuildingCatalog.PlanetBuildings;
 
     public ObservableCollection<SchemaPlanetItemViewModel> Planets { get; } = [];
 

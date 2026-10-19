@@ -58,12 +58,17 @@ public static partial class BuildingPageParser
             planetId,
             ParsePlanets(document),
             new ResourceSet((long)ReadNumber(script, "metal"), (long)ReadNumber(script, "crystal"), (long)ReadNumber(script, "deuterium")),
-            new ResourceSet((long)ReadNumber(script, "metalStorageCapacity"), (long)ReadNumber(script, "crystalStorageCapacity"), (long)ReadNumber(script, "deuteriumStorageCapacity")),
+            // Moons have no storages; their page may leave the capacities out.
+            new ResourceSet(
+                (long)ReadNumber(script, "metalStorageCapacity", 0), (long)ReadNumber(script, "crystalStorageCapacity", 0),
+                (long)ReadNumber(script, "deuteriumStorageCapacity", 0)),
             ReadNumber(script, "energy"),
             ReadNumber(script, "energyConsumption"),
             ParseBuildings(document),
             ParseQueue(document),
-            FreeFieldsPattern().Match(html) is { Success: true } fields ? Int(fields.Groups[1].Value) : null,
+            FreeFieldsPattern().Match(html) is { Success: true } fields ? Int(fields.Groups[1].Value)
+            : MoonFieldsPattern().Match(html) is { Success: true } moonFields ? Int(moonFields.Groups[1].Value)
+            : null,
             VacationPattern().Match(html) is { Success: true } vacation && vacation.Groups[1].Value == "true",
             new ResourceSet(
                 (long)Math.Round(ReadNumber(script, "metalProduction") * 3600),
@@ -224,13 +229,13 @@ public static partial class BuildingPageParser
             ? new QueuedBuilding(building, level, started)
             : null;
 
-    /// <summary>Reads <c>name: 123.45</c> from the body of the <c>var resources</c> object.</summary>
-    internal static double ReadNumber(string script, string name)
+    /// <summary>Reads <c>name: 123.45</c> from the body of the <c>var resources</c> object; <paramref name="missing"/> when absent (else it throws).</summary>
+    internal static double ReadNumber(string script, string name, double? missing = null)
     {
         var match = Regex.Match(script,$@"\b{name}:\s*(-?[0-9.]+)", RegexOptions.CultureInvariant);
-        return match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
-            ? value
-            : throw new OgamexException($"Building page is missing the '{name}' value.");
+        if (match.Success && double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var value))
+            return value;
+        return missing ?? throw new OgamexException($"Building page is missing the '{name}' value.");
     }
 
     internal static IEnumerable<HtmlNode> ByClass(HtmlNode root, string tag, string cssClass) =>
@@ -248,6 +253,10 @@ public static partial class BuildingPageParser
 
     [GeneratedRegex(@"remainingFieldsQueueIncluded\s*=\s*['`""]?(\d+)")]
     private static partial Regex FreeFieldsPattern();
+
+    /// <summary>A moon's facility page: <c>window.remainingBuildingFields = `1`</c>.</summary>
+    [GeneratedRegex(@"window\.remainingBuildingFields\s*=\s*['`""]?(\d+)")]
+    private static partial Regex MoonFieldsPattern();
 
     [GeneratedRegex(@"window\.currentConstructionRemainingSeconds\s*=\s*(\d+)")]
     private static partial Regex RemainingPattern();

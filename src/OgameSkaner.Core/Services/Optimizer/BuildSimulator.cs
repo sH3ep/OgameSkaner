@@ -533,13 +533,21 @@ public sealed class BuildSimulator
 
     private bool EnsureCapacity(int storage, double amount)
     {
-        while (Model.Capacity[_s.Levels[storage]] < amount)
+        // Stock above the capacity (shipped in) stays and pays; only production stops at the capacity.
+        while (Model.Capacity[_s.Levels[storage]] < amount && Stock(storage) < amount)
         {
             if (_s.Levels[storage] >= GameModel.MaxLevel || !Build((Gene)storage, forced: true))
                 return false;
         }
         return true;
     }
+
+    private double Stock(int storage) => storage switch
+    {
+        MetalStorageIndex => _s.Metal,
+        CrystalStorageIndex => _s.Crystal,
+        _ => _s.Deuterium
+    };
 
     /// <summary>
     /// Orders enough satellites to power <paramref name="nextMine"/>'s next level, or (no mine left, with

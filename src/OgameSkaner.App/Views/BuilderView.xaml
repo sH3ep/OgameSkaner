@@ -5,9 +5,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:OgameSkaner.App.ViewModels"
              xmlns:infra="clr-namespace:OgameSkaner.App.Infrastructure"
+             xmlns:views="clr-namespace:OgameSkaner.App.Views"
              mc:Ignorable="d"
              d:DataContext="{d:DesignInstance vm:BuilderViewModel}"
              d:DesignHeight="520" d:DesignWidth="900">
+    <TabControl>
+    <TabItem Header="Planets">
     <Grid infra:Layout.Key="Builder.Main">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*" MinWidth="360" />
@@ -181,4 +184,9 @@
             </ScrollViewer>
         </GroupBox>
     </Grid>
+    </TabItem>
+    <TabItem Header="Moons">
+        <views:MoonsView DataContext="{Binding Moons}" />
+    </TabItem>
+    </TabControl>
 </UserControl>

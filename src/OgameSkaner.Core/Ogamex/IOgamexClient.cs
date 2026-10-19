@@ -2,6 +2,7 @@ using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Defense;
+using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 
@@ -96,6 +97,22 @@ public interface IOgamexClient : IDisposable
     /// </summary>
     /// <param name="includeFacilities">Also read the facilities page (one more request).</param>
     Task<PlanetBuildState> GetPlanetBuildStateAsync(PlanetId planet, bool includeFacilities = true, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Building levels, resources, free fields and build queue of one of the player's moons (its facility page; moons
+    /// have no other building page). Makes it the current place in the game.
+    /// </summary>
+    Task<PlanetBuildState> GetMoonBuildStateAsync(PlanetId moon, CancellationToken cancellationToken = default);
+
+    /// <summary>The planet's moon formation page: Graviton level, its moon's size (0 = none), the allowed sizes, its metal. Selects the planet.</summary>
+    Task<MoonFormationInfo> GetMoonFormationAsync(PlanetId planet, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Creates a moon of <paramref name="diameter"/> km around <paramref name="planet"/>, paid with the planet's metal
+    /// (<see cref="MoonFormation.MetalCost"/>). Returns the new moon's id.
+    /// </summary>
+    /// <exception cref="OgamexException">The game refused it (its message), e.g. not enough metal or the planet has a moon.</exception>
+    Task<PlanetId> CreateMoonAsync(PlanetId planet, int diameter, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adds the next level of <paramref name="building"/> to the planet's build queue (switching to the planet first

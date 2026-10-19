@@ -16,7 +16,7 @@ public class BuildSettingsStoreTests : IDisposable
         var settings = new JsonBuildSettingsStore(new AppPaths(_temp.Path)).Load("tron");
 
         Assert.Equal(10, settings.ReferenceLevel);
-        Assert.Equal(BuildingCatalog.All.Select(d => d.Type).Where(t => t != BuildingType.SolarPlant), settings.Rules.Select(r => r.Building));
+        Assert.Equal(BuildingCatalog.PlanetBuildings.Select(d => d.Type).Where(t => t != BuildingType.SolarPlant), settings.Rules.Select(r => r.Building));
         Assert.All(settings.Rules.Where(r => BuildStrategy.IsStorage(r.Building)), r => Assert.True(r.Enabled)); // filled at the % as before
         Assert.Equal(70, settings.StorageFillPercent);
         Assert.Equal(new BuildingRule(BuildingType.MetalMine, true, RuleMode.Relative, 2), settings.Rules[0]);
@@ -56,7 +56,7 @@ public class BuildSettingsStoreTests : IDisposable
             ]
         }.Normalize();
 
-        Assert.Equal(BuildingCatalog.All.Count - 1, settings.Rules.Count);
+        Assert.Equal(BuildingCatalog.PlanetBuildings.Count - 1, settings.Rules.Count); // no moon buildings
         Assert.Equal(4, settings.Rules.Single(r => r.Building == BuildingType.Shipyard).Value);
         Assert.DoesNotContain(settings.Rules, r => r.Building == BuildingType.SolarPlant);
         Assert.False(settings.Rules.Single(r => r.Building == BuildingType.MetalStorage).Enabled);

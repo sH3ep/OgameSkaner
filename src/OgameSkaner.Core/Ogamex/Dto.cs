@@ -77,3 +77,11 @@ internal sealed record CreateDefenseRequest(
 
 /// <summary>Answer of the building endpoints: <c>{"IsSuccess":false,"Message":"Construction queue is full.","ValidationErrors":null}</c>.</summary>
 internal sealed record BuildingResponse(bool IsSuccess, string? Message);
+
+/// <summary>Body of <c>/home/createmoon</c> (moonFormation.js); the game sends these exact (PascalCase) names.</summary>
+internal sealed record CreateMoonRequest(
+    [property: JsonPropertyName("Diameter")] int Diameter,
+    [property: JsonPropertyName("PlanetId")] string PlanetId);
+
+/// <summary>Answer of <c>/home/createmoon</c>: <c>Data</c> is the new moon's id (the game then opens <c>/home?planet=Data</c>).</summary>
+internal sealed record CreateMoonResponse(bool IsSuccess, string? Message, System.Text.Json.JsonElement Data);

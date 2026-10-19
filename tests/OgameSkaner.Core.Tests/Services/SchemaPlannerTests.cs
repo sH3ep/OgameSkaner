@@ -111,20 +111,20 @@ public class SchemaPlannerTests
     [Fact]
     public void Strict_order_waits_for_the_next_step_even_when_a_later_one_is_affordable()
     {
-        // metal 1 needs 60 metal, crystal 1 only 48
+        // metal 1 needs 80 metal, crystal 1 only 64
         var schema = Schema((BuildingType.MetalMine, 1), (BuildingType.CrystalMine, 1));
 
         var action = SchemaPlanner.Next(State(resources: new(50, 100, 0)), schema);
 
         var wait = Assert.IsType<SchemaAction.Wait>(action);
         Assert.Contains("Metal Mine 1", wait.Reason, StringComparison.Ordinal);
-        Assert.Contains("10 metal", wait.Reason, StringComparison.Ordinal);
+        Assert.Contains("30 metal", wait.Reason, StringComparison.Ordinal);
     }
 
     [Fact]
     public void Waiting_queue_items_are_reserved_because_the_game_drops_them_when_unpaid()
     {
-        // crystal 1 = 48/24; the waiting metal 1 (60/15) will be paid first
+        // crystal 1 = 64/32; the waiting metal 1 (80/20) will be paid first
         var schema = Schema((BuildingType.MetalMine, 1), (BuildingType.CrystalMine, 1));
         var waiting = State(resources: new(100, 50, 0), queue: [new QueuedBuilding(BuildingType.MetalMine, 1, Started: false)]);
         var started = State(new() { [BuildingType.MetalMine] = 0 }, resources: new(100, 50, 0), queue: [new QueuedBuilding(BuildingType.MetalMine, 1, Started: true)]);

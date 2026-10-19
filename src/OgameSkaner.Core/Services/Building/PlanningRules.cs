@@ -20,7 +20,7 @@ internal static class PlanetLevels
 
 /// <summary>
 /// Costs and construction times anchored on the game page: the next level (after the queue) costs and takes what
-/// the page says, other levels are scaled by the catalog factor from there. Without page values the catalog
+/// the page says, other levels are scaled by the catalog's growth from there. Without page values the catalog
 /// formula is used for costs and the time is unknown.
 /// </summary>
 internal sealed class CostModel(PlanetBuildState state)
@@ -41,10 +41,18 @@ internal sealed class CostModel(PlanetBuildState state)
             ? TimeSpan.FromSeconds(pageDuration.TotalSeconds * Growth(building, level))
             : null;
 
+    /// <summary>How much <paramref name="level"/> costs compared to the page's level, by the game's formula (tiers included).</summary>
     private double Growth(BuildingType building, int level)
     {
-        var steps = level - (PlanetLevels.Of(_plannedLevels, building) + 1);
-        return steps == 0 ? 1 : Math.Pow(BuildingCatalog.Get(building).CostFactor, steps);
+        var shown = PlanetLevels.Of(_plannedLevels, building) + 1;
+        if (level == shown)
+            return 1;
+
+        static double Units(ResourceSet cost) => (double)cost.Metal + cost.Crystal + cost.Deuterium;
+        var from = Units(BuildingCatalog.CostOf(building, shown));
+        return from > 0
+            ? Units(BuildingCatalog.CostOf(building, level)) / from
+            : Math.Pow(BuildingCatalog.Get(building).CostFactor, level - shown);
     }
 }
 

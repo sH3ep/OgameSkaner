@@ -6,7 +6,7 @@ Reference for the build endpoints implemented in `OgamexClient` (`GetOwnPlanetsA
 
 | # | Information / action | Used by | Status |
 |---|----------------------|---------|--------|
-| 1 | List of own planets | `GetOwnPlanetsAsync` | ✔ (moon markup not seen yet) |
+| 1 | List of own planets | `GetOwnPlanetsAsync` | ✔ (moons: `a.moon-select`, see `ogamex-moon-api.md`) |
 | 2 | Selecting which planet a request is about | all per-planet calls | ✔ `?planet=` (tested with two planets) |
 | 3 | Building levels (resource buildings + facilities) | `GetPlanetBuildStateAsync` | ✔ |
 | 4 | Current resources on the planet | `GetPlanetBuildStateAsync` | ✔ |
@@ -74,7 +74,7 @@ Consequences for the client:
   Resources stop growing at capacity (Home was at 101% metal / 100% crystal). The planner queues a storage at ≥ 70% fill.
 - Free fields: `window.remainingFieldsQueueIncluded = '246'` – resources page only (not on the facilities page).
 - Vacation mode: `window.isVacation = false;` near the top of every page.
-- Moons: not seen yet. They have different buildings and will get their own automation; for now the parser skips sidebar
+- Moons have different buildings and their own automation (Builder's Moons tab, `ogamex-moon-api.md`); the planet parser skips sidebar
   links with a class containing "moon" and the client refuses a page without `METAL_MINE`.
 - Research lab / shipyard upgrades do not block research or ship production on OgameX (user), so no special handling.
 
@@ -106,7 +106,7 @@ Need for each planet: **server id**, **name**, **coordinates**. Moons must be re
       <a class="planet-select selected" href="?planet=<planet guid>">
         <span class="planet-name">Home planet</span><span class="planet-coords">[8:260:3]</span>
   ```
-  Planet id = GUID from `href="?planet=…"`. "[1/4]" = planets owned / max. Moon markup not seen yet (no moon).
+  Planet id = GUID from `href="?planet=…"`. "[1/4]" = planets owned / max. Moons: `a.moon-select` next to their planet's link, see `ogamex-moon-api.md`.
 
 ## 2. Selecting the planet
 How does the server know which planet we mean?
@@ -168,7 +168,7 @@ The id/name the server uses for each building in requests and page markup (e.g. 
 - Findings: `METAL_MINE`, `CRYSTAL_MINE`, `DEUTERIUM_REFINERY`, `SOLAR_POWER_PLANT`, `FUSION_REACTOR`,
   `METAL_STORAGE`, `CRYSTAL_STORAGE`, `DEUTERIUM_TANK`.
   Facilities: `ROBOT_FACTORY`, `NANITE_FACTORY`, `SHIPYARD`, `RESEARCH_LAB`, `UNIVERSITY`, `TERRAFORMER`, `MISSILE_SILO`.
-  Also seen: `MOON_BASE` (moon only).
+  Moon only: `MOON_BASE`, `PHALANX_SENSOR`, `JUMP_GATE` (moons also have `ROBOT_FACTORY`, `NANITE_FACTORY`, `SHIPYARD`; see `ogamex-moon-api.md`).
 
 ## 8. Adding to the queue
 - URL, method, body (JSON camelCase like the other endpoints, or form data?), headers, anti-forgery token if any.
@@ -196,6 +196,12 @@ Not needed for the first version, but the server may refuse for these reasons an
 - Locked buildings are visible on the page: `a.upgrade-btn.disabled` and no "Required resources" section → the planner should skip them.
 - Also: are the costs on the page the same as `BuildingCatalog` formulas (check a few)? If OgameX differs, we could read costs from the page instead.
 - Findings: **costs differ from the standard formulas**: metal mine 25 = 911,647 / 227,912 (formula 1,010,046 / 252,511),
+- **The exact formulas** are in the game's cost table `/simulator/costtable` (script `/assets/js/app/pages/simulatorCostTable.js`;
+  genesis is a "V2" universe, `window.isV2 = true`): mines base 80/20, 64/32, 340/100 ×1.48 up to level 20, then from each
+  anchor ×1.46 to 30, ×1.445 to 40, ×1.43 to 50, ×1.41 to 60, ×1.39 … (5 levels each); solar plant 100/40 ×1.5 to 20, ×1.49 to 30,
+  ×1.48 to 40 …; fusion reactor 900/360/180 ×2; storages ×1.5; factories, lab, silo, university (1.2M/800k/200k),
+  terraformer (0/500k/200k) and the moon buildings ×2. The table truncates, the building pages round (solar 8 = 1,709).
+  `BuildingCatalog` holds them (`CostTier`), and the planners scale a page cost by the formula's ratio between levels.
   crystal mine 24 = 499,532 / 249,768, deuterium synthesizer 11 = 17,143 / 5,042, solar 8 = 1,709 / 683,
   metal storage 4 = 67,500 (formula 8,000). Fusion reactor 1 = 900/360/180 matches.
   → use the page's next-level cost instead of the catalog formula.
@@ -209,8 +215,9 @@ Not needed for the first version, but the server may refuse for these reasons an
 Used by `Domain/Optimizer/GameModel` and pinned by `GameModelTests`. Measured by queueing levels one after another and
 reading each next-level cost/duration (then cancelling), by demolishing (instant on OgameX) and rebuilding the
 Colony's Metal Mine and Deuterium Synthesizer, and by raising the Colony's Shipyard to 7.
-- **Mine costs**: one curve for all mines, base × 1.48^(L−1) up to level 20, then ×1.46 per level for 21–30 and
-  ×1.445 from 31 (checked up to 36). Bases (4/3 of standard OGame): metal mine 80/20, crystal mine 64/32,
+- **Mine costs**: one curve for all mines, base × 1.48^(L−1) up to level 20, then ×1.46 per level for 21–30,
+  ×1.445 for 31–40 (measured up to 36) and lower beyond (the cost table above; the optimizer takes its costs from
+  `BuildingCatalog` since model version `genesis-2026-10-19`). Bases (4/3 of standard OGame): metal mine 80/20, crystal mine 64/32,
   deuterium synthesizer 340/100. **Solar plant** 100/40 ×1.5, ×1.49 from 21. Storages 20,000 ×1.5^(L−1)
   (metal only / +½ crystal / +equal crystal). Robotics 400/120/200, Shipyard 400/200/100, Nanite 1M/500k/100k, all ×2.
   The game's rounding differs from ours by a few units at high levels (< 0.001%).

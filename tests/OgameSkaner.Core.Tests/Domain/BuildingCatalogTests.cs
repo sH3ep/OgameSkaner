@@ -12,7 +12,8 @@ public class BuildingCatalogTests
     public void Server_ids_map_both_ways()
     {
         Assert.All(BuildingCatalog.All, d => Assert.True(BuildingCatalog.TryGetByServerId(d.ServerId, out var t) && t == d.Type));
-        Assert.False(BuildingCatalog.TryGetByServerId("MOON_BASE", out _));
+        Assert.True(BuildingCatalog.TryGetByServerId("MOON_BASE", out var moonBase) && moonBase == BuildingType.MoonBase);
+        Assert.False(BuildingCatalog.TryGetByServerId("NOT_A_BUILDING", out _));
     }
 
     // Values as shown by the game on 2026-10-16.
@@ -27,6 +28,20 @@ public class BuildingCatalogTests
     [InlineData(BuildingType.ResearchLab, 9, 51_200, 102_400, 51_200)]
     [InlineData(BuildingType.MissileSilo, 1, 20_000, 20_000, 1_000)]
     [InlineData(BuildingType.FusionReactor, 1, 900, 360, 180)]
+    // Building pages (docs/ogamex-build-api.md) against the tiered mine formulas of the game's cost table.
+    [InlineData(BuildingType.MetalMine, 25, 911_647, 227_912, 0)]
+    [InlineData(BuildingType.CrystalMine, 24, 499_532, 249_768, 0)]
+    [InlineData(BuildingType.DeuteriumSynthesizer, 11, 17_143, 5_042, 0)]
+    // The cost table (/simulator/costtable, 2026-10-19).
+    [InlineData(BuildingType.MetalMine, 1, 80, 20, 0)]
+    [InlineData(BuildingType.MetalMine, 20, 137_424, 34_356, 0)]
+    [InlineData(BuildingType.SolarPlant, 30, 11_956_306, 4_782_544, 0)]
+    [InlineData(BuildingType.FusionReactor, 3, 3_600, 1_440, 720)]
+    [InlineData(BuildingType.University, 1, 1_200_000, 800_000, 200_000)]
+    [InlineData(BuildingType.Terraformer, 2, 0, 1_000_000, 400_000)]
+    [InlineData(BuildingType.MoonBase, 3, 800_000, 1_600_000, 400_000)]
+    [InlineData(BuildingType.PhalanxSensor, 1, 200_000, 400_000, 200_000)]
+    [InlineData(BuildingType.JumpGate, 2, 4_000_000, 8_000_000, 4_000_000)]
     public void Cost_matches_the_game(BuildingType building, int level, long metal, long crystal, long deuterium) =>
         Assert.Equal(new ResourceSet(metal, crystal, deuterium), BuildingCatalog.CostOf(building, level));
 

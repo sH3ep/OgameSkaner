@@ -87,6 +87,7 @@ public partial class App : Application
         builder.Services.AddSingleton<AlarmPlayer>();
         builder.Services.AddSingleton<IAlertChannel, SoundAlertChannel>();
 
+        builder.Services.AddSingleton<MoonsViewModel>(); // the Builder page's Moons tab
         builder.Services.AddSingleton<MainViewModel>();
         builder.Services.AddSingleton<MainWindow>();
         builder.Services.AddTransient<ProfilesViewModel>();

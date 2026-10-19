@@ -64,6 +64,64 @@ public class SimulatedBuildRunnerTests
         Assert.Equal(1, _client.BonusReads);
     }
 
+    private static readonly BuildStrategy RoboticsOnly = Strategy(0, solarMax: 10,
+        new BuildingRule(BuildingType.MetalMine, false, RuleMode.Absolute, 20),
+        new BuildingRule(BuildingType.MetalStorage, false, RuleMode.Absolute, 5),
+        new BuildingRule(BuildingType.CrystalStorage, false, RuleMode.Absolute, 5),
+        new BuildingRule(BuildingType.DeuteriumTank, false, RuleMode.Absolute, 5),
+        new BuildingRule(BuildingType.RoboticsFactory, true, RuleMode.Absolute, 3));
+
+    [Fact]
+    public async Task Builds_only_the_factories_when_no_mine_is_ticked_even_short_of_energy()
+    {
+        // The mines lack energy and the solar plant is at its max: with a mine ticked the plan would have to fix that first.
+        _client.BuildStates[Colony.Id] = State(
+            levels: new() { [BuildingType.MetalMine] = 20, [BuildingType.CrystalMine] = 18, [BuildingType.SolarPlant] = 10, [BuildingType.RoboticsFactory] = 1 },
+            energy: -5_000,
+            planet: Colony);
+
+        await RunAsync(RoboticsOnly);
+
+        Assert.Equal([BuildingType.RoboticsFactory, BuildingType.RoboticsFactory], _client.EnqueuedBuildings.Select(e => e.Building));
+    }
+
+    [Fact]
+    public async Task A_planet_without_mines_builds_by_price_from_its_stock_when_no_order_reaches_the_targets()
+    {
+        // No mines, 10M of each resource (far above the storages): Robotics 24 + Nanite 19 need billions of deuterium,
+        // which the planet never produces. It still queues what the stock pays, with no storage for the costs.
+        _client.BuildStates[Colony.Id] = State(levels: new() { [BuildingType.RoboticsFactory] = 10 }, energy: 0, planet: Colony);
+        var strategy = RoboticsOnly with
+        {
+            Rules = [.. RoboticsOnly.Rules.Where(r => r.Building != BuildingType.RoboticsFactory),
+                new BuildingRule(BuildingType.RoboticsFactory, true, RuleMode.Absolute, 24),
+                new BuildingRule(BuildingType.NaniteFactory, true, RuleMode.Absolute, 19)]
+        };
+
+        var result = await RunAsync(strategy);
+
+        Assert.Equal(BuildOutcome.Cancelled, result.Outcome); // still running, waiting for resources
+        var queued = _client.EnqueuedBuildings.Select(e => e.Building).ToList();
+        Assert.Contains(BuildingType.RoboticsFactory, queued);
+        Assert.Contains(BuildingType.NaniteFactory, queued);
+        Assert.All(queued, b => Assert.Contains(b, (BuildingType[])[BuildingType.RoboticsFactory, BuildingType.NaniteFactory]));
+        Assert.Contains(_progress, p => p.Message.Contains("no simulated order reaches the targets", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Factories_at_their_targets_finish_the_run_although_energy_is_short()
+    {
+        _client.BuildStates[Colony.Id] = State(
+            levels: new() { [BuildingType.MetalMine] = 20, [BuildingType.CrystalMine] = 18, [BuildingType.SolarPlant] = 10, [BuildingType.RoboticsFactory] = 4 },
+            energy: -5_000,
+            planet: Colony);
+
+        var result = await RunAsync(RoboticsOnly);
+
+        Assert.Equal(BuildOutcome.Completed, result.Outcome);
+        Assert.Empty(_client.EnqueuedBuildings);
+    }
+
     [Fact]
     public async Task Finishes_when_the_targets_are_built_or_queued()
     {

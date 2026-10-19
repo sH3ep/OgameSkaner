@@ -165,13 +165,13 @@ public sealed class SimulatedBuildRunner(
             var plannedAt = timeProvider.GetUtcNow();
             var plan = await PlanAsync(batch[i], needed.Setup, settings, memory, run, cancellationToken).ConfigureAwait(false);
             if (plan is null)
+                memory.ByPriceUntil = plannedAt + PlanLifetime;
+            else
             {
-                results[i] = (false, settings.CheckInterval);
-                continue;
+                memory.Plan = plan;
+                memory.Signature = needed.Signature;
+                memory.PlannedAt = plannedAt;
             }
-            memory.Plan = plan;
-            memory.Signature = needed.Signature;
-            memory.PlannedAt = plannedAt;
             planned.Add(i);
         }
 
@@ -243,6 +243,11 @@ public sealed class SimulatedBuildRunner(
             return new PlanetStep(await BuildInOrderAsync(client, state, strategy, order, "", run, cancellationToken).ConfigureAwait(false));
         }
 
+        // No simulated order reaches the targets (e.g. a planet without mines that lives on shipped resources): queue
+        // what its stock pays by price, and try the search again later.
+        if (memory.ByPriceUntil is { } until && timeProvider.GetUtcNow() < until)
+            return new PlanetStep(await BuildInOrderAsync(client, state, strategy, BuildOrder.ByPrice, "no simulated order; by price: ", run, cancellationToken).ConfigureAwait(false));
+
         var shipyard = settings.UseSolarSatellites && state.LevelOf(BuildingType.Shipyard) > 0
             ? await client.GetShipyardStateAsync(planet.Id, cancellationToken).ConfigureAwait(false)
             : null;
@@ -295,7 +300,7 @@ public sealed class SimulatedBuildRunner(
         cancellationToken.ThrowIfCancellationRequested();
         if (order is null)
         {
-            run.Report($"{planet}: no order reaches the targets ({setup.ShortName}); check the strategy (solar plant max, locked buildings)");
+            run.Report($"{planet}: no simulated order reaches the targets ({setup.ShortName}) with the planet's production; building by price from its stock, simulating again in {PlanLifetime.TotalMinutes:0} min");
             return null;
         }
 
@@ -415,6 +420,9 @@ public sealed class SimulatedBuildRunner(
         public string? Signature { get; set; }
 
         public DateTimeOffset PlannedAt { get; set; }
+
+        /// <summary>No simulated order reached the targets: the planet is built by price until then.</summary>
+        public DateTimeOffset? ByPriceUntil { get; set; }
 
         /// <summary>The previous plan, for seeding the next search.</summary>
         private OptimizedOrder? _previous;

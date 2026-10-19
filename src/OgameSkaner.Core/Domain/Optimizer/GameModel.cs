@@ -30,7 +30,7 @@ public enum Gene : byte
 public sealed class GameModel
 {
     /// <summary>Changes whenever a formula changes, so results simulated with an older model aren't compared.</summary>
-    public const string Version = "genesis-2026-10-16b";
+    public const string Version = "genesis-2026-10-19";
 
     /// <summary>Highest level the model has costs and times for; targets above it are capped (<see cref="OptimizerSetup.TargetOf"/>).</summary>
     public const int MaxLevel = 180;
@@ -177,36 +177,24 @@ public sealed class GameModel
     /// <summary>How much faster everything builds at a Robotics/Nanite level (1 at level 0).</summary>
     public double SpeedUp(int robotics, int nanite) => _roboticsDivisor[robotics] * _naniteDivisor[nanite];
 
+    /// <summary><see cref="SpeedUp"/> without a model: (1+R)·1.05^R·1.8^N (the moon planner uses it too).</summary>
+    public static double ConstructionSpeedUp(int robotics, int nanite) =>
+        (1 + robotics) * Math.Pow(1.05, robotics) * Math.Pow(NaniteSpeedUp, nanite);
+
     /// <summary>Time to build one satellite: 11.3% less per Shipyard level; Nanite doesn't help (Home: 6 s at Shipyard 11, Nanite 1).</summary>
     public double SatelliteSeconds(int shipyard) => Math.Max(1, Math.Floor(_satelliteSeconds * Math.Pow(0.887, shipyard)));
 
+    /// <summary>
+    /// The game's cost formula (<see cref="BuildingCatalog"/>, from its cost table: tiered mines and solar plant, storages
+    /// ×1.5, factories ×2), rounded like the building pages. Doubles, so the highest levels don't overflow.
+    /// </summary>
     private static (double Metal, double Crystal, double Deuterium) Cost(Gene gene, int level)
     {
-        // Mines: the base grows ×1.48 per level up to 20, ×1.46 for 21–30 and ×1.445 from 31 (measured up to 36;
-        // bases are 4/3 of standard OGame). Solar plant: ×1.5 up to 20, ×1.49 from 21 (measured up to 28).
-        // Storages ×1.5, factories ×2. Results are floored like the game.
-        double Tiered(double upTo20, double upTo30, double above) =>
-            Math.Pow(upTo20, Math.Min(level, 20) - 1)
-            * Math.Pow(upTo30, Math.Clamp(level - 20, 0, 10))
-            * Math.Pow(above, Math.Max(0, level - 30));
-
-        var mine = Tiered(1.48, 1.46, 1.445);
-        var (m, c, d, factor) = gene switch
-        {
-            Gene.MetalMine => (80.0, 20.0, 0.0, mine),
-            Gene.CrystalMine => (64, 32, 0, mine),
-            Gene.DeuteriumSynthesizer => (340, 100, 0, mine),
-            Gene.SolarPlant => (100, 40, 0, Tiered(1.5, 1.49, 1.49)),
-            Gene.MetalStorage => (20_000, 0, 0, Math.Pow(1.5, level - 1)),
-            Gene.CrystalStorage => (20_000, 10_000, 0, Math.Pow(1.5, level - 1)),
-            Gene.DeuteriumTank => (20_000, 20_000, 0, Math.Pow(1.5, level - 1)),
-            Gene.RoboticsFactory => (400, 120, 200, Math.Pow(2, level - 1)),
-            Gene.NaniteFactory => (1_000_000, 500_000, 100_000, Math.Pow(2, level - 1)),
-            Gene.Shipyard => (400, 200, 100, Math.Pow(2, level - 1)),
-            _ => throw new ArgumentOutOfRangeException(nameof(gene))
-        };
-        return (Math.Floor(m * factor + 1e-6), Math.Floor(c * factor + 1e-6), Math.Floor(d * factor + 1e-6));
+        var (m, c, d) = BuildingCatalog.Get(ToBuilding(gene)).ExactCost(level);
+        return (Rounded(m), Rounded(c), Rounded(d));
     }
+
+    private static double Rounded(double value) => Math.Round(value, MidpointRounding.AwayFromZero);
 
     /// <summary>
     /// Seconds per resource unit (metal + crystal) at Robotics 0 / Nanite 0 and level 0, and the growth per level,

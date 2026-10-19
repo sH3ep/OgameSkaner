@@ -108,11 +108,12 @@ public static class SimulatedPlanner
         var nanite = Planned(BuildingType.NaniteFactory);
         var naniteHelper = state.Locked.Contains(BuildingType.NaniteFactory) ? nanite : nanite + 2;
         var conditions = new PlanetConditions(Math.Clamp(state.Planet.Coordinates.Position, 1, PlanetConditions.SlotCount), temperature.Min, temperature.Max);
+        var (metal, crystal, deuterium) = (Target(BuildingType.MetalMine), Target(BuildingType.CrystalMine), Target(BuildingType.DeuteriumSynthesizer));
         var setup = new OptimizerSetup
         {
-            MetalMine = Target(BuildingType.MetalMine),
-            CrystalMine = Target(BuildingType.CrystalMine),
-            DeuteriumSynthesizer = Target(BuildingType.DeuteriumSynthesizer),
+            MetalMine = metal,
+            CrystalMine = crystal,
+            DeuteriumSynthesizer = deuterium,
             RoboticsTarget = Target(BuildingType.RoboticsFactory),
             NaniteTarget = Target(BuildingType.NaniteFactory),
             ShipyardTarget = Target(BuildingType.Shipyard),
@@ -128,7 +129,8 @@ public static class SimulatedPlanner
             RoboticsMaxLevel = Math.Max(RoboticsHelperLevel, Planned(BuildingType.RoboticsFactory) + 2),
             NaniteMaxLevel = naniteHelper,
             UseSatellites = options.UseSolarSatellites,
-            CoverEnergy = true,
+            // Without a mine ticked (e.g. only Robotics and Nanite) the energy of the mines isn't the run's business.
+            CoverEnergy = metal + crystal + deuterium > 0,
             KeepMinesPowered = true,
             MinSatelliteOrder = MinSatelliteOrder,
             StorageFillPercent = strategy.StorageFillPercent,

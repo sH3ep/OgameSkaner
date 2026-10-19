@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Genesis | OgameX</title>
+    <script>
+        window.timeoffset_cookie_name = 'timeZoneOffset';
+        window.currentPlayerName = 'Test Player';
+        window.currentPlayerId = '22222222-2222-2222-2222-222222222222';
+        window.currentPlanetId = '33333333-3333-3333-3333-333333333333';
+        window.isVacation = false;
+        window.allianceId = '';
+        window.currentPlayerClass = 'MINER';
+        window.remainingBuildingFields = `1`;
+
+        var resources = {
+            initialMetal:0,
+            initialCrystal:0,
+            initialDeuterium:0,
+            metal: 0,
+            crystal: 0,
+            deuterium: 0,
+            energy: 0,
+            energyConsumption: 0,
+            darkmatter: 162988,
+            metalProduction: 0,
+            crystalProduction: 0,
+            deuteriumProduction: 0
+        };
+    </script>
+</head>
+<body>
+<div class="content-section">
+    <div class="header"></div>
+    <div class="content">
+        <div id="buildings-container">
+            <div class="header" style="background:url(../../assets/images/V2/page-header/facility.png)no-repeat;">
+                <span class="main-title">Facilities - Moon</span>
+
+                        <div class="building-detail" id="detail-MOON_BASE" data-building-type="MOON_BASE">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/MOON_BASE.gif) no-repeat;"></a>
+                                <div class="right-section">
+                                    <h3 class="building-title">Moon Base</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">31:06</span></div>
+                                    </div>
+                                    <div class="required-section">
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 1</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+                                                                <span class="resource-amount">200.000</span>
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+                                                                <span class="resource-amount">400.000</span>
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/deuterium.png?v=2) no-repeat center;"></span>
+                                                                <span class="resource-amount">100.000</span>
+                                                    </div>
+                                        <div class="upgrade-btn-container">
+                                                    <a href="#" class="upgrade-btn tooltip disabled" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#d43635;'>Insufficient resources available.</div>">Upgrade</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul> <li>Each level of this building makes 3 new fields suitable for use on the moon.</li></ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-ROBOT_FACTORY" data-building-type="ROBOT_FACTORY">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/ROBOT_FACTORY.gif) no-repeat;"></a>
+                                <div class="right-section">
+                                    <h3 class="building-title">Robot Factory</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:01</span></div>
+                                    </div>
+                                    <div class="required-section">
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required resources for level 1</span>
+                                                </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/metal.png?v=2) no-repeat center;"></span>
+                                                                <span class="resource-amount">400</span>
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/crystal.png?v=2) no-repeat center;"></span>
+                                                                <span class="resource-amount">120</span>
+                                                    </div>
+                                                    <div class="required-resource-item">
+                                                        <span class="resource-icon" style="background:url(../../assets/images/resource/deuterium.png?v=2) no-repeat center;"></span>
+                                                                <span class="resource-amount">200</span>
+                                                    </div>
+                                        <div class="upgrade-btn-container">
+                                                    <a href="#" class="upgrade-btn tooltip disabled" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#d43635;'>Insufficient resources available.</div>">Upgrade</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul> <li>Robot Factories are facilities that produce construction robots.</li></ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-NANITE_FACTORY" data-building-type="NANITE_FACTORY">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/NANITE_FACTORY.gif) no-repeat;"></a>
+                                <div class="right-section">
+                                    <h3 class="building-title">Nanite Factory</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">01:11:06</span></div>
+                                    </div>
+                                    <div class="required-section">
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required technologies</span>
+                                                </div>
+                                                <div class="required-technologies-container">
+                                                                <div class="required-technology-item tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#F00;'>Robot Factory (0/10)</div>">
+                                                                    <div class="required-technology-info">0/10</div>
+                                                                </div>
+                                                </div>
+                                        <div class="upgrade-btn-container">
+                                                    <a href="#" class="upgrade-btn tooltip disabled" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#d43635;'>First, the required technologies must be researched.</div>">Upgrade</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul> <li>Nanite factory.</li></ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-SHIPYARD" data-building-type="SHIPYARD">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/SHIPYARD.gif) no-repeat;"></a>
+                                <div class="right-section">
+                                    <h3 class="building-title">Shipyard</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">00:01</span></div>
+                                    </div>
+                                    <div class="required-section">
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required technologies</span>
+                                                </div>
+                                                <div class="required-technologies-container">
+                                                                <div class="required-technology-item tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#F00;'>Robot Factory (0/2)</div>">
+                                                                    <div class="required-technology-info">0/2</div>
+                                                                </div>
+                                                </div>
+                                        <div class="upgrade-btn-container">
+                                                    <a href="#" class="upgrade-btn tooltip disabled" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#d43635;'>First, the required technologies must be researched.</div>">Upgrade</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul> <li>Shipyards are facilities where ships are produced.</li></ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-PHALANX_SENSOR" data-building-type="PHALANX_SENSOR">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/PHALANX_SENSOR.gif) no-repeat;"></a>
+                                <div class="right-section">
+                                    <h3 class="building-title">Phalanx Sensor</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">35:33</span></div>
+                                    </div>
+                                    <div class="required-section">
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required technologies</span>
+                                                </div>
+                                                <div class="required-technologies-container">
+                                                                <div class="required-technology-item tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#F00;'>Moon Base (0/3)</div>">
+                                                                    <div class="required-technology-info">0/3</div>
+                                                                </div>
+                                                </div>
+                                        <div class="upgrade-btn-container">
+                                                    <a href="#" class="upgrade-btn tooltip disabled" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#d43635;'>First, the required technologies must be researched.</div>">Upgrade</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul> <li>This huge radar station tracks fleet movements.</li></ul>
+                            </div>
+                        </div>
+                        <div class="building-detail" id="detail-JUMP_GATE" data-building-type="JUMP_GATE">
+                            <a href="#" class="building-detail-close"></a>
+                            <div class="top-section">
+                                <a href="#" class="building-img" style="background:url(../../assets/images/V2/building/JUMP_GATE.gif) no-repeat;"></a>
+                                <div class="right-section">
+                                    <h3 class="building-title">Jump Gate</h3>
+                                    <h3 class="building-level">Level: 0</h3>
+                                    <div class="production-info">
+                                        <div class="info-item">Construction duration : <span style="font-weight:bold;color:#FFF;">05:55:33</span></div>
+                                    </div>
+                                    <div class="required-section">
+                                                <div style="width: calc(100% - 160px);float: left;border-top: 2px solid #151f29;margin-top: 5px;">
+                                                    <span style="font-size:10px;color:#AAA;">Required technologies</span>
+                                                </div>
+                                                <div class="required-technologies-container">
+                                                                <div class="required-technology-item tooltip" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#F00;'>Moon Base (0/5)</div>">
+                                                                    <div class="required-technology-info">0/5</div>
+                                                                </div>
+                                                </div>
+                                        <div class="upgrade-btn-container">
+                                                    <a href="#" class="upgrade-btn tooltip disabled" data-tooltip-position="bottom" data-tooltip-content="<div style='font-size:11px;color:#d43635;'>First, the required technologies must be researched.</div>">Upgrade</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bottom-section">
+                                <ul> <li>This facility allows ships to be transported.</li></ul>
+                            </div>
+                        </div>
+            </div>
+            <div class="bottom-side" style="">
+                <div class="largebox">
+                    <div class="header">
+                        Buildings under construction
+                    </div>
+                    <div class="content">
+                                        <a href="#" class="empty-text">There is no building under construction.</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+                    <div id="planet-selection">
+                        <span class="planet-info">[2/4] Planets</span>
+                        <div id="other-planets">
+                                        <div class="planet-item  selected">
+                                            <a class="planet-select" href="?planet=11111111-1111-1111-1111-111111111111">
+                                                <img class="planet-icon" src="/assets/images/v2/planet/1/1_small.jpg?v=4" />
+                                                <span class="planet-name">Home planet</span>
+                                                <span class="planet-coords">
+                                                    [8:260:3]
+                                                </span>
+                                            </a>
+                                            <a class="moon-select selected" href="?planet=33333333-3333-3333-3333-333333333333">
+                                                <img class="moon-icon" src="/assets/images/V2/planet/moon/1/1_small.jpg" />
+                                            </a>
+                                        </div>
+                                        <div class="planet-item ">
+                                            <a class="planet-select" href="?planet=44444444-4444-4444-4444-444444444444">
+                                                <img class="planet-icon" src="/assets/images/v2/planet/1/1_small.jpg?v=4" />
+                                                <span class="planet-name">Colony</span>
+                                                <span class="planet-coords">
+                                                    [8:260:4]
+                                                </span>
+                                            </a>
+                                        </div>
+                        </div>
+                    </div>
+</body>
+</html>

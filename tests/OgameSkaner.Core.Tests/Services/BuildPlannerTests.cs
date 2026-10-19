@@ -113,14 +113,14 @@ public class BuildPlannerTests
     }
 
     [Fact]
-    public void Uses_the_page_cost_for_the_next_level_and_grows_it_by_the_catalog_factor()
+    public void Uses_the_page_cost_for_the_next_level_and_grows_it_by_the_games_formula()
     {
         var state = State(new() { [BuildingType.MetalMine] = 24 }, pageCosts: new() { [BuildingType.MetalMine] = new(911_647, 227_912, 0) });
 
         var plan = BuildPlanner.Plan(state, Strategy(26, rules: [Relative(BuildingType.MetalMine, 0)]), maxItems: 14, requireAffordable: false);
 
         Assert.Equal(
-            [new PlannedUpgrade(BuildingType.MetalMine, 25, new(911_647, 227_912, 0)), new PlannedUpgrade(BuildingType.MetalMine, 26, new(1_321_888, 330_472, 0))],
+            [new PlannedUpgrade(BuildingType.MetalMine, 25, new(911_647, 227_912, 0)), new PlannedUpgrade(BuildingType.MetalMine, 26, new(1_331_005, 332_751, 0))],
             plan.Upgrades);
     }
 
@@ -335,8 +335,8 @@ public class BuildPlannerTests
     [Fact]
     public void Affordable_plan_stops_when_the_next_upgrade_is_too_expensive()
     {
-        // metal 1 = 60/15, 2 = 87/22, 3 = 126/32
-        var plan = BuildPlanner.Plan(State(resources: new(100, 30, 0)), Strategy(10, rules: [Relative(BuildingType.MetalMine, 0)]), maxItems: 14, requireAffordable: true);
+        // metal 1 = 80/20, 2 = 118/30, 3 = 175/44 (the game's formula)
+        var plan = BuildPlanner.Plan(State(resources: new(150, 40, 0)), Strategy(10, rules: [Relative(BuildingType.MetalMine, 0)]), maxItems: 14, requireAffordable: true);
 
         Assert.Equal([1, 2], plan.Upgrades.Select(p => p.Level));
         Assert.Equal(BuildStopReason.NotEnoughResources, plan.Reason);

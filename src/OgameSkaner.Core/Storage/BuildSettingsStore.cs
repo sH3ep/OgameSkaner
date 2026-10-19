@@ -41,7 +41,7 @@ public sealed class BuildSettings
 
     public BuildStrategy ToStrategy() => new(ReferenceLevel, Rules, SolarMaxLevel, StorageFillPercent, MineBalancePercent, EarlyRoboticsLevel, EarlyRoboticsMineLevel);
 
-    public static BuildSettings CreateDefault() => new() { Rules = BuildingCatalog.All.Select(d => DefaultRule(d.Type)).OfType<BuildingRule>().ToList() };
+    public static BuildSettings CreateDefault() => new() { Rules = BuildingCatalog.PlanetBuildings.Select(d => DefaultRule(d.Type)).OfType<BuildingRule>().ToList() };
 
     /// <summary>
     /// Ensures exactly one rule per catalog building (except the solar plant, which is driven by energy), in catalog
@@ -51,7 +51,7 @@ public sealed class BuildSettings
     public BuildSettings Normalize()
     {
         var existing = Rules.GroupBy(r => r.Building).ToDictionary(g => g.Key, g => g.First());
-        Rules = BuildingCatalog.All
+        Rules = BuildingCatalog.PlanetBuildings
             .Where(d => d.Type != BuildingType.SolarPlant)
             .Select(d => existing.GetValueOrDefault(d.Type) ?? DefaultRule(d.Type)!)
             .ToList();

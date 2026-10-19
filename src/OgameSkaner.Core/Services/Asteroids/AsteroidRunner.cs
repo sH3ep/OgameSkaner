@@ -57,8 +57,8 @@ public sealed record AsteroidOverview(
 /// <remarks>
 /// Asteroids appear only in the galaxy with most of the player's planets and are the player's alone. Each asteroid gets
 /// its miners from the nearest own planet that has enough. The systems scanned are saved to the galaxy database too.
-/// Reading and sending to the known asteroids is one <see cref="IActionQueue"/> group, the scan one group per
-/// <see cref="ScanBatch"/> systems.
+/// Reading and sending to the known asteroids is one <see cref="IActionQueue"/> group, the whole scan (the hint, every
+/// system and the miners sent to what it finds) another.
 /// </remarks>
 public sealed class AsteroidRunner(
     OwnPlanetService ownPlanets,
@@ -77,7 +77,7 @@ public sealed class AsteroidRunner(
 
     private const string Owner = "Asteroids";
 
-    /// <summary>Systems scanned per queue group.</summary>
+    /// <summary>The scan sends miners to what it found after this many systems.</summary>
     private const int ScanBatch = 5;
 
     /// <summary>Report pages read per cycle (newest first; reading stops at a known report).</summary>
@@ -246,24 +246,30 @@ public sealed class AsteroidRunner(
     }
 
     /// <summary>
-    /// Scans the hinted systems that may hold an asteroid not known yet, nearest to <paramref name="from"/> first, until
-    /// each hint row has its asteroid. <paramref name="onFound"/> gets the new asteroids at the end of each scan group (the
-    /// one gone soonest first) and
-    /// returns whether to go on scanning (it runs in the scan's queue group). The systems scanned are saved to the galaxy
-    /// database.
+    /// Reads the hint and scans the hinted systems that may hold an asteroid not known yet, nearest to
+    /// <paramref name="from"/> first, until each hint row has its asteroid: all of it one <see cref="IActionQueue"/> group.
+    /// <paramref name="onFound"/> gets the new asteroids after every <see cref="ScanBatch"/> systems (the one gone soonest
+    /// first) and returns whether to go on scanning. The systems scanned are saved to the galaxy database.
     /// </summary>
-    private async Task<int> ScanAsync(
+    private Task<int> ScanAsync(
         IOgamexClient client,
         IReadOnlyCollection<Coordinates> from,
         Func<Asteroid, CancellationToken, Task<bool>>? onFound,
         ActionPriority priority,
         IProgress<AsteroidProgress>? progress,
+        CancellationToken cancellationToken) =>
+        queues.For(client).RunAsync(Owner, "Scan for asteroids", ct => ScanCoreAsync(client, from, onFound, progress, ct), priority, cancellationToken);
+
+    private async Task<int> ScanCoreAsync(
+        IOgamexClient client,
+        IReadOnlyCollection<Coordinates> from,
+        Func<Asteroid, CancellationToken, Task<bool>>? onFound,
+        IProgress<AsteroidProgress>? progress,
         CancellationToken cancellationToken)
     {
         var universe = client.Universe.Name;
-        var queue = queues.For(client);
         var now = timeProvider.GetUtcNow();
-        var hints = await queue.RunAsync(Owner, "Read the asteroid locations", ct => client.GetAsteroidHintsAsync(ct), priority, cancellationToken).ConfigureAwait(false);
+        var hints = await client.GetAsteroidHintsAsync(cancellationToken).ConfigureAwait(false);
         if (hints.Count == 0)
         {
             Report(progress, "The game shows no asteroid locations.");
@@ -288,8 +294,7 @@ public sealed class AsteroidRunner(
         var found = new List<Coordinates>();
         try
         {
-            while (await queue.RunAsync(Owner, $"Scan for asteroids ({scanned} of up to {order.Count} systems done)", ScanBatchAsync, priority, cancellationToken)
-                       .ConfigureAwait(false))
+            while (await ScanBatchAsync(cancellationToken).ConfigureAwait(false))
             {
             }
         }
@@ -302,8 +307,7 @@ public sealed class AsteroidRunner(
         Report(progress, $"Scanned {scanned} system(s), found {found.Count} new asteroid(s)");
         return found.Count;
 
-        // Up to ScanBatch systems, then the batch's new asteroids to onFound, the one gone soonest first; false when the
-        // scan is over.
+        // Up to ScanBatch systems, then their new asteroids to onFound, the one gone soonest first; false when the scan is over.
         async Task<bool> ScanBatchAsync(CancellationToken ct)
         {
             var more = true;

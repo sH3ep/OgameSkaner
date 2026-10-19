@@ -3,6 +3,7 @@ using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Defense;
+using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
@@ -275,6 +276,39 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         StateRequests.Add((planet, includeFacilities));
         CurrentPlanet = planet;
         return Task.FromResult(BuildStates[planet]);
+    }
+
+    public Task<PlanetBuildState> GetMoonBuildStateAsync(PlanetId moon, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        StateRequests.Add((moon, true));
+        CurrentPlanet = moon;
+        return Task.FromResult(BuildStates[moon]);
+    }
+
+    /// <summary>Formation pages per planet; a planet missing here has no moon, Graviton 4 and plenty of metal.</summary>
+    public Dictionary<PlanetId, MoonFormationInfo> MoonFormations { get; } = new();
+
+    /// <summary>Overrides the answer to a moon creation: a message makes the game refuse it.</summary>
+    public Func<PlanetId, string?> CreateMoonRefusal { get; set; } = _ => null;
+
+    public List<(PlanetId Planet, int Diameter)> CreatedMoons { get; } = [];
+
+    public Task<MoonFormationInfo> GetMoonFormationAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        CurrentPlanet = planet;
+        return Task.FromResult(MoonFormations.TryGetValue(planet, out var info)
+            ? info
+            : new MoonFormationInfo(planet, 4, 0, MoonFormation.MinDiameter, MoonFormation.MaxDiameter, 1_000_000_000));
+    }
+
+    public Task<PlanetId> CreateMoonAsync(PlanetId planet, int diameter, CancellationToken cancellationToken = default)
+    {
+        CurrentPlanet = planet;
+        if (CreateMoonRefusal(planet) is { } refusal)
+            throw new OgamexException(refusal);
+        CreatedMoons.Add((planet, diameter));
+        return Task.FromResult(new PlanetId($"moon-{planet.Value}"));
     }
 
     public Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default)

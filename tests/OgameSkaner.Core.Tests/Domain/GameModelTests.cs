@@ -32,6 +32,9 @@ public class GameModelTests
     [InlineData(Gene.RoboticsFactory, 15, 6_553_600, 1_966_080, 3_276_800)]
     [InlineData(Gene.NaniteFactory, 2, 2_000_000, 1_000_000, 200_000)]
     [InlineData(Gene.Shipyard, 8, 51_200, 25_600, 12_800)]
+    // The cost table's tiers above 40 (×1.43 from the level-40 anchor; the old model kept ×1.445).
+    [InlineData(Gene.MetalMine, 41, 343_246_128, 85_811_532, 0)]
+    [InlineData(Gene.MetalMine, 50, 8_582_819_573, 2_145_704_893, 0)]
     public void Costs_match_the_game(Gene gene, int level, long metal, long crystal, long deuterium)
     {
         var cost = _model.CostOf(gene, level);
@@ -40,6 +43,16 @@ public class GameModelTests
         Assert.InRange(cost.Metal, metal - 1 - metal / 100_000, metal + 1 + metal / 100_000);
         Assert.InRange(cost.Crystal, crystal - 1 - crystal / 100_000, crystal + 1 + crystal / 100_000);
         Assert.InRange(cost.Deuterium, deuterium - 1 - deuterium / 100_000, deuterium + 1 + deuterium / 100_000);
+    }
+
+    [Fact]
+    public void Optimizer_costs_are_the_catalogs_costs()
+    {
+        foreach (var gene in Enum.GetValues<Gene>().Where(g => g != Gene.SolarSatellites))
+        {
+            for (var level = 1; level <= 60; level++)
+                Assert.Equal(BuildingCatalog.CostOf(GameModel.ToBuilding(gene), level), _model.CostOf(gene, level));
+        }
     }
 
     [Theory]

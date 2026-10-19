@@ -34,9 +34,11 @@ public sealed partial class BuilderViewModel : PageViewModel
         IBuildSettingsStore store,
         IDialogService dialogs,
         AutomationActivity activity,
-        RunningModules running)
+        RunningModules running,
+        MoonsViewModel moons)
     {
         running.Track(this, RunCommand);
+        Moons = moons;
         _activity = activity;
         _context = context;
         _simulated = simulated;
@@ -60,6 +62,9 @@ public sealed partial class BuilderViewModel : PageViewModel
                 _ = ShowViewedPlanetAsync();
         };
     }
+
+    /// <summary>The Moons tab.</summary>
+    public MoonsViewModel Moons { get; }
 
     public ObservableCollection<BuildingRuleItemViewModel> Rules { get; } = [];
 
@@ -124,6 +129,7 @@ public sealed partial class BuilderViewModel : PageViewModel
     {
         if (_context.Current?.Name != _loadedUniverse)
             LoadSettings();
+        Moons.OnShown();
         return Task.CompletedTask;
     }
 

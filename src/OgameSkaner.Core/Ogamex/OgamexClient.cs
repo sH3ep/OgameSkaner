@@ -5,6 +5,7 @@ using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Asteroids;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Defense;
+using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex.Parsing;
@@ -410,18 +411,94 @@ internal sealed class OgamexClient : IOgamexClient
         };
     }
 
+    public async Task<PlanetBuildState> GetMoonBuildStateAsync(PlanetId moon, CancellationToken cancellationToken = default)
+    {
+        var page = await GetBuildingPageAsync("building/facility", moon, cancellationToken).ConfigureAwait(false);
+        if (page.Buildings.All(b => b.Building != BuildingType.MoonBase))
+            throw new OgamexException($"{moon} is not a moon (its facility page has no Moon Base).");
+
+        var levels = page.Buildings.ToDictionary(b => b.Building, b => b.Level);
+        return new PlanetBuildState(
+            page.Moons.FirstOrDefault(m => m.Id == moon) ?? new OwnPlanet(moon, "Moon", default),
+            levels,
+            page.Resources,
+            page.Queue)
+        {
+            NextLevelCosts = page.Buildings.Where(b => b.NextLevelCost is not null).ToDictionary(b => b.Building, b => b.NextLevelCost!.Value),
+            NextLevelDurations = page.Buildings.Where(b => b.Duration is not null).ToDictionary(b => b.Building, b => b.Duration!.Value),
+            Locked = page.Buildings.Where(b => b.Locked).Select(b => b.Building).ToHashSet(),
+            FreeFields = page.FreeFields,
+            RunningRemaining = page.Queue.Count > 0 ? page.RunningRemaining : null,
+            VacationMode = page.VacationMode
+        };
+    }
+
+    public async Task<MoonFormationInfo> GetMoonFormationAsync(PlanetId planet, CancellationToken cancellationToken = default)
+    {
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            return await LoadMoonFormationAsync(planet, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+    }
+
+    public async Task<PlanetId> CreateMoonAsync(PlanetId planet, int diameter, CancellationToken cancellationToken = default)
+    {
+        // The game posts from the planet's own formation page (window.currentPlanet_Id): open it first, and let no
+        // switch in between.
+        await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
+        CreateMoonResponse response;
+        try
+        {
+            var page = await LoadMoonFormationAsync(planet, cancellationToken).ConfigureAwait(false);
+            if (page.HasMoon)
+                throw new OgamexException($"{planet} already has a moon ({page.CurrentDiameter:N0} km).");
+
+            using var request = CreateRequest(HttpMethod.Post, "home/createmoon", referer: "home/moonformation");
+            request.Content = JsonContent.Create(new CreateMoonRequest(diameter, planet.Value), options: JsonOptions);
+            response = Deserialize<CreateMoonResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        }
+        finally
+        {
+            _planetSwitch.Release();
+        }
+
+        if (!response.IsSuccess)
+            throw new OgamexException(string.IsNullOrWhiteSpace(response.Message) ? "The game refused to create the moon." : response.Message.Trim());
+
+        var id = response.Data.ValueKind == JsonValueKind.String ? response.Data.GetString() : response.Data.ToString();
+        return string.IsNullOrWhiteSpace(id) ? throw new OgamexException("The game created the moon but returned no id.") : new PlanetId(id);
+    }
+
+    /// <summary>The moon formation page of <paramref name="planet"/>; the caller holds the planet lock.</summary>
+    private async Task<MoonFormationInfo> LoadMoonFormationAsync(PlanetId planet, CancellationToken cancellationToken)
+    {
+        using var request = CreateRequest(HttpMethod.Get, $"home/moonformation?planet={Uri.EscapeDataString(planet.Value)}", referer: "home");
+        var info = MoonFormationParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        Shown(info.Planet);
+        if (info.Planet != planet)
+            throw new OgamexException($"Planet {planet} is not available on {Universe.Name}. Refresh the planet list.");
+        return info;
+    }
+
     public async Task<EnqueueOutcome> EnqueueBuildingAsync(PlanetId planet, BuildingType building, CancellationToken cancellationToken = default)
     {
         // The server refuses an upgrade for another planet than its current one ("different planet"): switch first when
-        // another request (another module, an escape) moved away, and let no switch in between.
+        // another request (another module, an escape) moved away, and let no switch in between. Moons have only the
+        // facility page.
+        var page = BuildingCatalog.Get(building).Category == BuildingCategory.Resource ? "building/resource" : "building/facility";
         await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
         BuildingResponse response;
         try
         {
             if (CurrentPlanet != planet)
-                await LoadBuildingPageAsync("building/resource", planet, cancellationToken).ConfigureAwait(false);
+                await LoadBuildingPageAsync(page, planet, cancellationToken).ConfigureAwait(false);
 
-            using var request = CreateRequest(HttpMethod.Post, "building/increasebuilding", referer: "building/resource");
+            using var request = CreateRequest(HttpMethod.Post, "building/increasebuilding", referer: page);
             request.Content = JsonContent.Create(new IncreaseBuildingRequest(BuildingCatalog.Get(building).ServerId, planet.Value), options: JsonOptions);
             response = Deserialize<BuildingResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
         }

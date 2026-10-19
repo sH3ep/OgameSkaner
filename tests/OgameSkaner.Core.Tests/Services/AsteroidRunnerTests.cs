@@ -65,6 +65,19 @@ public class AsteroidRunnerTests
     }
 
     [Fact]
+    public async Task The_whole_scan_is_one_queue_group()
+    {
+        var queues = TestQueues.Immediate;
+        var runner = new AsteroidRunner(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), queues, _planets, _store, TimeProvider.System,
+            NullLogger<AsteroidRunner>.Instance);
+
+        await runner.FindAsync(_client);
+
+        Assert.Equal(40, _client.RequestedSystems.Count);
+        Assert.Equal(["Scan for asteroids"], queues.For(_client).Snapshot().Finished.Select(g => g.Description));
+    }
+
+    [Fact]
     public async Task Known_asteroids_are_not_searched_again()
     {
         await Runner().FindAsync(_client);

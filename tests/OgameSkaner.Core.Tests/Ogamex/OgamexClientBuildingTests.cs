@@ -222,6 +222,105 @@ public class OgamexClientBuildingTests
         await Assert.ThrowsAsync<SessionExpiredException>(() => CreateClient().EnqueueBuildingAsync(PlanetId, BuildingType.MetalMine));
     }
 
+    private static readonly PlanetId MoonId = new("33333333-3333-3333-3333-333333333333");
+
+    [Fact]
+    public async Task Moon_state_comes_from_its_facility_page()
+    {
+        _handler.Respond = _ => Fixture("building_facility_moon.html");
+
+        var state = await CreateClient().GetMoonBuildStateAsync(MoonId);
+
+        Assert.Equal("/building/facility?planet=" + MoonId.Value, Assert.Single(_handler.Requests).Uri.PathAndQuery);
+        Assert.All(BuildingCatalog.MoonBuildings, b => Assert.Equal(0, state.LevelOf(b)));
+        Assert.Equal(1, state.FreeFields);
+        Assert.Equal(ResourceSet.Zero, state.Resources);
+        Assert.Empty(state.Queue);
+        Assert.Equal(new ResourceSet(200_000, 400_000, 100_000), state.NextLevelCosts[BuildingType.MoonBase]);
+        Assert.Equal(new TimeSpan(0, 31, 6), state.NextLevelDurations[BuildingType.MoonBase]);
+        Assert.Equal(new TimeSpan(5, 55, 33), state.NextLevelDurations[BuildingType.JumpGate]);
+        Assert.Equal([BuildingType.Shipyard, BuildingType.NaniteFactory, BuildingType.PhalanxSensor, BuildingType.JumpGate], state.Locked.Order());
+        Assert.Equal(new Coordinates(8, 260, 3), state.Planet.Coordinates);
+    }
+
+    [Fact]
+    public async Task A_planet_page_is_not_taken_for_a_moon()
+    {
+        _handler.Respond = _ => Fixture("building_facility.html");
+
+        await Assert.ThrowsAsync<OgamexException>(() => CreateClient().GetMoonBuildStateAsync(PlanetId));
+    }
+
+    [Fact]
+    public async Task A_moon_building_is_queued_from_the_facility_page()
+    {
+        _handler.Respond = r => r.Method == HttpMethod.Post ? """{"IsSuccess":true,"Message":null}""" : Fixture("building_facility_moon.html");
+
+        var outcome = await CreateClient().EnqueueBuildingAsync(MoonId, BuildingType.MoonBase);
+
+        Assert.Equal(EnqueueResult.Queued, outcome.Result);
+        Assert.Equal("/building/facility?planet=" + MoonId.Value, _handler.Requests[0].Uri.PathAndQuery);
+        Assert.Equal($$"""{"BuildingType":"MOON_BASE","__PlanetId":"{{MoonId.Value}}"}""", _handler.Requests[1].Body);
+    }
+
+    private static string FormationPage(int currentDiameter) => $$"""
+        <script>
+            window.currentPlanetId = '{{PlanetId.Value}}';
+            window.gravitonLevel = 4;
+            window.currentMoonDiameter = {{currentDiameter}};
+            window.minValueForDiameter = 1000;
+            window.maxValueForDiameter = 9999;
+            var resources = { metal: 26682541149.51814, crystal: 1, deuterium: 2, energy: 0, energyConsumption: 0 };
+        </script>
+        <input id="inputMoonDiameter" minimum-value="1000" max-value="9999" value="1.000" />
+        """;
+
+    [Fact]
+    public async Task A_moon_is_created_from_the_planets_formation_page()
+    {
+        _handler.Respond = r => r.Method == HttpMethod.Post
+            ? $$"""{"IsSuccess":true,"Message":null,"Data":"{{MoonId.Value}}"}"""
+            : FormationPage(0);
+
+        var moon = await CreateClient().CreateMoonAsync(PlanetId, 1_200);
+
+        Assert.Equal(MoonId, moon);
+        Assert.Equal("/home/moonformation?planet=" + PlanetId.Value, _handler.Requests[0].Uri.PathAndQuery);
+        Assert.Equal("/home/createmoon", _handler.Requests[1].Uri.PathAndQuery);
+        Assert.Equal($$"""{"Diameter":1200,"PlanetId":"{{PlanetId.Value}}"}""", _handler.Requests[1].Body);
+    }
+
+    [Fact]
+    public async Task The_formation_page_gives_graviton_size_limits_and_metal()
+    {
+        _handler.Respond = _ => FormationPage(4_000);
+
+        var info = await CreateClient().GetMoonFormationAsync(PlanetId);
+
+        Assert.Equal((4, 4_000, 1_000, 9_999, 26_682_541_149L), (info.GravitonLevel, info.CurrentDiameter, info.MinDiameter, info.MaxDiameter, info.Metal));
+        Assert.True(info.HasMoon);
+        Assert.Equal(4_199, info.LargestAllowed);
+    }
+
+    [Fact]
+    public async Task A_refused_moon_creation_throws_the_games_message()
+    {
+        _handler.Respond = r => r.Method == HttpMethod.Post ? """{"IsSuccess":false,"Message":"Not enough metal.","Data":null}""" : FormationPage(0);
+
+        var error = await Assert.ThrowsAsync<OgamexException>(() => CreateClient().CreateMoonAsync(PlanetId, 1_000));
+
+        Assert.Equal("Not enough metal.", error.Message);
+    }
+
+    [Fact]
+    public async Task A_planet_with_a_moon_gets_no_second_one()
+    {
+        _handler.Respond = _ => FormationPage(4_000);
+
+        await Assert.ThrowsAsync<OgamexException>(() => CreateClient().CreateMoonAsync(PlanetId, 1_000));
+        Assert.Single(_handler.Requests); // nothing posted
+    }
+
     private sealed record RecordedRequest(HttpMethod Method, Uri Uri, string? Body);
 
     private const string MinimalFleetPage = """

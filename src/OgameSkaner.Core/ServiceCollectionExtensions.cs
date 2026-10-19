@@ -6,6 +6,7 @@ using OgameSkaner.Core.Services.Asteroids;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Defense;
 using OgameSkaner.Core.Services.Expeditions;
+using OgameSkaner.Core.Services.Moons;
 using OgameSkaner.Core.Services.Optimizer;
 using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Schemas;
@@ -42,6 +43,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IActionHistoryStore, SqliteActionHistoryStore>();
         services.AddSingleton<IDefenseSettingsStore, JsonDefenseSettingsStore>();
         services.AddSingleton<IExpeditionSettingsStore, JsonExpeditionSettingsStore>();
+        services.AddSingleton<IMoonSettingsStore, JsonMoonSettingsStore>();
         services.AddSingleton<LegacyImporter>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
@@ -61,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<AlertDispatcher>();
         services.AddSingleton<AttackMonitor>();
         services.AddSingleton<ExpeditionRunner>();
+        services.AddSingleton<MoonRunner>();
 
         return services;
     }

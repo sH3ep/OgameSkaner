@@ -25,6 +25,23 @@ public class BuildingPageParserTests
     }
 
     [Fact]
+    public void Reads_a_moons_facility_page_and_the_moon_in_the_sidebar()
+    {
+        // Built from the markup of the moon at 8:260:3 (2026-10-19): no storages, free fields in remainingBuildingFields.
+        var page = Load("building_facility_moon.html");
+        var moon = new PlanetId("33333333-3333-3333-3333-333333333333");
+
+        Assert.Equal(moon, page.CurrentPlanet);
+        Assert.Equal(BuildingCatalog.MoonBuildings, page.Buildings.Select(b => b.Building));
+        Assert.Equal(1, page.FreeFields);
+        Assert.Equal(ResourceSet.Zero, page.StorageCapacity);
+        Assert.Equal([new OwnPlanet(moon, "Moon", new Coordinates(8, 260, 3))], page.Moons);
+        Assert.Equal(["Home planet", "Colony"], page.Planets.Select(p => p.Name)); // the moon link isn't a planet
+        Assert.Equal(new ResourceSet(400, 120, 200), page.Buildings.Single(b => b.Building == BuildingType.RoboticsFactory).NextLevelCost);
+        Assert.True(page.Buildings.Single(b => b.Building == BuildingType.PhalanxSensor).Locked);
+    }
+
+    [Fact]
     public void Reads_exact_resources_and_energy_from_the_page_script()
     {
         var page = Load("building_resource.html");
@@ -66,7 +83,7 @@ public class BuildingPageParserTests
 
         Assert.Equal(new ResourceSet(45_125_000, 35_906_250, 28_375_000), resources.StorageCapacity);
         Assert.Equal(246, resources.FreeFields);
-        Assert.Null(facilities.FreeFields); // only the resources page has it
+        Assert.Equal(246, facilities.FreeFields); // remainingBuildingFields: the same count, the queue included
         Assert.False(resources.VacationMode);
         Assert.True(BuildingPageParser.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "building_resource.html"))
             .Replace("window.isVacation = false;", "window.isVacation = true;")).VacationMode);
