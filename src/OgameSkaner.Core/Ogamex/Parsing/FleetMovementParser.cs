@@ -59,6 +59,10 @@ public static partial class FleetMovementParser
             var sender = row.Descendants().FirstOrDefault(n => n.HasClass("fleet-sender-player")) is { } senderNode
                 ? Text(senderNode.InnerText)
                 : null;
+            var returnButton = row.Descendants("a").FirstOrDefault(a => a.HasClass("x_btn_fleet_return"));
+            long? returnTimestamp = long.TryParse(returnButton?.GetAttributeValue("data-fleet-start-timestamp", null), NumberStyles.Integer, CultureInfo.InvariantCulture, out var started)
+                ? started
+                : null;
             var id = row.GetAttributeValue("data-fleet-id", null)
                      ?? $"{mission}:{originCoordinates}>{targetCoordinates}@{arrivesAt.ToUnixTimeSeconds() / 60}";
 
@@ -73,7 +77,8 @@ public static partial class FleetMovementParser
                 targetCoordinates,
                 PlaceName(target.Cell, target.Link!),
                 ships,
-                string.IsNullOrEmpty(sender) ? null : sender));
+                string.IsNullOrEmpty(sender) ? null : sender,
+                returnTimestamp));
         }
 
         return movements;

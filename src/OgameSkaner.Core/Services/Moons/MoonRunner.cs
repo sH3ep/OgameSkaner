@@ -3,11 +3,10 @@ using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Moons;
-using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
-using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Scheduling;
+using OgameSkaner.Core.Services.Transports;
 
 namespace OgameSkaner.Core.Services.Moons;
 
@@ -37,7 +36,8 @@ public sealed record MoonCreation(OwnPlanet Planet, PlanetId? Moon, string? Erro
 /// the app didn't send is on its way, that moon gets none. Every game request is an <see cref="IActionQueue"/> group:
 /// reading, one per moon for building, one per transport.
 /// </remarks>
-public sealed class MoonRunner(OwnPlanetService ownPlanets, IActionQueues queues, TimeProvider timeProvider, ILogger<MoonRunner> logger)
+public sealed class MoonRunner(
+    OwnPlanetService ownPlanets, IActionQueues queues, TimeProvider timeProvider, ILogger<MoonRunner> logger, IFleetSlotClaimsProvider? claims = null)
 {
     private readonly WakeUp _wakeUp = new();
 
@@ -98,6 +98,10 @@ public sealed class MoonRunner(OwnPlanetService ownPlanets, IActionQueues queues
         catch (SessionExpiredException ex)
         {
             return new MoonRunResult(MoonOutcome.Failed, queued, transports, ex.Message);
+        }
+        finally
+        {
+            claims?.For(client).Release(Owner);
         }
     }
 
@@ -207,12 +211,15 @@ public sealed class MoonRunner(OwnPlanetService ownPlanets, IActionQueues queues
             {
                 var result = await queue.RunAsync(Owner, $"Transport to {name}", ct => TransportAsync(client, parent, moon, name, shipment, settings, progress, ct), priority, cancellationToken)
                     .ConfigureAwait(false);
-                if (result == TransportResult.Sent)
+                if (result == TransportStatus.Sent)
                     transports++;
-                else if (result == TransportResult.NoFleetSlot)
+                else if (result == TransportStatus.NoFleetSlot)
                 {
-                    // Pause the moons: the rest waits too, and the next check (soon) starts again with this one.
+                    // Pause the moons: the rest waits too, and the next check (soon) starts again with this one. The
+                    // claim keeps the other modules from taking the slot that frees first.
                     _resumeAt = moon.Id;
+                    if (priority == ActionPriority.Automation)
+                        claims?.For(client).Claim(Owner, 1); // the button's run doesn't come back for it
                     Report(progress, priority == ActionPriority.User
                         ? "No free fleet slot: stopped here; the next run starts with this moon."
                         : $"No free fleet slot: the moons pause, checking again in {NoSlotWait.TotalSeconds:0} s.");
@@ -221,6 +228,7 @@ public sealed class MoonRunner(OwnPlanetService ownPlanets, IActionQueues queues
             }
         }
 
+        claims?.For(client).Release(Owner);
         lock (_sync)
             wakes.AddRange(_sent.Select(s => s.ArrivesAt - timeProvider.GetUtcNow() + Settle));
         var wait = wakes.Where(w => w > TimeSpan.Zero).DefaultIfEmpty(interval).Min();
@@ -304,97 +312,27 @@ public sealed class MoonRunner(OwnPlanetService ownPlanets, IActionQueues queues
         return shipment;
     }
 
-    private enum TransportResult
-    {
-        Sent,
-        NotSent,
-
-        /// <summary>Every fleet slot is in use.</summary>
-        NoFleetSlot
-    }
-
     /// <summary>Sends <paramref name="shipment"/> (as far as the planet has it and its cargo ships carry it) from the planet to its moon.</summary>
-    private async Task<TransportResult> TransportAsync(
+    private async Task<TransportStatus> TransportAsync(
         IOgamexClient client, OwnPlanet planet, OwnPlanet moon, string name, ResourceSet shipment, MoonSettings settings,
         IProgress<MoonProgress>? progress, CancellationToken cancellationToken)
     {
-        var fleet = await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false);
-        if (fleet.Slots is { Free: 0 } slots)
-        {
-            Report(progress, $"{name}: no free fleet slot ({slots.Used}/{slots.Max}).");
-            return TransportResult.NoFleetSlot;
-        }
-
-        var stock = fleet.Resources ?? ResourceSet.Zero;
-        var send = Min(shipment, stock);
-        if (Total(send) == 0)
-        {
-            Report(progress, $"{name}: {planet} has none of the {shipment} it needs.");
-            return TransportResult.NotSent;
-        }
-
         var priority = settings.CargoShipTypes.Count > 0 ? settings.CargoShipTypes : MoonSettings.Default.CargoShipTypes;
-        var ships = RaidPlanner.CargoFleet(Total(send), priority, fleet.QuantityOf, fleet.CargoCapacityOf);
-        var capacity = ships.Sum(s => s.Quantity * fleet.CargoCapacityOf(s.ShipType));
-        if (capacity == 0)
+        var request = new TransportRequest(planet, moon.Coordinates, PlanetType.Moon, name, shipment, priority, settings.TransportSpeedPercent, settings.TestMode);
+        var ledger = claims?.For(client);
+        var outcome = await TransportSender.SendAsync(client, request, ledger is null ? null : s => ledger.Effective(Owner, s),
+            m => Report(progress, m.StartsWith('[') ? m : $"{name}: {m}"), cancellationToken).ConfigureAwait(false);
+        if (outcome.Status == TransportStatus.Sent)
         {
-            Report(progress, $"{name}: no {string.Join(" / ", priority.Select(UnitCatalog.NameOf))} on {planet} to carry {send}.");
-            return TransportResult.NotSent;
+            var arrives = timeProvider.GetUtcNow() + outcome.Flight;
+            lock (_sync)
+                _sent.Add(new Transport(moon.Id, outcome.Cargo, arrives));
         }
 
-        var mission = new FleetMission(moon.Coordinates, PlanetType.Moon, MissionType.Transport, ships, Math.Clamp(settings.TransportSpeedPercent, 10, 100));
-        var briefing = await client.GetFleetBriefingAsync(mission, planet.Id, cancellationToken).ConfigureAwait(false);
-        if (!briefing.AvailableMissions.Contains(MissionType.Transport))
-        {
-            Report(progress, $"{name}: transport isn't possible ({briefing.Warning ?? "no transport mission"}).");
-            return TransportResult.NotSent;
-        }
-
-        // The flight's fuel stays on the planet and takes cargo space.
-        var fuel = Math.Max(0, briefing.DeuteriumConsumption);
-        send = send with { Deuterium = Math.Min(send.Deuterium, Math.Max(0, stock.Deuterium - fuel)) };
-        send = Fit(send, Math.Max(0, capacity - fuel));
-        if (Total(send) == 0)
-        {
-            Report(progress, $"{name}: the fuel leaves no room for cargo.");
-            return TransportResult.NotSent;
-        }
-
-        var what = $"{string.Join(" + ", ships.Select(s => $"{s.Quantity:N0} {UnitCatalog.NameOf(s.ShipType)}"))} with {send} from {planet} to {name}";
-        if (settings.TestMode)
-        {
-            Report(progress, $"[Test] Would send {what} (flight {briefing.OneWayFlight:g}).");
-            return TransportResult.NotSent;
-        }
-
-        var outcome = await client.SendFleetAsync(mission with { Cargo = send }, planet.Id, cancellationToken).ConfigureAwait(false);
-        if (!outcome.Sent)
-        {
-            Report(progress, $"{name}: transport refused: {outcome.Message}");
-            return TransportResult.NotSent;
-        }
-
-        var arrives = timeProvider.GetUtcNow() + briefing.OneWayFlight;
-        lock (_sync)
-            _sent.Add(new Transport(moon.Id, send, arrives));
-        Report(progress, $"Sent {what}, landing {arrives.ToLocalTime():T}.");
-        return TransportResult.Sent;
+        return outcome.Status;
     }
 
-    private static ResourceSet Min(ResourceSet a, ResourceSet b) =>
-        new(Math.Max(0, Math.Min(a.Metal, b.Metal)), Math.Max(0, Math.Min(a.Crystal, b.Crystal)), Math.Max(0, Math.Min(a.Deuterium, b.Deuterium)));
-
-    /// <summary>The same shares of each resource, scaled down to <paramref name="capacity"/> when it's more.</summary>
-    private static ResourceSet Fit(ResourceSet cargo, long capacity)
-    {
-        var total = Total(cargo);
-        if (total <= capacity)
-            return cargo;
-        var factor = (double)capacity / total;
-        return new ResourceSet((long)(cargo.Metal * factor), (long)(cargo.Crystal * factor), (long)(cargo.Deuterium * factor));
-    }
-
-    private static long Total(ResourceSet resources) => resources.Metal + resources.Crystal + resources.Deuterium;
+    private static long Total(ResourceSet resources) => TransportSender.Total(resources);
 
     private static string Describe(TimeSpan time) => time.TotalDays >= 1 ? $"{(int)time.TotalDays}d {time:hh\\:mm}" : time.ToString(@"hh\:mm\:ss");
 

@@ -147,6 +147,57 @@
                                       IsEnabled="{Binding IsSimulatedMode}" ToolTip="Simulated mode only" />
                         </Grid>
 
+                        <Expander Margin="0,0,0,8">
+                            <Expander.Header>
+                                <CheckBox Content="Share resources between planets" IsChecked="{Binding ShareResources}"
+                                          ToolTip="After each check, planets waiting for stock get transports from planets with a surplus. Every planet first keeps what its own next items need; planets the Builder doesn't build on give all they have." />
+                            </Expander.Header>
+                            <StackPanel Margin="4,4,0,0" IsEnabled="{Binding ShareResources}">
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" MinWidth="90" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="Next items" VerticalAlignment="Center" Margin="0,0,6,4" />
+                                    <TextBox Grid.Column="1" Text="{Binding ShareNextItems, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"
+                                             ToolTip="Each planet keeps resources for this many of its next items, and a planet waiting for stock asks for that many" />
+                                    <TextBlock Grid.Row="1" Text="Min. transport" VerticalAlignment="Center" Margin="0,0,6,4" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding ShareMinTransportAmount, Converter={StaticResource GroupedNumber}}" Margin="0,0,0,4"
+                                             ToolTip="Transports carrying less (metal + crystal + deuterium) aren't sent" />
+                                    <TextBlock Grid.Row="2" Text="Speed %" VerticalAlignment="Center" Margin="0,0,6,4" />
+                                    <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding ShareSpeedPercent, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4" />
+                                    <TextBlock Grid.Row="3" Text="Fleet slots to claim" VerticalAlignment="Center" Margin="0,0,6,4" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding ShareMaxSlots, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,4"
+                                             ToolTip="With every fleet slot in use, the sharing claims up to this many: Raids, Asteroids and Moons leave the next free ones to it (the Expeditions' reserved slots stay theirs)" />
+                                    <TextBlock Grid.Row="4" Text="Donors keep deuterium" VerticalAlignment="Center" Margin="0,0,6,4" />
+                                    <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ShareKeepDeuterium, Converter={StaticResource GroupedNumber}}" Margin="0,0,0,4"
+                                             ToolTip="Every planet keeps this much deuterium on top of its own needs, as fuel for raids, expeditions and fleet escapes" />
+                                </Grid>
+                                <DockPanel Margin="0,0,0,4" ToolTip="Ticked ships carry the resources, top to bottom: the first type as far as the planet has it, then the next">
+                                    <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">
+                                        <Button Content="▲" Command="{Binding MoveShareCargoShipUpCommand}" Padding="6,0" Margin="0,0,0,2" MinWidth="0" ToolTip="Higher priority" />
+                                        <Button Content="▼" Command="{Binding MoveShareCargoShipDownCommand}" Padding="6,0" MinWidth="0" ToolTip="Lower priority" />
+                                    </StackPanel>
+                                    <ListBox ItemsSource="{Binding ShareCargoShips}" SelectedItem="{Binding SelectedShareCargoShip}" MaxHeight="80">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type vm:CargoShipOptionViewModel}">
+                                                <CheckBox Content="{Binding Name}" IsChecked="{Binding IsSelected}" />
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </DockPanel>
+                                <CheckBox Content="Test mode (log the transports, send none)" IsChecked="{Binding ShareTestMode}"
+                                          ToolTip="Not saved; applies to the next start" />
+                            </StackPanel>
+                        </Expander>
+
                         <DockPanel Margin="0,0,0,4">
                             <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshPlanetsCommand}" Margin="0" MinWidth="0" Padding="8,2"
                                     ToolTip="Reads your planets from the game and stores them (also done before every run)" />

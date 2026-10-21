@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Services.Building;
 
@@ -31,7 +32,35 @@ public sealed class BuildSettings
 
     public BuilderMode Mode { get; set; } = BuilderMode.Simulated;
 
-    public SimulatedBuildOptions ToSimulatedOptions() => new(Math.Max(10_000, SimulationsPerPlan), UseSolarSatellites, Mode: Mode);
+    /// <summary>Moves resources between the planets: each keeps what its next items need, the rest goes to planets waiting for stock.</summary>
+    public bool ShareResources { get; set; }
+
+    /// <summary>The cargo ships the sharing sends, in priority order.</summary>
+    public List<string> ShareCargoShipTypes { get; set; } = [.. ResourceShareSettings.DefaultCargoShipTypes];
+
+    public int ShareSpeedPercent { get; set; } = 100;
+
+    /// <summary>How many next items a planet keeps resources for and asks for.</summary>
+    public int ShareNextItems { get; set; } = ResourceShareSettings.DefaultNextItems;
+
+    public long ShareMinTransportAmount { get; set; } = ResourceShareSettings.DefaultMinTransportAmount;
+
+    /// <summary>Deuterium every donor keeps for fleet fuel (raids, expeditions, escapes).</summary>
+    public long ShareKeepDeuterium { get; set; } = ResourceShareSettings.DefaultDonorDeuteriumReserve;
+
+    /// <summary>Fleet slots the sharing claims at most while it waits for free ones.</summary>
+    public int ShareMaxSlots { get; set; } = ResourceShareSettings.DefaultMaxSlots;
+
+    /// <summary>Plan the transports but send none. Not saved.</summary>
+    [JsonIgnore]
+    public bool ShareTestMode { get; set; }
+
+    public SimulatedBuildOptions ToSimulatedOptions() => new(Math.Max(10_000, SimulationsPerPlan), UseSolarSatellites, Mode: Mode, Sharing: ToShareSettings());
+
+    public ResourceShareSettings? ToShareSettings() => ShareResources
+        ? new ResourceShareSettings(ShareCargoShipTypes, Math.Clamp(ShareSpeedPercent, 10, 100), Math.Max(1, ShareNextItems),
+            Math.Max(0, ShareMinTransportAmount), Math.Max(1, ShareMaxSlots), ShareTestMode, Math.Max(0, ShareKeepDeuterium))
+        : null;
 
     /// <summary>
     /// Planets the user unticked. Storing the excluded ones (not the selected ones) means a new colony takes part

@@ -6,6 +6,7 @@ using OgameSkaner.Core.Domain.Expeditions;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Expeditions;
+using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Tests.Fakes;
 
 namespace OgameSkaner.Core.Tests.Services;
@@ -29,6 +30,7 @@ public class ExpeditionRunnerTests
 
     public ExpeditionRunnerTests()
     {
+        _claims = new FleetSlotClaimsProvider(_time);
         _client.OwnPlanets.AddRange([Home, Colony, Selected]);
         _client.CurrentPlanet = Selected.Id;
         _home[Home.Id] = [new ShipStack("LIGHT_CARGO", 10), new ShipStack("HEAVY_CARGO", 6), new ShipStack("SOLAR_SATELLITE", 50)];
@@ -49,7 +51,12 @@ public class ExpeditionRunnerTests
         KeepFleetSlotsFree = 0
     };
 
-    private ExpeditionRunner Runner() => new(new OwnPlanetService(new FakeOwnPlanetStore(), _time), TestQueues.Immediate, _time, NullLogger<ExpeditionRunner>.Instance);
+    private readonly FleetSlotClaimsProvider _claims;
+
+    private ExpeditionRunner Runner() => new(new OwnPlanetService(new FakeOwnPlanetStore(), _time), TestQueues.Immediate, _time, NullLogger<ExpeditionRunner>.Instance, _claims);
+
+    /// <summary>What the other modules saw at each "Next check": the slots 2/20 as Raids may use them.</summary>
+    private readonly List<FleetSlots> _raidsSaw = [];
 
     /// <summary>When each mission of <see cref="FakeOgamexClient.SentMissions"/> was sent.</summary>
     private readonly List<DateTimeOffset> _sentAt = [];
@@ -91,8 +98,12 @@ public class ExpeditionRunnerTests
                 _log.Add(p.Message);
             if (p.Overview is not null)
                 _overviews.Add(p.Overview);
-            if (p.Message.StartsWith("Next check", StringComparison.Ordinal) && ++done == checks)
-                cancellation.Cancel();
+            if (p.Message.StartsWith("Next check", StringComparison.Ordinal))
+            {
+                _raidsSaw.Add(_claims.For(_client).Effective("Raids", new FleetSlots(2, 20)));
+                if (++done == checks)
+                    cancellation.Cancel();
+            }
         }), cancellation.Token);
     }
 
@@ -111,6 +122,28 @@ public class ExpeditionRunnerTests
         Assert.Equal(new Coordinates(8, 260, 16), _client.SentMissions[0].Target);
         Assert.Equal(new Coordinates(7, 130, 16), _client.SentMissions[2].Target);
         Assert.Equal([2, 1, 0], _overviews.Last().Origins.Select(o => o.Flying));
+    }
+
+    [Fact]
+    public async Task The_slots_of_expeditions_not_in_the_air_are_reserved_while_running()
+    {
+        _home[Colony.Id] = []; // its expedition can't go: its slot stays reserved
+
+        await RunAsync(Settings((Home, 2), (Colony, 1)));
+
+        Assert.Equal(2, _client.SentMissions.Count);
+        Assert.Equal(new FleetSlots(3, 20), Assert.Single(_raidsSaw));
+        Assert.Empty(_claims.For(_client).Snapshot()); // released when stopped
+    }
+
+    [Fact]
+    public async Task Without_reserving_the_other_modules_see_the_slots_as_read()
+    {
+        _home[Colony.Id] = [];
+
+        await RunAsync(Settings((Home, 2), (Colony, 1)) with { ReserveSlots = false });
+
+        Assert.Equal(new FleetSlots(2, 20), Assert.Single(_raidsSaw));
     }
 
     [Fact]

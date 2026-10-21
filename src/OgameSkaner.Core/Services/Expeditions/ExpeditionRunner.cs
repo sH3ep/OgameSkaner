@@ -37,7 +37,8 @@ public sealed record ExpeditionRunResult(ExpeditionOutcome Outcome, int Sent, st
 /// The event list may not list an expedition while it stays at position 16, so the runner also counts the expeditions it
 /// sent itself until their computed return and takes the larger count.
 /// </remarks>
-public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues queues, TimeProvider timeProvider, ILogger<ExpeditionRunner> logger)
+public sealed class ExpeditionRunner(
+    OwnPlanetService ownPlanets, IActionQueues queues, TimeProvider timeProvider, ILogger<ExpeditionRunner> logger, IFleetSlotClaimsProvider? claims = null)
 {
     private readonly WakeUp _wakeUp = new();
 
@@ -63,6 +64,7 @@ public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues 
                 {
                     await queues.For(client).RunAsync(Owner, "Send the due expeditions", ct => RunCycleAsync(client, settings, state, progress, ct), cancellationToken: cancellationToken)
                         .ConfigureAwait(false);
+                    Reserve(client, settings, state);
                     var interval = TimeSpan.FromMinutes(Math.Max(1, settings.CheckIntervalMinutes));
                     wait = ExpeditionPlanner.NextWait(state.Changes(), timeProvider.GetUtcNow(), interval);
                 }
@@ -86,6 +88,35 @@ public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues 
         {
             return new ExpeditionRunResult(ExpeditionOutcome.Failed, state.Total, ex.Message);
         }
+        finally
+        {
+            claims?.For(client).Release(Owner);
+        }
+    }
+
+    /// <summary>
+    /// With <see cref="ExpeditionSettings.ReserveSlots"/>, reserves the fleet slots of all configured expeditions (at most
+    /// the expedition slots): the ones in the air hold theirs until they return, the rest are kept from the other modules.
+    /// </summary>
+    private void Reserve(IOgamexClient client, ExpeditionSettings settings, RunState state)
+    {
+        if (claims?.For(client) is not { } ledger)
+            return;
+        // Test mode sends nothing, so it holds nothing back from the other modules either.
+        if (!settings.ReserveSlots || settings.TestMode || settings.ShipTypes.Count == 0)
+        {
+            ledger.Release(Owner);
+            return;
+        }
+
+        var now = timeProvider.GetUtcNow();
+        var origins = state.Origins.Where(o => o.Count > 0).ToList();
+        var busy = origins.SelectMany(o => ExpeditionPlanner.BusyUntil(state.Movements, o.Place, state.Origins.Count(p => p.Place.Coordinates == o.Place.Coordinates) > 1,
+            state.Sent.Where(s => s.Origin == o.Place.Id).Select(s => s.ReturnsAt), o.Count, now)).ToList();
+        var slots = origins.Sum(o => o.Count);
+        if (state.ExpeditionSlots is { } expeditionSlots)
+            slots = Math.Min(slots, expeditionSlots.Max);
+        ledger.Reserve(Owner, slots, busy);
     }
 
     private async Task RunCycleAsync(
@@ -104,6 +135,7 @@ public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues 
             .Select(p => new ExpeditionOriginState(p.Place, p.IsMoon, Math.Max(0, settings.CountFor(p.Place.Id.Value)), 0))
             .ToList();
         origins = WithFlying(origins, state, now);
+        state.Origins = origins;
 
         var due = origins.Where(o => o.Count > o.Flying)
             .OrderBy(o => IndexOf(settings, o.Place.Id))
@@ -117,6 +149,7 @@ public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues 
             Report(progress, "Every planet has its expeditions in the air.");
         else
             (fleets, expeditions) = await SendAsync(client, settings, due, state, progress, cancellationToken).ConfigureAwait(false);
+        state.ExpeditionSlots = expeditions ?? state.ExpeditionSlots;
 
         progress?.Report(new ExpeditionProgress("", new ExpeditionOverview(WithFlying(origins, state, timeProvider.GetUtcNow()), fleets, expeditions)));
     }
@@ -139,7 +172,9 @@ public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues 
                 var fleet = await client.GetFleetAsync(place.Id, cancellationToken).ConfigureAwait(false);
                 if (budget is null)
                 {
-                    fleets = fleet.Slots ?? throw new OgamexException("The fleet page shows no fleet slots.");
+                    // Slots other modules claimed count as used.
+                    var read = fleet.Slots ?? throw new OgamexException("The fleet page shows no fleet slots.");
+                    fleets = claims?.For(client).Effective(Owner, read) ?? read;
                     expeditions = fleet.ExpeditionSlots;
                     budget = ExpeditionPlanner.Budget(fleets.Value, expeditions, settings.KeepFleetSlotsFree);
                 }
@@ -243,6 +278,12 @@ public sealed class ExpeditionRunner(OwnPlanetService ownPlanets, IActionQueues 
         public HashSet<string> ReportedMissing { get; } = [];
 
         public int Total { get; set; }
+
+        /// <summary>The places with their configured counts, from the last cycle.</summary>
+        public IReadOnlyList<ExpeditionOriginState> Origins { get; set; } = [];
+
+        /// <summary>The expedition slots as last read.</summary>
+        public FleetSlots? ExpeditionSlots { get; set; }
 
         /// <summary>When an expedition arrives or comes back: the event list's times and this run's computed returns.</summary>
         public IEnumerable<DateTimeOffset> Changes() =>

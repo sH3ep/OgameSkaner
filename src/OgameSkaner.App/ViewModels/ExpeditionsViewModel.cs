@@ -68,6 +68,10 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
     [ObservableProperty]
     private int _keepFleetSlotsFree;
 
+    /// <summary>Keep the slots of all configured expeditions from the other modules while running.</summary>
+    [ObservableProperty]
+    private bool _reserveSlots;
+
     [ObservableProperty]
     private int _checkIntervalMinutes;
 
@@ -228,6 +232,7 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
             HoldHours = Math.Clamp((int)Math.Round(settings.HoldMinutes / 60.0), 1, 12);
             SpeedPercent = settings.SpeedPercent;
             KeepFleetSlotsFree = settings.KeepFleetSlotsFree;
+            ReserveSlots = settings.ReserveSlots;
             CheckIntervalMinutes = settings.CheckIntervalMinutes;
             AutoStart = settings.AutoStart;
 
@@ -292,6 +297,7 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
         HoldMinutes = Math.Clamp(HoldHours, 1, 12) * 60,
         SpeedPercent = Math.Clamp(SpeedPercent, 10, 100),
         KeepFleetSlotsFree = Math.Max(0, KeepFleetSlotsFree),
+        ReserveSlots = ReserveSlots,
         CheckIntervalMinutes = Math.Max(1, CheckIntervalMinutes),
         AutoStart = AutoStart,
         TestMode = TestMode

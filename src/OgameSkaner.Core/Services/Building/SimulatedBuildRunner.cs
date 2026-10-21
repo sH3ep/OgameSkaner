@@ -7,6 +7,7 @@ using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Services.Optimizer;
 using OgameSkaner.Core.Services.Scheduling;
+using OgameSkaner.Core.Storage;
 
 namespace OgameSkaner.Core.Services.Building;
 
@@ -30,7 +31,8 @@ public sealed class SimulatedBuildRunner(
     BuildOrderOptimizer optimizer,
     IOptions<OgamexOptions> options,
     TimeProvider timeProvider,
-    ILogger<SimulatedBuildRunner> logger)
+    ILogger<SimulatedBuildRunner> logger,
+    ResourceSharing? sharing = null)
 {
     private readonly WakeUp _wakeUp = new();
 
@@ -56,7 +58,7 @@ public sealed class SimulatedBuildRunner(
         IProgress<BuildProgress>? progress = null,
         CancellationToken cancellationToken = default)
     {
-        var run = new Run(progress);
+        var run = new Run(progress) { ShareNextItems = settings.Sharing?.NextItems ?? 0 };
         try
         {
             var refresh = await queues.For(client).RunAsync(Owner, "Read the planet list", ct => ownPlanets.RefreshAsync(client, ct), cancellationToken: cancellationToken)
@@ -94,6 +96,10 @@ public sealed class SimulatedBuildRunner(
         {
             return run.Result(BuildOutcome.Failed, ex.Message);
         }
+        finally
+        {
+            sharing?.Release(client);
+        }
     }
 
     /// <summary>One pass over the planets; whether all are done and how soon the next item is due.</summary>
@@ -101,9 +107,10 @@ public sealed class SimulatedBuildRunner(
         IOgamexClient client, IReadOnlyList<OwnPlanet> planets, BuildStrategy strategy, SimulatedBuildOptions settings, Run run, CancellationToken cancellationToken)
     {
         var queue = queues.For(client);
+        OwnPlanetList own;
         try
         {
-            await queue.RunAsync(Owner, "Read the planet list", ct => ownPlanets.RefreshAsync(client, ct), cancellationToken: cancellationToken).ConfigureAwait(false);
+            own = (await queue.RunAsync(Owner, "Read the planet list", ct => ownPlanets.RefreshAsync(client, ct), cancellationToken: cancellationToken).ConfigureAwait(false)).List;
         }
         catch (OgamexException ex) when (ex is not SessionExpiredException)
         {
@@ -156,6 +163,22 @@ public sealed class SimulatedBuildRunner(
                     allDone &= done;
                     if (due is { } d && (nextIn is null || d < nextIn))
                         nextIn = d;
+                }
+            }
+
+            if (settings.Sharing is { } share && sharing is not null && empire is not null && !allDone)
+            {
+                try
+                {
+                    var demands = planets.ToDictionary(p => p.Id, p => run.Planet(p.Id).Demand);
+                    var shared = await sharing.RunAsync(client, own.Planets, empire, demands, share, run.Report, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    if (shared.WakeIn is { } w && (nextIn is null || w < nextIn))
+                        nextIn = w;
+                }
+                catch (OgamexException ex) when (ex is not SessionExpiredException)
+                {
+                    logger.LogWarning(ex, "Resource sharing on {Universe} failed", client.Universe.Name);
+                    run.Report($"Sharing failed: {ex.Message} (retrying next cycle)");
                 }
             }
         }
@@ -283,6 +306,7 @@ public sealed class SimulatedBuildRunner(
         {
             run.Finish(planet, BuildStopReason.VacationMode);
             memory.Idle = new IdleState(timeProvider.GetUtcNow(), (false, null), null);
+            memory.Demand = new ShareDemand(state.Resources, null); // no fleet leaves it
             return new PlanetStep((false, null));
         }
 
@@ -322,6 +346,9 @@ public sealed class SimulatedBuildRunner(
         }
 
         var push = SimulatedPlanner.Push(state, steps, shipyard, QueueCapacity);
+        var keep = push.Actions.Aggregate(SimulatedPlanner.Reserved(state), (sum, a) => sum + CostOf(a))
+                   + Sum(SimulatedPlanner.StepCosts(state, steps, push.StepsPushed, run.ShareNextItems, shipyard));
+        memory.Demand = new ShareDemand(keep, push.Needs is not null ? keep : null);
         foreach (var action in push.Actions)
         {
             if (!await SendAsync(client, planet, action, shipyard, pendingSatellites, memory, run, cancellationToken).ConfigureAwait(false))
@@ -417,12 +444,16 @@ public sealed class SimulatedBuildRunner(
         {
             run.Finish(state.Planet, plan.Reason);
             memory.Idle = new IdleState(timeProvider.GetUtcNow(), (true, null), null);
+            memory.Demand = new ShareDemand(SimulatedPlanner.Reserved(state), null);
             return (true, null);
         }
 
         var runningLeft = state.RunningRemaining ?? TimeSpan.Zero;
         TimeSpan? nextIn = runningLeft > TimeSpan.Zero ? runningLeft : null;
         var push = state.Queue.Count >= QueueCapacity ? [] : SimulatedPlanner.AffordablePrefix(state, plan.Upgrades);
+        var keep = SimulatedPlanner.Reserved(state) + Sum(plan.Upgrades.Take(push.Count + run.ShareNextItems).Select(u => u.Cost));
+        var waitsForStock = push.Count < plan.Upgrades.Count && state.Queue.Count + push.Count < QueueCapacity;
+        memory.Demand = new ShareDemand(keep, waitsForStock ? keep : null);
         foreach (var upgrade in push)
         {
             var name = $"{BuildingCatalog.Get(upgrade.Building).DisplayName} {upgrade.Level}";
@@ -453,6 +484,15 @@ public sealed class SimulatedBuildRunner(
         string.Join(",", state.Levels.OrderBy(l => l.Key).Select(l => $"{l.Key}={l.Value}"))
         + "|" + string.Join(",", state.Queue.Select(q => $"{q.Building}{q.Level}{(q.Started ? "*" : "")}"))
         + $"|{satellites}+{pendingSatellites}|{setup.TargetKey}";
+
+    private static ResourceSet CostOf(SimulatedAction action) => action switch
+    {
+        SimulatedAction.Upgrade upgrade => upgrade.Cost,
+        SimulatedAction.Satellites satellites => satellites.Cost,
+        _ => ResourceSet.Zero
+    };
+
+    private static ResourceSet Sum(IEnumerable<ResourceSet> costs) => costs.Aggregate(ResourceSet.Zero, (sum, c) => sum + c);
 
     private sealed record PendingSatellites(int ExpectedCount, DateTimeOffset Until);
 
@@ -486,6 +526,9 @@ public sealed class SimulatedBuildRunner(
 
         /// <summary>Set when the last read had nothing to send; see <see cref="IdleState"/>.</summary>
         public IdleState? Idle { get; set; }
+
+        /// <summary>What it keeps and asks for in the resource sharing, from its last read; null = not read yet.</summary>
+        public ShareDemand? Demand { get; set; }
 
         /// <summary>The planet's levels and satellites on the empire page of the cycle that last read it.</summary>
         public string? Seen { get; set; }
@@ -567,6 +610,9 @@ public sealed class SimulatedBuildRunner(
         public Dictionary<PlanetId, PlanetBuildSummary> Summaries { get; } = new();
 
         public int TotalQueued { get; private set; }
+
+        /// <summary>Next items each planet keeps resources for (and asks for) in the resource sharing; 0 without sharing.</summary>
+        public int ShareNextItems { get; init; }
 
         public AccountBonuses? Bonuses { get; set; }
 

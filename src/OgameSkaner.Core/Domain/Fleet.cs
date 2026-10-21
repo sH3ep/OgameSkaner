@@ -7,6 +7,12 @@ public sealed record ShipStack(string ShipType, long Quantity);
 /// <summary>Fleet slots of the account ("Fleets: 1/11").</summary>
 public readonly record struct FleetSlots(int Used, int Max)
 {
+    /// <summary>
+    /// Fleet slots no automation may take, so the player (or an attack escape) always has one: the client refuses a send
+    /// that would leave fewer free (<see cref="FleetMission.MayUseLastSlot"/> excepted).
+    /// </summary>
+    public const int KeptForEmergencies = 1;
+
     public int Free => Math.Max(0, Max - Used);
 }
 
@@ -60,10 +66,18 @@ public sealed record FleetMission(
     IReadOnlyList<ShipStack> Ships,
     int SpeedPercentage = 100,
     ResourceSet Cargo = default,
-    int? HoldMinutes = null);
+    int? HoldMinutes = null)
+{
+    /// <summary>
+    /// Whether the fleet may take the slots kept for emergencies (<see cref="FleetSlots.KeptForEmergencies"/>): only
+    /// attack escapes.
+    /// </summary>
+    public bool MayUseLastSlot { get; init; }
+}
 
 /// <summary>Answer of <c>/fleet/submitfleet</c>.</summary>
-public sealed record FleetSendOutcome(bool Sent, string? Message = null);
+/// <param name="NoFleetSlot">Not sent because the slots left are kept for emergencies (nothing was submitted).</param>
+public sealed record FleetSendOutcome(bool Sent, string? Message = null, bool NoFleetSlot = false);
 
 /// <summary>
 /// What the game's fleet page shows before sending (<c>/fleet/fleetpage3data</c>): flight time, the missions possible

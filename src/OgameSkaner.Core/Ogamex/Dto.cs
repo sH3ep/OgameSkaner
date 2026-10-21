@@ -59,6 +59,14 @@ internal sealed record FleetBriefingResponse(
     string? WarningMessage,
     int[]? ExpeditionKeepValues = null);
 
+/// <summary>
+/// Body of <c>/fleet/returnfleet</c> (<c>ReturnFleet</c> in default.js: <c>{FleetId, TS}</c>, TS = the return button's
+/// <c>data-fleet-start-timestamp</c>); the answer is a <see cref="SubmitFleetResponse"/>.
+/// </summary>
+internal sealed record ReturnFleetRequest(
+    [property: JsonPropertyName("FleetId")] string FleetId,
+    [property: JsonPropertyName("TS")] object Timestamp);
+
 /// <summary>Body of <c>/building/increasebuilding</c>; the game sends these exact (PascalCase) names.</summary>
 internal sealed record IncreaseBuildingRequest(
     [property: JsonPropertyName("BuildingType")] string BuildingType,

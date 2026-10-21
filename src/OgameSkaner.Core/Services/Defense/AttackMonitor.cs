@@ -29,10 +29,14 @@ public sealed record DefenseRunResult(DefenseOutcome Outcome, int Detected, int 
 /// <see cref="DefenseSettings.CheckIntervalSeconds"/>, alerts the player about every new hostile fleet through the
 /// enabled <see cref="IAlertChannel"/>s and, <see cref="DefenseSettings.EscapeSecondsBeforeArrival"/> before an attack
 /// lands, deploys the attacked planet's ships (with its resources) to its moon or the nearest other planet at
-/// <see cref="DefenseSettings.EscapeSpeedPercent"/>. Between checks it wakes up early for an escape that falls due.
+/// <see cref="DefenseSettings.EscapeSpeedPercent"/>. With <see cref="DefenseSettings.RecallAfterAttack"/> it turns the
+/// escaped fleet back (<see cref="IOgamexClient.ReturnFleetAsync"/>) once no attack on its planet is listed any more,
+/// <see cref="DefenseSettings.RecallDelaySeconds"/> after the last one landed. Between checks it wakes up early for an
+/// escape or a recall that falls due.
 /// </summary>
 /// <remarks>
-/// Attacks on a moon are only alerted: moons aren't in the planet list yet. Fleets aren't recalled after the attack.
+/// Attacks on a moon are only alerted: moons aren't in the planet list yet. A fleet that landed before its recall
+/// stays where it went.
 /// The checks don't go through the <see cref="IActionQueue"/>, and escapes run at once next to the other modules' groups
 /// (<see cref="IActionQueue.RunUrgentAsync{T}"/>).
 /// </remarks>
@@ -105,7 +109,8 @@ public sealed class AttackMonitor(
     private async Task<TimeSpan> RunCycleAsync(
         IOgamexClient client, DefenseSettings settings, RunState run, IProgress<DefenseProgress>? progress, CancellationToken cancellationToken)
     {
-        var incoming = (await client.GetFleetMovementsAsync(cancellationToken).ConfigureAwait(false))
+        var movements = await client.GetFleetMovementsAsync(cancellationToken).ConfigureAwait(false);
+        var incoming = movements
             .Where(m => m.IsIncomingHostile)
             .OrderBy(m => m.ArrivesAt)
             .ToList();
@@ -122,6 +127,8 @@ public sealed class AttackMonitor(
         if (due.Count > 0)
             await EscapeAsync(client, due, incoming, settings, run, progress, cancellationToken).ConfigureAwait(false);
 
+        var recallIn = await RecallAsync(client, movements, incoming, settings, run, progress, cancellationToken).ConfigureAwait(false);
+
         progress?.Report(new DefenseProgress(
             incoming.Count == 0 ? "No hostile fleets" : $"{incoming.Count} hostile fleet(s) incoming",
             incoming.Select(m => DescribeThreat(m, settings, run)).ToList()));
@@ -132,7 +139,98 @@ public sealed class AttackMonitor(
         foreach (var gone in run.States.Keys.Where(id => !listed.Contains(id)).ToList())
             run.States.Remove(gone);
 
-        return DefensePlanner.NextWait(incoming, run.Handled, timeProvider.GetUtcNow(), settings);
+        var wait = DefensePlanner.NextWait(incoming, run.Handled, timeProvider.GetUtcNow(), settings);
+        return recallIn is { } recall && recall < wait ? TimeSpan.FromTicks(Math.Max(recall.Ticks, TimeSpan.FromSeconds(1).Ticks)) : wait;
+    }
+
+    /// <summary>
+    /// Turns back the escaped fleets whose planet has no attack listed any more and whose recall time passed. Returns
+    /// the time to the next recall that waits only for its time; null when none does.
+    /// </summary>
+    private async Task<TimeSpan?> RecallAsync(
+        IOgamexClient client,
+        IReadOnlyList<FleetMovement> movements,
+        IReadOnlyList<FleetMovement> incoming,
+        DefenseSettings settings,
+        RunState run,
+        IProgress<DefenseProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        if (!settings.RecallAfterAttack)
+        {
+            run.Escaped.Clear();
+            return null;
+        }
+
+        TimeSpan? next = null;
+        var now = timeProvider.GetUtcNow();
+        for (var i = run.Escaped.Count - 1; i >= 0; i--)
+        {
+            var escape = run.Escaped[i];
+            var where = $"{escape.Planet.Name} [{escape.Planet.Coordinates}]";
+            if (DefensePlanner.LastAttack(incoming, escape.Planet.Coordinates) is { } lands)
+            {
+                // Still under attack (maybe a new wave): keep it away.
+                if (lands > escape.AttackLandsAt)
+                    run.Escaped[i] = escape with { AttackLandsAt = lands };
+                continue;
+            }
+
+            if (now >= escape.ArrivesAt)
+            {
+                run.Escaped.RemoveAt(i);
+                Report(progress, $"The fleet escaped from {where} has landed at {escape.DestinationLabel} and stays there.");
+                continue;
+            }
+
+            var recallAt = DefensePlanner.RecallAt(escape, settings);
+            if (now < recallAt)
+            {
+                var left = recallAt - now;
+                next = next is { } n && n < left ? n : left;
+                continue;
+            }
+
+            if (DefensePlanner.FindEscaped(movements, escape, run.TurnedBack) is not { ReturnTimestamp: { } timestamp } fleet)
+            {
+                run.Escaped[i] = escape with { Misses = escape.Misses + 1 };
+                if (escape.Misses + 1 >= FailuresBeforeAlert)
+                {
+                    run.Escaped.RemoveAt(i);
+                    Report(progress, $"The fleet escaped from {where} isn't in the event list; it isn't turned back.");
+                    Alert(run, client, $"Fleet from {escape.Planet.Name} not turned back",
+                        $"The fleet escaped from {where} to {escape.DestinationLabel} wasn't found in the event list. Turn it back by hand.", AlertSeverity.Warning);
+                }
+                continue;
+            }
+
+            run.Escaped.RemoveAt(i);
+            if (settings.TestMode)
+            {
+                Report(progress, $"[Test] Would turn back the fleet escaped from {where}.");
+                continue;
+            }
+
+            var outcome = await queues.For(client).RunUrgentAsync(Owner, $"Turn back the fleet escaped from {where}",
+                ct => client.ReturnFleetAsync(fleet.Id, timestamp, ct), cancellationToken).ConfigureAwait(false);
+            if (outcome.Sent)
+            {
+                run.TurnedBack.Add(fleet.Id); // until the list shows it returning, it still looks like an outbound Deploy
+                var home = now + (now - escape.SentAt);
+                Report(progress, $"The attack on {where} is over: turned its fleet back, home about {home.ToLocalTime():T}.");
+                Alert(run, client, $"Fleet returning to {escape.Planet.Name}",
+                    $"The attack on {where} is over; the escaped fleet is on its way back, home about {home.ToLocalTime():T}.", AlertSeverity.Info);
+            }
+            else
+            {
+                Report(progress, $"Turning back the fleet escaped from {where} was refused: {outcome.Message}");
+                Alert(run, client, $"Fleet from {escape.Planet.Name} not turned back",
+                    $"The game refused to turn back the fleet escaped from {where}: {outcome.Message}. It lands at {escape.DestinationLabel} {escape.ArrivesAt.ToLocalTime():g}.",
+                    AlertSeverity.Warning);
+            }
+        }
+
+        return next;
     }
 
     private void Detected(IOgamexClient client, FleetMovement movement, DefenseSettings settings, RunState run, IProgress<DefenseProgress>? progress)
@@ -187,7 +285,8 @@ public sealed class AttackMonitor(
                 var ids = group.Select(m => m.Id).ToList();
                 var target = DefensePlanner.TargetOf(group.First(), run.Planets);
                 var state = target.Planet is { } planet && !target.OnMoon
-                    ? await EscapePlanetAsync(client, planet, attacked, settings, run, progress, ct).ConfigureAwait(false)
+                    ? await EscapePlanetAsync(client, planet, attacked, DefensePlanner.LastAttack(incoming, planet.Coordinates), settings, run, progress, ct)
+                        .ConfigureAwait(false)
                     : "Not escaped";
                 foreach (var id in ids)
                 {
@@ -202,6 +301,7 @@ public sealed class AttackMonitor(
         IOgamexClient client,
         OwnPlanet planet,
         IReadOnlyCollection<Coordinates> attacked,
+        DateTimeOffset? attackLandsAt,
         DefenseSettings settings,
         RunState run,
         IProgress<DefenseProgress>? progress,
@@ -220,7 +320,7 @@ public sealed class AttackMonitor(
         var refusals = new List<string>();
         foreach (var destination in DefensePlanner.Destinations(planet, run.Planets, attacked, settings, client.Universe))
         {
-            var mission = new FleetMission(destination.Target, destination.TargetType, MissionType.Deploy, ships, speed);
+            var mission = new FleetMission(destination.Target, destination.TargetType, MissionType.Deploy, ships, speed) { MayUseLastSlot = true };
             FleetBriefing briefing;
             try
             {
@@ -260,6 +360,9 @@ public sealed class AttackMonitor(
             }
 
             run.Escapes++;
+            var sentAt = timeProvider.GetUtcNow();
+            if (settings.RecallAfterAttack)
+                run.Escaped.Add(new EscapedFleet(planet, destination.Target, destination.Label, sentAt, sentAt + briefing.OneWayFlight, attackLandsAt ?? sentAt));
             Report(progress, $"Escaped: sent {what}");
             Alert(run, client, $"Fleet escaped from {planet.Name}", $"Sent {what}.", AlertSeverity.Info);
             return $"Escaped to {destination.Label}";
@@ -322,6 +425,12 @@ public sealed class AttackMonitor(
         public Dictionary<string, string> States { get; } = [];
 
         public List<Task> PendingAlerts { get; } = [];
+
+        /// <summary>Fleets escaped by this run, waiting to be turned back after the attack.</summary>
+        public List<EscapedFleet> Escaped { get; } = [];
+
+        /// <summary>Ids of the fleets turned back, so another escape of the same planet never matches them.</summary>
+        public HashSet<string> TurnedBack { get; } = [];
 
         public int Escapes { get; set; }
 

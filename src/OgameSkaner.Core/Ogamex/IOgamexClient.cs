@@ -63,6 +63,12 @@ public interface IOgamexClient : IDisposable
     /// <exception cref="SessionExpiredException">The server did not return the event list.</exception>
     Task<IReadOnlyList<FleetMovement>> GetFleetMovementsAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Turns an own outbound fleet back (<c>/fleet/returnfleet</c>, the event list's return button) with its id and the
+    /// button's <see cref="FleetMovement.ReturnTimestamp"/>. It flies home in the time it has flown so far.
+    /// </summary>
+    Task<FleetSendOutcome> ReturnFleetAsync(string fleetId, long timestamp, CancellationToken cancellationToken = default);
+
     /// <summary>One page of espionage reports, newest first, without ships and defenses.</summary>
     Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default);
 

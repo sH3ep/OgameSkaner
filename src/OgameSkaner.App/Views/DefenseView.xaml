@@ -96,6 +96,13 @@
                                  IsChecked="{Binding EscapeMode, Converter={StaticResource EnumEquals}, ConverterParameter=NearestPlanet}" />
                     <CheckBox Content="Take the planet's resources along" Margin="0,4,0,4" IsChecked="{Binding TakeResources}"
                               ToolTip="Deuterium (minus the fuel), then crystal, then metal, as far as the escaping ships' cargo holds them" />
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                        <CheckBox Content="Turn the fleet back" IsChecked="{Binding RecallAfterAttack}" VerticalAlignment="Center"
+                                  ToolTip="Once no attack on the planet is listed any more, the escaped fleet is turned back and comes home in the time it has flown. A fleet that already landed stays where it went." />
+                        <TextBox Text="{Binding RecallDelaySeconds, UpdateSourceTrigger=PropertyChanged}" Width="45" Margin="6,0,4,0"
+                                 IsEnabled="{Binding RecallAfterAttack}" ToolTip="Seconds after the last attack landed" />
+                        <TextBlock Text="s after the attack" VerticalAlignment="Center" />
+                    </StackPanel>
                     <CheckBox Content="Alert about spy probes" Margin="0,0,0,4" IsChecked="{Binding NotifyEspionage}" />
                     <CheckBox Content="Start with the app" Margin="0,0,0,4" IsChecked="{Binding AutoStart}"
                               ToolTip="Start the protection when the app starts or this universe gets selected" />

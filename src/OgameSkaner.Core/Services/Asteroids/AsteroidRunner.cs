@@ -66,7 +66,8 @@ public sealed class AsteroidRunner(
     IPlanetRepository planetRepository,
     IAsteroidStore store,
     TimeProvider timeProvider,
-    ILogger<AsteroidRunner> logger)
+    ILogger<AsteroidRunner> logger,
+    IFleetSlotClaimsProvider? claims = null)
 {
     private readonly WakeUp _wakeUp = new();
 
@@ -382,8 +383,10 @@ public sealed class AsteroidRunner(
         var fleets = await EmpireFleets.ReadAsync(client, refresh.List.Planets, [MinerType], queues.For(client).HomePlanet ?? refresh.CurrentPlanet, cancellationToken)
             .ConfigureAwait(false);
         var origins = fleets.Select(f => new Origin(f.Planet, f.Fleet)).ToList();
-        var slots = origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)
-                    ?? throw new OgamexException("The fleet page shows no fleet slots.");
+        var read = origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)
+                   ?? throw new OgamexException("The fleet page shows no fleet slots.");
+        // Slots other modules claimed count as used.
+        var slots = claims?.For(client).Effective(Owner, read) ?? read;
         var cargo = origins.Select(o => o.Fleet.CargoCapacityOf(MinerType)).FirstOrDefault(c => c > 0);
         return new Round(origins, slots, AsteroidPlanner.SlotBudget(slots, settings), cargo, store.LoadReports(client.Universe.Name));
     }
@@ -414,7 +417,7 @@ public sealed class AsteroidRunner(
     /// <summary>Whether a fleet slot and miners are left (reported when not).</summary>
     private static bool CanSend(Round round, IProgress<AsteroidProgress>? progress)
     {
-        if (round.Sent >= round.Budget)
+        if (round.Sent >= round.Budget || round.OutOfSlots)
         {
             Report(progress, $"No free fleet slot for more asteroids ({round.Slots.Used + round.Sent}/{round.Slots.Max} in use, {round.Budget} usable).");
             return false;
@@ -452,6 +455,7 @@ public sealed class AsteroidRunner(
         if (!outcome.Sent)
         {
             Report(progress, $"Mining [{asteroid.Coordinates}] was refused: {outcome.Message}");
+            round.OutOfSlots |= outcome.NoFleetSlot;
             return;
         }
 
@@ -588,6 +592,9 @@ public sealed class AsteroidRunner(
         public IReadOnlyList<AsteroidReport> Reports { get; } = reports;
 
         public int Sent { get; set; }
+
+        /// <summary>A send found the free slots down to those kept for emergencies (other modules sent since the read).</summary>
+        public bool OutOfSlots { get; set; }
 
         /// <summary>The planets that still have miners.</summary>
         public IReadOnlyList<Coordinates> WithMiners() => Origins.Where(o => o.Miners > 0).Select(o => o.Planet.Coordinates).ToList();

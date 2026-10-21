@@ -23,6 +23,12 @@ public sealed record ExpeditionSettings
     /// <summary>Fleet slots left for the other pages (raids, asteroids, escapes).</summary>
     public int KeepFleetSlotsFree { get; init; } = 1;
 
+    /// <summary>
+    /// While running, the fleet slots of all configured expeditions stay reserved: the ones not in the air count as used
+    /// for the other modules (Raids, Asteroids, Builder, Moons), so they never take a returning expedition's slot.
+    /// </summary>
+    public bool ReserveSlots { get; init; } = true;
+
     /// <summary>The longest sleep between two checks (a check is due earlier when an expedition returns).</summary>
     public int CheckIntervalMinutes { get; init; } = 5;
 

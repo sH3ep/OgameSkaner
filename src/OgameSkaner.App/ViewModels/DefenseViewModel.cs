@@ -98,6 +98,13 @@ public sealed partial class DefenseViewModel : PageViewModel
     [ObservableProperty]
     private bool _takeResources;
 
+    /// <summary>Turn the escaped fleet back once the attack is over.</summary>
+    [ObservableProperty]
+    private bool _recallAfterAttack;
+
+    [ObservableProperty]
+    private int _recallDelaySeconds;
+
     [ObservableProperty]
     private bool _autoStart;
 
@@ -237,6 +244,8 @@ public sealed partial class DefenseViewModel : PageViewModel
             EscapeSpeedPercent = settings.EscapeSpeedPercent;
             EscapeSecondsBeforeArrival = settings.EscapeSecondsBeforeArrival;
             TakeResources = settings.TakeResources;
+            RecallAfterAttack = settings.RecallAfterAttack;
+            RecallDelaySeconds = settings.RecallDelaySeconds;
             AutoStart = settings.AutoStart;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
@@ -317,6 +326,8 @@ public sealed partial class DefenseViewModel : PageViewModel
         EscapeSpeedPercent = Math.Clamp(EscapeSpeedPercent, 1, 100),
         EscapeSecondsBeforeArrival = Math.Max(0, EscapeSecondsBeforeArrival),
         TakeResources = TakeResources,
+        RecallAfterAttack = RecallAfterAttack,
+        RecallDelaySeconds = Math.Max(0, RecallDelaySeconds),
         AutoStart = AutoStart,
         TestMode = TestMode
     };

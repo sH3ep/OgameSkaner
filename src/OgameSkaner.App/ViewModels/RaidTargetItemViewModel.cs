@@ -15,6 +15,16 @@ public sealed partial class RaidTargetItemViewModel(RaidTarget target, DateTimeO
 
     public string PlayerName => Target.Planet.PlayerName;
 
+    /// <summary>"★" for a top target by its report history (spied on first), "◆" for a high-value one (right after them).</summary>
+    public string Top => Target.IsTop ? "★" : Target.IsHighValue ? "◆" : "";
+
+    public string? TopTooltip => Target.Stats is { } stats
+        ? $"{(Target.IsTop ? "Top target: spied on first. " : "")}"
+          + (stats.HighValue is { } mark ? $"High value since {mark.Since.ToLocalTime():g} (loot {mark.Loot:N0}): spied on after the top targets. " : "")
+          + $"{stats.Reports} report(s) in the statistics, median {stats.MedianResources:N0}"
+          + (stats.RefillPerHour is { } perHour ? $", refills {perHour:N0}/h" : "") + $", score {stats.Score:N0}"
+        : null;
+
     public int? Rank => Target.Planet.Rank;
 
     public string Status => Target.Planet.Status.ToLetters();

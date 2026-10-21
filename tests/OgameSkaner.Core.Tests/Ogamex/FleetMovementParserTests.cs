@@ -19,8 +19,10 @@ public class FleetMovementParserTests
         Assert.Equal(4, movements.Count);
         Assert.Equal(
             new FleetMovement("0b6c7a52-6a1f-4f43-9a51-6f1f0b2d1a01", MovementMission.Attack, MovementRelation.Own, Returning: true, Now.AddSeconds(15),
-                new Coordinates(8, 260, 3), "Home planet", new Coordinates(8, 102, 10), "8-102", 2_178_533),
+                new Coordinates(8, 260, 3), "Home planet", new Coordinates(8, 102, 10), "8-102", 2_178_533, ReturnTimestamp: 1792315276),
             movements[0]);
+        Assert.Equal(1792315500, movements[1].ReturnTimestamp);
+        Assert.Null(movements[2].ReturnTimestamp); // hostile: no return button
         Assert.Equal(MovementMission.Expedition, movements[1].Mission);
         Assert.False(movements[1].Returning);
         Assert.Equal(new Coordinates(8, 260, 16), movements[1].Target);

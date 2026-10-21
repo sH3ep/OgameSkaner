@@ -100,6 +100,7 @@ public partial class App : Application
         builder.Services.AddPage<SchemasViewModel, SchemasView>("Schemas");
         builder.Services.AddPage<OptimizerViewModel, OptimizerView>("Optimizer");
         builder.Services.AddPage<RaidsViewModel, RaidsView>("Raids");
+        builder.Services.AddPage<FarmStatsViewModel, FarmStatsView>("Farm stats");
         builder.Services.AddPage<AsteroidsViewModel, AsteroidsView>("Asteroids");
         builder.Services.AddPage<ExpeditionsViewModel, ExpeditionsView>("Expeditions");
         builder.Services.AddPage<DefenseViewModel, DefenseView>("Defense");

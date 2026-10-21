@@ -216,7 +216,7 @@ public class RaidPlannerTests
     [InlineData(0, 11, 90, 9)]
     [InlineData(4, 11, 90, 5)]
     [InlineData(10, 11, 90, 0)]
-    [InlineData(0, 11, 100, 11)]
+    [InlineData(0, 11, 100, 10)] // the emergency slot stays free
     public void Slot_budget_is_the_allowed_share_minus_slots_in_use(int used, int max, int percent, int expected)
     {
         Assert.Equal(expected, RaidPlanner.SlotBudget(new FleetSlots(used, max), Settings with { FleetSlotUsePercent = percent }));
@@ -278,6 +278,27 @@ public class RaidPlannerTests
         var ordered = RaidPlanner.NearestFirst(targets, [Target, new Coordinates(7, 50, 1)], new UniverseProfile("tron"));
 
         Assert.Equal(["SameSystemA", "SameSystemB", "NearSecondPlanet", "FarSystem", "OtherGalaxy"], ordered.Select(t => t.Planet.PlayerName));
+    }
+
+    [Fact]
+    public void A_top_target_with_little_loot_is_spied_on_again_sooner_and_a_banned_one_waits_for_the_ban()
+    {
+        var poor = FullReport(time: Now.AddHours(-2)) with { Resources = new ResourceSet(100, 0, 0) };
+        Assert.Equal(RaidTargetState.TooLittleLoot, Evaluate(poor).State); // 5 h
+
+        var top = new TargetAnalytics(new Dictionary<Coordinates, TargetStats>(), new HashSet<Coordinates> { Target }, []);
+        var asTop = RaidPlanner.Evaluate(Inactive, poor, [], Now, Settings, analytics: top);
+        Assert.Equal((RaidTargetState.NeedsSpy, true), (asTop.State, asTop.IsTop)); // 1 h passed
+
+        var highValue = new TargetAnalytics(
+            new Dictionary<Coordinates, TargetStats> { [Target] = new(Target, "Kowalski", 2, poor.Time, 100, 100, null, 0, 0, new HighValueMark(Now.AddDays(-1), 9_000, 0)) },
+            new HashSet<Coordinates>(), []);
+        var asHighValue = RaidPlanner.Evaluate(Inactive, poor, [], Now, Settings, analytics: highValue);
+        Assert.Equal((RaidTargetState.NeedsSpy, true), (asHighValue.State, asHighValue.IsHighValue));
+
+        var ban = new TargetBan(Target, Now.AddDays(-1), Now.AddDays(2), 1, "3 report(s)");
+        var banned = RaidPlanner.Evaluate(Inactive, poor, [], Now, Settings, analytics: new TargetAnalytics(new Dictionary<Coordinates, TargetStats>(), new HashSet<Coordinates>(), [ban]));
+        Assert.Equal((RaidTargetState.LowResource, ban), (banned.State, banned.Ban));
     }
 
     private sealed record Origin(Coordinates Coordinates, long Ships);

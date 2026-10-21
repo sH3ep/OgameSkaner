@@ -113,6 +113,8 @@
                                  ToolTip="A check is also due shortly after an expedition comes back" />
                     </Grid>
 
+                    <CheckBox Content="Reserve the expeditions' fleet slots" Margin="0,0,0,4" IsChecked="{Binding ReserveSlots}"
+                              ToolTip="While running, the slots of all configured expeditions stay theirs: the ones not in the air count as used for Raids, Asteroids, the Builder and Moons, so no other module takes a returning expedition's slot. Applies at the next start." />
                     <CheckBox Content="Start with the app" Margin="0,0,0,4" IsChecked="{Binding AutoStart}"
                               ToolTip="Start sending when the app starts or this universe gets selected" />
                     <CheckBox Content="Test mode (don't send fleets)" Margin="0,0,0,6" FontWeight="SemiBold" IsChecked="{Binding TestMode}"

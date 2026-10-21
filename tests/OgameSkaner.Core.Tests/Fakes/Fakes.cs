@@ -174,6 +174,19 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         return Task.FromResult<IReadOnlyList<FleetMovement>>(FleetMovements.ToList());
     }
 
+    /// <summary>The fleets turned back: id and the return button's timestamp.</summary>
+    public List<(string FleetId, long Timestamp)> ReturnedFleets { get; } = [];
+
+    public Func<string, FleetSendOutcome> ReturnAnswer { get; set; } = _ => new FleetSendOutcome(true);
+
+    public Task<FleetSendOutcome> ReturnFleetAsync(string fleetId, long timestamp, CancellationToken cancellationToken = default)
+    {
+        var outcome = ReturnAnswer(fleetId);
+        if (outcome.Sent)
+            ReturnedFleets.Add((fleetId, timestamp));
+        return Task.FromResult(outcome);
+    }
+
     /// <summary>The espionage report list, newest first; one page holds them all.</summary>
     public List<EspionageReport> EspionageReports { get; } = [];
 
@@ -380,6 +393,18 @@ public sealed class FakeRaidStore : IRaidStore
     /// <summary>All reports, like the database keeps them; <see cref="LoadReports"/> returns the newest per target.</summary>
     public IReadOnlyList<EspionageReport> LoadReports(string universe) =>
         Reports.GroupBy(r => (r.Target, r.TargetType)).Select(g => g.MaxBy(r => r.Time)!).ToList();
+
+    public IReadOnlyList<EspionageReport> LoadReports(string universe, DateTimeOffset since) =>
+        Reports.Where(r => r.Time >= since).OrderBy(r => r.Time).ToList();
+
+    public List<TargetBan> Bans { get; set; } = [];
+
+    public IReadOnlyList<TargetBan> LoadBans(string universe) => Bans.ToList();
+
+    public void AddBans(string universe, IEnumerable<TargetBan> bans) => Bans.AddRange(bans);
+
+    public void LiftBans(string universe, Coordinates target, DateTimeOffset at) =>
+        Bans = Bans.Select(b => b.Target == target && b.LiftedAt is null && b.Until > at ? b with { LiftedAt = at } : b).ToList();
 
     public IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false) =>
         Reports.Where(r => !withDetailsOnly || r.Ships is not null || r.Defenses is not null).Select(r => r.Id).ToHashSet();

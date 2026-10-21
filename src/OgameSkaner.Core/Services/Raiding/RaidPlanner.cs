@@ -25,18 +25,31 @@ public enum RaidTargetState
     TooLittleLoot,
 
     /// <summary>The report shows the player isn't a raidable inactive any more.</summary>
-    NotRaidable
+    NotRaidable,
+
+    /// <summary>Its reports were always poor: not spied on until the ban ends (<see cref="TargetStatistics.NewBans"/>).</summary>
+    LowResource
 }
 
 /// <summary>A candidate planet with what the raider knows and plans for it.</summary>
 /// <param name="RankingDefensePoints">The player's defense points in the ranking (0 = no defenses); null when not read.</param>
+/// <param name="Stats">What its reports of the last days say (<see cref="TargetStatistics"/>); null without one.</param>
+/// <param name="IsTop">One of the best <see cref="RaidSettings.TopTargetsPercent"/>: spied on first.</param>
+/// <param name="Ban">Its active low-resource ban.</param>
 public sealed record RaidTarget(
     PlayerPlanet Planet,
     EspionageReport? Report,
     RaidTargetState State,
     long ExpectedLoot,
     string? Note = null,
-    long? RankingDefensePoints = null);
+    long? RankingDefensePoints = null,
+    TargetStats? Stats = null,
+    bool IsTop = false,
+    TargetBan? Ban = null)
+{
+    /// <summary>Showed a big stock lately (<see cref="TargetStatistics.HighValue"/>): spied on right after the top targets.</summary>
+    public bool IsHighValue => Stats?.HighValue is not null;
+}
 
 /// <summary>
 /// Pure rules of the inactive farmer: which planets are candidates (raidable inactives from the galaxy database, best
@@ -83,7 +96,8 @@ public static class RaidPlanner
         IReadOnlyList<RaidRecord> raids,
         DateTimeOffset now,
         RaidSettings settings,
-        RankingSnapshot? defenseRanking = null)
+        RankingSnapshot? defenseRanking = null,
+        TargetAnalytics? analytics = null)
     {
         var newest = reports
             .Where(r => r.TargetType == PlanetType.Planet)
@@ -97,7 +111,7 @@ public static class RaidPlanner
         return candidates
             .Select(p => (Planet: p, Defense: defenseRanking?.PointsOf(p.PlayerId)))
             .Where(c => settings.MaxRankingDefensePoints is not { } max || c.Defense <= max)
-            .Select(c => Evaluate(c.Planet, newest.GetValueOrDefault(c.Planet.Coordinates), fleets.GetValueOrDefault(c.Planet.Coordinates) ?? [], now, settings, c.Defense))
+            .Select(c => Evaluate(c.Planet, newest.GetValueOrDefault(c.Planet.Coordinates), fleets.GetValueOrDefault(c.Planet.Coordinates) ?? [], now, settings, c.Defense, analytics))
             .ToList();
     }
 
@@ -105,11 +119,16 @@ public static class RaidPlanner
     /// The player's defense points in the ranking. 0 means the player has no defenses, which stands in for defenses the
     /// report hides.
     /// </param>
+    /// <param name="analytics">The target statistics: top targets re-spy sooner, banned ones aren't spied on.</param>
     public static RaidTarget Evaluate(
-        PlayerPlanet planet, EspionageReport? report, IReadOnlyList<RaidRecord> raids, DateTimeOffset now, RaidSettings settings, long? rankingDefensePoints = null)
+        PlayerPlanet planet, EspionageReport? report, IReadOnlyList<RaidRecord> raids, DateTimeOffset now, RaidSettings settings, long? rankingDefensePoints = null,
+        TargetAnalytics? analytics = null)
     {
         var loot = report is null ? 0 : ExpectedLoot(report, settings);
-        RaidTarget Target(RaidTargetState state, string? note = null) => new(planet, report, state, loot, note, rankingDefensePoints);
+        var stats = analytics?.Stats.GetValueOrDefault(planet.Coordinates);
+        var isTop = analytics?.Top.Contains(planet.Coordinates) == true;
+        var ban = analytics?.ActiveBan(planet.Coordinates, now);
+        RaidTarget Target(RaidTargetState state, string? note = null) => new(planet, report, state, loot, note, rankingDefensePoints, stats, isTop, ban);
 
         if (raids.Any(r => r.Mission == MissionType.Attack && r.ArrivesAt > now))
             return Target(RaidTargetState.UnderAttack);
@@ -118,6 +137,9 @@ public static class RaidPlanner
         var reportAfterSpy = spy is not null && report is not null && report.Time >= spy.SentAt - TimeSpan.FromMinutes(1);
         if (spy is not null && !reportAfterSpy && spy.ArrivesAt + ReportDelay > now)
             return Target(RaidTargetState.SpyPending);
+
+        if (ban is not null)
+            return Target(RaidTargetState.LowResource, $"low resource ({ban.Reason}), spied again after {ban.Until.ToLocalTime():g}");
 
         if (report is null)
             return Target(RaidTargetState.NeedsSpy);
@@ -136,9 +158,11 @@ public static class RaidPlanner
         var lastAttack = raids.Where(r => r.Mission == MissionType.Attack).MaxBy(r => r.ArrivesAt);
         var attackedSince = lastAttack is not null && report.Time < lastAttack.ArrivesAt;
 
-        // Too little loot in the newest report: production won't make it worth an attack soon, so don't spy again yet.
-        if (loot < settings.MinLoot && !attackedSince && settings.LowLootRespyHours > 0
-            && report.Time + TimeSpan.FromHours(settings.LowLootRespyHours) is var respyAt && respyAt > now)
+        // Too little loot in the newest report: production won't make it worth an attack soon, so don't spy again yet
+        // (a top or high-value target may hold a lot again soon, so sooner).
+        var respyHours = isTop || stats?.HighValue is not null ? Math.Min(settings.TopRespyHours, settings.LowLootRespyHours) : settings.LowLootRespyHours;
+        if (loot < settings.MinLoot && !attackedSince && respyHours > 0
+            && report.Time + TimeSpan.FromHours(respyHours) is var respyAt && respyAt > now)
             return Target(RaidTargetState.TooLittleLoot, $"spied again after {respyAt.ToLocalTime():g}");
 
         if (report.Time < now - settings.ReportMaxAge)
@@ -238,9 +262,9 @@ public static class RaidPlanner
     public static bool SlotsFull(FleetSlots slots, RaidSettings settings, int sentSince = 0) =>
         slots.Used + sentSince >= AllowedSlots(slots, settings);
 
-    /// <summary><see cref="RaidSettings.FleetSlotUsePercent"/> of all fleet slots.</summary>
+    /// <summary><see cref="RaidSettings.FleetSlotUsePercent"/> of all fleet slots, at most all but those kept for emergencies.</summary>
     private static int AllowedSlots(FleetSlots slots, RaidSettings settings) =>
-        (int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0);
+        Math.Min((int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0), slots.Max - FleetSlots.KeptForEmergencies);
 
     /// <summary>
     /// Fleet slots spy missions may still fill: every slot but one (kept free for the player), minus those in use and
@@ -248,7 +272,7 @@ public static class RaidPlanner
     /// cycle only below <see cref="RaidSettings.FleetSlotUsePercent"/> (<see cref="SpySlotBudget(FleetSlots, RaidSettings, int)"/>).
     /// </summary>
     public static int SpySlotBudget(FleetSlots slots, int sentSince = 0) =>
-        Math.Max(0, slots.Max - 1 - slots.Used - sentSince);
+        Math.Max(0, slots.Max - FleetSlots.KeptForEmergencies - slots.Used - sentSince);
 
     /// <summary>The game's distance (the briefing's <c>Distance</c>), with galaxies and systems wrapping around.</summary>
     public static long Distance(Coordinates from, Coordinates to, UniverseProfile universe)

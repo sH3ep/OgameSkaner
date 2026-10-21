@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
         services.AddSingleton<IActionQueues, ActionQueues>();
+        services.AddSingleton<IFleetSlotClaimsProvider, FleetSlotClaimsProvider>();
 
         services.AddSingleton<GalaxyScanService>();
         services.AddSingleton<FleetEscapeService>();
@@ -56,6 +57,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<CsvExportService>();
         services.AddSingleton<OwnPlanetService>();
         services.AddSingleton<SchemaRunner>();
+        services.AddSingleton<ResourceSharing>();
         services.AddSingleton<SimulatedBuildRunner>();
         services.AddSingleton<BuildOrderOptimizer>();
         services.AddSingleton<RaidRunner>();

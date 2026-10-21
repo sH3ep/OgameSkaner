@@ -71,9 +71,13 @@ public static class AsteroidPlanner
         estimate is not > 0 || cargoPerMiner <= 0 || settings.MinCoveragePercent <= 0
         || (double)miners * cargoPerMiner >= estimate.Value * Math.Min(100, settings.MinCoveragePercent) / 100.0;
 
-    /// <summary>Fleet slots mining fleets may still fill: <see cref="AsteroidSettings.FleetSlotUsePercent"/> of all, minus those in use.</summary>
+    /// <summary>
+    /// Fleet slots mining fleets may still fill: <see cref="AsteroidSettings.FleetSlotUsePercent"/> of all (at most all
+    /// but <see cref="FleetSlots.KeptForEmergencies"/>), minus those in use.
+    /// </summary>
     public static int SlotBudget(FleetSlots slots, AsteroidSettings settings) =>
-        Math.Max(0, (int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0) - slots.Used);
+        Math.Max(0, Math.Min((int)Math.Floor(slots.Max * Math.Clamp(settings.FleetSlotUsePercent, 0, 100) / 100.0), slots.Max - FleetSlots.KeptForEmergencies)
+                    - slots.Used);
 
     /// <summary>Whether miners flying <paramref name="flight"/> from now arrive before the asteroid is gone (with the safety margin).</summary>
     public static bool ArrivesInTime(Asteroid asteroid, TimeSpan flight, DateTimeOffset now, AsteroidSettings settings) =>

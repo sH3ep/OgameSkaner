@@ -65,6 +65,13 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="★" Binding="{Binding Top}" IsReadOnly="True" Foreground="#C08000">
+                            <DataGridTextColumn.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="ToolTip" Value="{Binding TopTooltip}" />
+                                </Style>
+                            </DataGridTextColumn.CellStyle>
+                        </DataGridTextColumn>
                         <DataGridTextColumn Header="Player" Binding="{Binding PlayerName}" IsReadOnly="True" Width="*" MinWidth="110" />
                         <DataGridTextColumn Header="Rank" Binding="{Binding Rank, StringFormat=N0}" IsReadOnly="True" />
                         <DataGridTextColumn Header="" Binding="{Binding Status}" IsReadOnly="True" Foreground="#555" />
@@ -100,6 +107,9 @@
                                 </DataTrigger>
                                 <DataTrigger Binding="{Binding State}" Value="UnderAttack">
                                     <Setter Property="Background" Value="#FCF8E3" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding State}" Value="LowResource">
+                                    <Setter Property="Foreground" Value="#999" />
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -214,6 +224,48 @@
                             <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding MaxAttacksPerTarget, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="One report can get several attacks: each takes Loot % of what the ones before it left and goes only while that is at least Min loot (with 50%: 2 attacks from 2× min loot, 3 from 4×). Each lands after the one before it, waiting or flying slower if needed. 1 = one attack per report." />
                         </Grid>
+
+                        <Expander Header="Target statistics" Margin="0,0,0,6"
+                                  ToolTip="The spy reports of the last days rank the targets (Farm stats page): the best are spied on first, the always poor ones are skipped for a while">
+                            <Grid Margin="0,4,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" MinWidth="60" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock Text="History (days)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Column="1" Text="{Binding StatsDays, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="The days of spy reports the statistics look at" />
+                                <TextBlock Grid.Row="1" Text="Top targets %" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding TopTargetsPercent, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="This share of the targets with the best score (a day of refill, or the median stock seen while only one report is known) is spied on before the others (★). 0 = off." />
+                                <TextBlock Grid.Row="2" Text="Top: spy again after (h)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding TopRespyHours, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="A top target with too little loot is spied on again after this many hours instead of the low-loot hours above" />
+                                <TextBlock Grid.Row="3" Text="Low resource after reports" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding LowResourceMinReports, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="A planet whose last this many reports all had loot below Min loot (and whose refill wouldn't reach it in the low-loot hours) is marked low resource and not spied on for a while. After a ban one more poor report renews it. 0 = off." />
+                                <TextBlock Grid.Row="4" Text="First ban (days)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding LowResourceBanDays, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="5" Text="Next bans (days)" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding LowResourceRepeatBanDays, UpdateSourceTrigger=PropertyChanged}" />
+                                <TextBlock Grid.Row="6" Text="High value: loot × min loot" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding HighValueLootFactor, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="A report with loot of at least this many times Min loot marks the planet high value (◆): spied on right after the top targets and, with little loot, spied on again after the top targets' hours. 0 = off." />
+                                <TextBlock Grid.Row="7" Text="High value ends after poor reports" VerticalAlignment="Center" Margin="0,0,6,6" />
+                                <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding HighValueDropReports, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="The mark ends after this many later reports in a row with loot below Min loot (the big stock was a one-time thing)" />
+                            </Grid>
+                        </Expander>
 
                         <CheckBox Content="Test mode (don't send fleets)" IsChecked="{Binding TestMode}" Margin="0,0,0,6" FontWeight="SemiBold"
                                   ToolTip="Start, Spy selected and Attack selected only read the game and log what they would send" />

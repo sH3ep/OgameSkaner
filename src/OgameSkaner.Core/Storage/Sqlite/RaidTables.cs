@@ -27,6 +27,59 @@ internal static class RaidTables
         return ReadReports(command);
     }
 
+    public static IReadOnlyList<EspionageReport> ReportsSince(SqliteConnection connection, DateTimeOffset since)
+    {
+        using var command = Sql.Prepare(connection, null, $"SELECT {ReportColumns} FROM espionage_reports WHERE time >= $since ORDER BY time, id");
+        command.Set("$since", Sql.Ticks(since));
+        return ReadReports(command);
+    }
+
+    public static IReadOnlyList<TargetBan> Bans(SqliteConnection connection)
+    {
+        using var command = Sql.Prepare(connection, null,
+            "SELECT galaxy, system, position, banned_at, until, nth, reason, lifted_at FROM target_bans ORDER BY banned_at, id");
+        var bans = new List<TargetBan>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            bans.Add(new TargetBan(
+                new Coordinates(reader.GetInt32(0), reader.GetInt32(1), reader.GetInt32(2)),
+                Sql.Time(reader.GetInt64(3)),
+                Sql.Time(reader.GetInt64(4)),
+                reader.GetInt32(5),
+                reader.GetString(6),
+                reader.NullableInt64(7) is { } lifted ? Sql.Time(lifted) : null));
+        }
+
+        return bans;
+    }
+
+    public static void AddBans(SqliteConnection connection, SqliteTransaction transaction, IEnumerable<TargetBan> bans)
+    {
+        using var command = Sql.Prepare(connection, transaction,
+            """
+            INSERT INTO target_bans (galaxy, system, position, type, banned_at, until, nth, reason, lifted_at)
+            VALUES ($g, $s, $p, 1, $banned, $until, $nth, $reason, $lifted)
+            """);
+        foreach (var b in bans)
+        {
+            command.Set("$g", b.Target.Galaxy).Set("$s", b.Target.System).Set("$p", b.Target.Position)
+                .Set("$banned", Sql.Ticks(b.BannedAt)).Set("$until", Sql.Ticks(b.Until)).Set("$nth", b.Nth).Set("$reason", b.Reason)
+                .Set("$lifted", b.LiftedAt is { } lifted ? Sql.Ticks(lifted) : (long?)null)
+                .ExecuteNonQuery();
+        }
+    }
+
+    public static void LiftBans(SqliteConnection connection, Coordinates target, DateTimeOffset at)
+    {
+        using var command = Sql.Prepare(connection, null,
+            """
+            UPDATE target_bans SET lifted_at = $at
+            WHERE galaxy = $g AND system = $s AND position = $p AND lifted_at IS NULL AND until > $at
+            """);
+        command.Set("$at", Sql.Ticks(at)).Set("$g", target.Galaxy).Set("$s", target.System).Set("$p", target.Position).ExecuteNonQuery();
+    }
+
     public static IReadOnlySet<string> ReportIds(SqliteConnection connection, bool withDetailsOnly)
     {
         using var command = Sql.Prepare(connection, null,

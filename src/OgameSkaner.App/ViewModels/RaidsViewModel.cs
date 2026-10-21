@@ -115,6 +115,30 @@ public sealed partial class RaidsViewModel : PageViewModel
     [ObservableProperty]
     private bool _nearestTargetsFirst;
 
+    [ObservableProperty]
+    private int _statsDays;
+
+    [ObservableProperty]
+    private int _topTargetsPercent;
+
+    [ObservableProperty]
+    private int _topRespyHours;
+
+    [ObservableProperty]
+    private int _lowResourceMinReports;
+
+    [ObservableProperty]
+    private int _lowResourceBanDays;
+
+    [ObservableProperty]
+    private int _lowResourceRepeatBanDays;
+
+    [ObservableProperty]
+    private int _highValueLootFactor;
+
+    [ObservableProperty]
+    private int _highValueDropReports;
+
     /// <summary>Show only targets that need a spy, are waiting for one or are ready.</summary>
     [ObservableProperty]
     private bool _hideRejected;
@@ -470,6 +494,14 @@ public sealed partial class RaidsViewModel : PageViewModel
             _originPlanetIds = settings.OriginPlanetIds.ToHashSet();
             ShowOriginPlanets(_loadedUniverse is null ? OwnPlanetList.Empty : _ownPlanets.GetStored(_loadedUniverse));
             NearestTargetsFirst = settings.NearestTargetsFirst;
+            StatsDays = settings.StatsDays;
+            TopTargetsPercent = settings.TopTargetsPercent;
+            TopRespyHours = settings.TopRespyHours;
+            LowResourceMinReports = settings.LowResourceMinReports;
+            LowResourceBanDays = settings.LowResourceBanDays;
+            LowResourceRepeatBanDays = settings.LowResourceRepeatBanDays;
+            HighValueLootFactor = settings.HighValueLootFactor;
+            HighValueDropReports = settings.HighValueDropReports;
         }
         finally
         {
@@ -508,6 +540,14 @@ public sealed partial class RaidsViewModel : PageViewModel
         UseNearestPlanet = UseNearestPlanet,
         OriginPlanetIds = _originPlanetIds.Order(StringComparer.Ordinal).ToList(),
         NearestTargetsFirst = NearestTargetsFirst,
+        StatsDays = Math.Clamp(StatsDays, 1, 90),
+        TopTargetsPercent = Math.Clamp(TopTargetsPercent, 0, 100),
+        TopRespyHours = Math.Max(0, TopRespyHours),
+        LowResourceMinReports = Math.Max(0, LowResourceMinReports),
+        LowResourceBanDays = Math.Max(0, LowResourceBanDays),
+        LowResourceRepeatBanDays = Math.Max(0, LowResourceRepeatBanDays),
+        HighValueLootFactor = Math.Max(0, HighValueLootFactor),
+        HighValueDropReports = Math.Max(1, HighValueDropReports),
         TestMode = TestMode
     };
 

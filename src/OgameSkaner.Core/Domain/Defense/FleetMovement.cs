@@ -33,6 +33,10 @@ public enum MovementRelation
 /// <param name="ArrivesAt">When the fleet reaches <paramref name="Target"/> (or its origin when returning).</param>
 /// <param name="ShipCount">Ships in the fleet as the list shows them; 0 when it doesn't show a number.</param>
 /// <param name="SenderName">The attacking player (<c>.fleet-sender-player</c>); null for own fleets.</param>
+/// <param name="ReturnTimestamp">
+/// The row's return button (<c>a.x_btn_fleet_return</c>, own outbound fleets only): its <c>data-fleet-start-timestamp</c>,
+/// which <c>/fleet/returnfleet</c> wants with the fleet id; null when the fleet can't be turned back.
+/// </param>
 public sealed record FleetMovement(
     string Id,
     MovementMission Mission,
@@ -44,7 +48,8 @@ public sealed record FleetMovement(
     Coordinates Target,
     string TargetName,
     long ShipCount,
-    string? SenderName = null)
+    string? SenderName = null,
+    long? ReturnTimestamp = null)
 {
     /// <summary>A mission that fights the fleet on the target (missiles only hit defenses).</summary>
     public bool IsAttack => Mission is MovementMission.Attack or MovementMission.AcsAttack or MovementMission.Destroy;

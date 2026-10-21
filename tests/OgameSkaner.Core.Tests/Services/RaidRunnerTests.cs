@@ -68,6 +68,54 @@ public class RaidRunnerTests
     }
 
     [Fact]
+    public async Task A_top_target_by_its_history_is_spied_on_before_better_ranked_ones_and_a_banned_one_not_at_all()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 8); // 2 spies
+        // Third (worst ranked) refilled 2M a day; its newest report is too old to attack on.
+        _store.AddReports("tron", [
+            new EspionageReport("t1", Third.Coordinates, PlanetType.Planet, _now.AddHours(-48), "Third", null, PlayerStatus.Inactive, new ResourceSet(1_000_000, 0, 0), 0),
+            new EspionageReport("t2", Third.Coordinates, PlanetType.Planet, _now.AddHours(-24), "Third", null, PlayerStatus.Inactive, new ResourceSet(3_000_000, 0, 0), 0)]);
+        _store.Bans.Add(new TargetBan(Rich.Coordinates, _now.AddDays(-1), _now.AddDays(2), 1, "test"));
+
+        await RunCycleAsync(RaidSettings.Default with { NearestTargetsFirst = false });
+
+        Assert.Equal([Third.Coordinates, Second.Coordinates], _client.SentMissions.Select(m => m.Target));
+        var targets = await Runner().GetTargetsAsync("tron", RaidSettings.Default);
+        Assert.Equal(RaidTargetState.LowResource, targets.Single(t => t.Planet.Coordinates == Rich.Coordinates).State);
+    }
+
+    [Fact]
+    public async Task High_value_targets_are_spied_on_right_after_the_top_ones()
+    {
+        _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 7); // 3 spies
+        EspionageReport Old(string id, PlayerPlanet planet, int hours, long metal) =>
+            new(id, planet.Coordinates, PlanetType.Planet, _now.AddHours(hours), planet.PlayerName, null, PlayerStatus.Inactive, new ResourceSet(metal, 0, 0), 0);
+        // Third refills fast (top); Second once held 20M (high value, its score is lower); Rich is best ranked.
+        _store.AddReports("tron", [
+            Old("t1", Third, -48, 1_000_000), Old("t2", Third, -24, 30_000_000),
+            Old("s1", Second, -72, 20_000_000), Old("s2", Second, -24, 2_000_000)]);
+
+        await RunCycleAsync(RaidSettings.Default with { NearestTargetsFirst = false, TopTargetsPercent = 50 });
+
+        Assert.Equal([Third.Coordinates, Second.Coordinates, Rich.Coordinates], _client.SentMissions.Select(m => m.Target));
+    }
+
+    [Fact]
+    public async Task Reading_reports_marks_a_planet_whose_reports_are_always_poor()
+    {
+        EspionageReport Poor(string id, int hours) =>
+            new(id, Second.Coordinates, PlanetType.Planet, _now.AddHours(hours), "Second", null, PlayerStatus.Inactive, new ResourceSet(100_000, 0, 0), 0);
+        _store.AddReports("tron", [Poor("p1", -30), Poor("p2", -20)]);
+        _client.EspionageReports.Add(Poor("p3", -1));
+
+        await Runner().ReadReportsAsync(_client, RaidSettings.Default, new SyncProgress(p => _log.Add(p.Message)));
+
+        var ban = Assert.Single(_store.Bans);
+        Assert.Equal((Second.Coordinates, 1), (ban.Target, ban.Nth));
+        Assert.Contains(_log, l => l.Contains("marked low resource", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task Spy_briefings_fly_from_the_home_planet_even_after_reading_the_other_fleets()
     {
         _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 0, slotsUsed: 8);

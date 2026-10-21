@@ -106,6 +106,15 @@ internal static class Schema
             wait_ms INTEGER, run_ms INTEGER, error TEXT);
         CREATE INDEX action_history_finished ON action_history (finished_at);
         CREATE INDEX action_history_owner ON action_history (owner, finished_at);
+        """,
+
+        // 6: planets the raider marked low resource (kept after they end: a repeated ban lasts longer).
+        """
+        CREATE TABLE target_bans (
+            id INTEGER PRIMARY KEY,
+            galaxy INTEGER NOT NULL, system INTEGER NOT NULL, position INTEGER NOT NULL, type INTEGER NOT NULL,
+            banned_at INTEGER NOT NULL, until INTEGER NOT NULL, nth INTEGER NOT NULL, reason TEXT NOT NULL, lifted_at INTEGER);
+        CREATE INDEX target_bans_target ON target_bans (galaxy, system, position, banned_at);
         """
     ];
 

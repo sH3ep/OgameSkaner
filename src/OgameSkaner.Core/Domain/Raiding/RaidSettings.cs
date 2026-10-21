@@ -75,6 +75,38 @@ public sealed record RaidSettings
     /// </summary>
     public bool NearestTargetsFirst { get; init; } = true;
 
+    /// <summary>The days of spy reports the target statistics look at (Farm stats page, top targets, low-resource bans).</summary>
+    public int StatsDays { get; init; } = 14;
+
+    /// <summary>
+    /// The best share of the targets by the statistics' score (<see cref="Services.Raiding.TargetStats.Score"/>): the
+    /// raider spies on them before the others and re-spies a low-loot one after <see cref="TopRespyHours"/>. 0 = off.
+    /// </summary>
+    public int TopTargetsPercent { get; init; } = 20;
+
+    /// <summary>A top target's <see cref="LowLootRespyHours"/>.</summary>
+    public int TopRespyHours { get; init; } = 1;
+
+    /// <summary>
+    /// Reports in a row with loot below <see cref="MinLoot"/> (and too slow a refill) that mark a planet low resource,
+    /// so it isn't spied on for <see cref="LowResourceBanDays"/>; after a ban one more such report renews it for
+    /// <see cref="LowResourceRepeatBanDays"/>. 0 = off.
+    /// </summary>
+    public int LowResourceMinReports { get; init; } = 3;
+
+    public int LowResourceBanDays { get; init; } = 3;
+
+    public int LowResourceRepeatBanDays { get; init; } = 7;
+
+    /// <summary>
+    /// A report with loot of at least this many times <see cref="MinLoot"/> marks the planet high value: spied on right
+    /// after the top targets and, with little loot, again after <see cref="TopRespyHours"/>. 0 = off.
+    /// </summary>
+    public int HighValueLootFactor { get; init; } = 5;
+
+    /// <summary>Later reports in a row with loot below <see cref="MinLoot"/> that end the mark (it was a one-time stock).</summary>
+    public int HighValueDropReports { get; init; } = 2;
+
     /// <summary>Do everything except sending fleets: log what would be sent. Not saved.</summary>
     [JsonIgnore]
     public bool TestMode { get; init; }

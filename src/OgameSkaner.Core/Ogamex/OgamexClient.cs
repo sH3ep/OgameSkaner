@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -201,7 +202,11 @@ internal sealed class OgamexClient : IOgamexClient
         await _planetSwitch.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await ReadFleetPageAsync(origin, cancellationToken).ConfigureAwait(false);
+            // The page is fresh, so whatever other modules sent since their own reading counts: the last slot stays free.
+            var page = await ReadFleetPageAsync(origin, cancellationToken).ConfigureAwait(false);
+            if (!mission.MayUseLastSlot && page.Slots is { } slots && slots.Free <= FleetSlots.KeptForEmergencies)
+                return new FleetSendOutcome(false,
+                    $"no free fleet slot ({slots.Used}/{slots.Max} in use, {FleetSlots.KeptForEmergencies} kept free for emergencies)", NoFleetSlot: true);
             return await SubmitFleetAsync(mission, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -215,6 +220,28 @@ internal sealed class OgamexClient : IOgamexClient
         using var request = CreateRequest(HttpMethod.Get, "home/fleetmovementlist", referer: "home");
         var html = await SendForStringAsync(request, cancellationToken).ConfigureAwait(false);
         return FleetMovementParser.Parse(html, _timeProvider.GetUtcNow());
+    }
+
+    public async Task<FleetSendOutcome> ReturnFleetAsync(string fleetId, long timestamp, CancellationToken cancellationToken = default)
+    {
+        // The page script sends the button's attribute; whether as a number or a string wasn't seen, so a refusal of the
+        // number (HTTP 400) is retried with the string.
+        try
+        {
+            return await PostReturnFleetAsync(new ReturnFleetRequest(fleetId, timestamp), cancellationToken).ConfigureAwait(false);
+        }
+        catch (OgamexException ex) when (ex is not SessionExpiredException && ex.Message.Contains(" 400 ", StringComparison.Ordinal))
+        {
+            return await PostReturnFleetAsync(new ReturnFleetRequest(fleetId, timestamp.ToString(CultureInfo.InvariantCulture)), cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    private async Task<FleetSendOutcome> PostReturnFleetAsync(ReturnFleetRequest body, CancellationToken cancellationToken)
+    {
+        using var request = CreateRequest(HttpMethod.Post, "fleet/returnfleet", referer: "home");
+        request.Content = JsonContent.Create(body, options: JsonOptions);
+        var response = Deserialize<SubmitFleetResponse>(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+        return new FleetSendOutcome(response.IsSuccess, response.Message);
     }
 
     public async Task<IReadOnlyList<EspionageReport>> GetEspionageReportsAsync(int page = 1, CancellationToken cancellationToken = default)

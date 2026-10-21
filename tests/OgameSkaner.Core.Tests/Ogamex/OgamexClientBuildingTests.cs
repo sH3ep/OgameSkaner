@@ -348,6 +348,22 @@ public class OgamexClientBuildingTests
     }
 
     [Fact]
+    public async Task The_last_free_fleet_slot_is_kept_for_escapes()
+    {
+        var page = MinimalFleetPage.Replace("Fleets: 0/11", "Fleets: 10/11", StringComparison.Ordinal);
+        _handler.Respond = r => r.Method == HttpMethod.Get ? page : """{"IsSuccess":true,"Message":null,"ValidationErrors":null}""";
+        var client = CreateClient();
+
+        var outcome = await client.SendFleetAsync(Attack, PlanetId);
+        Assert.Equal((false, true), (outcome.Sent, outcome.NoFleetSlot));
+        Assert.DoesNotContain(_handler.Requests, r => r.Uri.AbsolutePath == "/fleet/submitfleet");
+
+        var escape = new FleetMission(new Coordinates(8, 260, 3), PlanetType.Moon, MissionType.Deploy, [new ShipStack("HEAVY_CARGO", 12)]) { MayUseLastSlot = true };
+        Assert.True((await client.SendFleetAsync(escape, PlanetId)).Sent);
+        Assert.Equal("/fleet/submitfleet", _handler.Requests[^1].Uri.AbsolutePath);
+    }
+
+    [Fact]
     public async Task A_refused_send_returns_the_server_message()
     {
         _handler.Respond = _ => """{"IsSuccess":false,"Message":"Not enough fleet slots.","ValidationErrors":null}""";

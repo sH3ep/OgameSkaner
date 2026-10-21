@@ -10,6 +10,13 @@ namespace OgameSkaner.Core.Services.Defense;
 /// <param name="Label">"its moon" or the planet's name, for messages.</param>
 public sealed record EscapeDestination(Coordinates Target, PlanetType TargetType, string Label);
 
+/// <summary>A fleet the protection deployed away from an attacked planet, to turn back after the attack.</summary>
+/// <param name="ArrivesAt">When it lands at <paramref name="Destination"/> (sent + the briefing's flight time); it can't be turned back after.</param>
+/// <param name="AttackLandsAt">The last attack on the planet seen so far.</param>
+/// <param name="Misses">Checks that didn't find it in the event list.</param>
+public sealed record EscapedFleet(
+    OwnPlanet Planet, Coordinates Destination, string DestinationLabel, DateTimeOffset SentAt, DateTimeOffset ArrivesAt, DateTimeOffset AttackLandsAt, int Misses = 0);
+
 /// <summary>The planet a hostile fleet heads for, as far as the event list tells.</summary>
 /// <param name="Planet">The own planet at the target coordinates; null when none is known there.</param>
 /// <param name="OnMoon">
@@ -59,6 +66,32 @@ public static class DefensePlanner
 
         return wait < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : wait;
     }
+
+    /// <summary>When the last hostile attack listed for <paramref name="target"/> (planet or moon) lands; null when none is listed.</summary>
+    public static DateTimeOffset? LastAttack(IEnumerable<FleetMovement> movements, Coordinates target) =>
+        movements.Where(m => m.IsIncomingHostile && m.IsAttack && m.Target == target).Select(m => (DateTimeOffset?)m.ArrivesAt).Max();
+
+    /// <summary>When the escaped fleet is turned back: <see cref="DefenseSettings.RecallDelaySeconds"/> after the last attack landed.</summary>
+    public static DateTimeOffset RecallAt(EscapedFleet escape, DefenseSettings settings) =>
+        escape.AttackLandsAt + TimeSpan.FromSeconds(Math.Max(0, settings.RecallDelaySeconds));
+
+    /// <summary>The longest gap between the computed and the listed arrival of an escaped fleet that still counts as the same fleet.</summary>
+    public static readonly TimeSpan ArrivalTolerance = TimeSpan.FromMinutes(2);
+
+    /// <summary>
+    /// The escaped fleet in the event list: an own Deploy on its way from the planet to the destination that can be turned
+    /// back, landing closest to the computed time (within <see cref="ArrivalTolerance"/>), except the fleets in
+    /// <paramref name="turnedBack"/>; null when none matches.
+    /// </summary>
+    public static FleetMovement? FindEscaped(IEnumerable<FleetMovement> movements, EscapedFleet escape, IReadOnlySet<string> turnedBack) =>
+        movements
+            .Where(m => m is { Relation: MovementRelation.Own, Mission: MovementMission.Deploy, Returning: false, ReturnTimestamp: not null }
+                        && m.Origin == escape.Planet.Coordinates && m.Target == escape.Destination && !turnedBack.Contains(m.Id))
+            .Select(m => (Movement: m, Gap: (m.ArrivesAt - escape.ArrivesAt).Duration()))
+            .Where(c => c.Gap <= ArrivalTolerance)
+            .OrderBy(c => c.Gap)
+            .Select(c => c.Movement)
+            .FirstOrDefault();
 
     public static ThreatTarget TargetOf(FleetMovement movement, IReadOnlyList<OwnPlanet> planets)
     {

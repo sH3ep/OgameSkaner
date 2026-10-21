@@ -25,7 +25,7 @@ public sealed class FleetEscapeService(IActionQueues queues)
         if (fleet.Ships.Count == 0)
             return new FleetEscapeResult(false, $"No ships on {fleet.CurrentPlanet} to escape.");
 
-        var mission = new FleetMission(fleet.CurrentPlanet, PlanetType.Moon, MissionType.Deploy, fleet.Ships);
+        var mission = new FleetMission(fleet.CurrentPlanet, PlanetType.Moon, MissionType.Deploy, fleet.Ships) { MayUseLastSlot = true };
         var outcome = await client.SendFleetAsync(mission, planet, cancellationToken).ConfigureAwait(false);
         if (!outcome.Sent)
             return new FleetEscapeResult(false, $"The server refused the escape from {fleet.CurrentPlanet}: {outcome.Message}");

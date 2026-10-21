@@ -38,7 +38,8 @@ public sealed class RaidRunner(
     IPlanetRepository planetRepository,
     IRaidStore store,
     TimeProvider timeProvider,
-    ILogger<RaidRunner> logger)
+    ILogger<RaidRunner> logger,
+    IFleetSlotClaimsProvider? claims = null)
 {
     private readonly WakeUp _wakeUp = new();
 
@@ -82,7 +83,36 @@ public sealed class RaidRunner(
         var reports = store.LoadReports(universe);
         var candidates = RaidPlanner.Candidates(database.Snapshot(), own, settings, reports);
         var defense = store.LoadRanking(universe, RankingCategory.Defense);
-        return RaidPlanner.Evaluate(candidates, reports, store.LoadRaids(universe), timeProvider.GetUtcNow(), settings, defense);
+        var raids = store.LoadRaids(universe);
+        var now = timeProvider.GetUtcNow();
+        // Statistics of the candidates only: a player who isn't a raidable inactive any more doesn't take a top place.
+        var analytics = TargetStatistics.Analyze(
+            store.LoadReports(universe, now.AddDays(-Math.Max(1, settings.StatsDays))), raids, store.LoadBans(universe), now, settings,
+            candidates.Select(c => c.Coordinates).ToHashSet().Contains);
+        return RaidPlanner.Evaluate(candidates, reports, raids, now, settings, defense, analytics);
+    }
+
+    /// <summary>Lifts the planets' low-resource bans (the Farm stats page's button), so the raider spies on them again.</summary>
+    public void LiftBans(string universe, IEnumerable<Coordinates> targets)
+    {
+        var now = timeProvider.GetUtcNow();
+        foreach (var target in targets)
+            store.LiftBans(universe, target, now);
+    }
+
+    /// <summary>Marks the planets whose reports are always poor low resource (<see cref="TargetStatistics.NewBans"/>).</summary>
+    private void UpdateBans(string universe, RaidSettings settings, IProgress<RaidProgress>? progress)
+    {
+        var now = timeProvider.GetUtcNow();
+        var bans = TargetStatistics.NewBans(
+            store.LoadReports(universe, now.AddDays(-Math.Max(1, settings.StatsDays))), store.LoadRaids(universe), store.LoadBans(universe), now, settings);
+        if (bans.Count == 0)
+            return;
+
+        store.AddBans(universe, bans);
+        foreach (var ban in bans)
+            Report(progress, $"[{ban.Target}] marked low resource ({ban.Reason}): not spied on for {(ban.Until - ban.BannedAt).TotalDays:0} days"
+                             + (ban.Nth > 1 ? $" (ban {ban.Nth})" : "") + ".");
     }
 
     /// <summary>When the defense ranking was read last (null: never).</summary>
@@ -205,6 +235,7 @@ public sealed class RaidRunner(
         {
             store.AddReports(universe, fresh);
             Report(progress, $"Read {fresh.Count} new espionage report(s)");
+            UpdateBans(universe, settings, progress);
         }
         else if (maxPages == ManualReportPages)
         {
@@ -246,9 +277,9 @@ public sealed class RaidRunner(
             }
 
             var slots = Slots(origins);
-            if (slots.Free == 0)
+            if (slots.Free <= FleetSlots.KeptForEmergencies)
             {
-                Report(progress, $"No free fleet slot ({slots.Used}/{slots.Max}).");
+                Report(progress, $"No free fleet slot ({slots.Used}/{slots.Max}, {FleetSlots.KeptForEmergencies} kept free for emergencies).");
                 return 0;
             }
 
@@ -274,7 +305,8 @@ public sealed class RaidRunner(
             return (0, 0, IdleWait);
         }
 
-        var slots = Slots(origins);
+        // Slots other modules claimed count as used, so the fleets coming back free them for those.
+        var slots = claims?.For(client).Effective(Owner, Slots(origins)) ?? Slots(origins);
         var budget = RaidPlanner.SlotBudget(slots, settings);
         // Sending from the nearest planet goes for the best targets anywhere instead.
         var byDistance = settings.NearestTargetsFirst && !settings.UseNearestPlanet;
@@ -302,6 +334,9 @@ public sealed class RaidRunner(
             IReadOnlyList<RaidTarget> needSpy = targets.Where(t => t.State == RaidTargetState.NeedsSpy).ToList();
             if (byDistance)
                 needSpy = RaidPlanner.NearestFirst(needSpy, [Home(origins).Planet.Coordinates], client.Universe);
+            // The richest targets by their history first, then those that showed a big stock lately; the order within
+            // each group stays (OrderBy is stable).
+            needSpy = needSpy.OrderBy(t => t.IsTop ? 0 : t.IsHighValue ? 1 : 2).ToList();
             var chosen = needSpy.Take(spyBudget).ToList();
             if (chosen.Count > 0)
                 spies = await queue.RunAsync(Owner, $"Spy on {chosen.Count} planet(s)", ct => SpyAsync(client, chosen, settings, origins, progress, ct), cancellationToken: cancellationToken)

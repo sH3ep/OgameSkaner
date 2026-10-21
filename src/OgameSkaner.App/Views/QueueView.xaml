@@ -14,6 +14,8 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -43,8 +45,33 @@
             </DataGrid.RowStyle>
         </DataGrid>
 
-        <TextBlock Grid.Row="3" Margin="8,0,8,4" FontWeight="SemiBold" Text="Finished lately" />
-        <DataGrid infra:Layout.Key="Queue.Finished" Grid.Row="4" Margin="8,0,8,8" ItemsSource="{Binding Finished}" AutoGenerateColumns="False" CanUserAddRows="False"
+        <TextBlock Grid.Row="3" Margin="8,0,8,4" FontWeight="SemiBold" TextWrapping="Wrap" Text="{Binding SlotsSummary}"
+                   ToolTip="A reservation (Expeditions) keeps its slots not in flight free for its fleets until it stops; a claim (Builder sharing, Moons) waits for the next free slots and expires after 10 minutes unless renewed. Other modules count both as used; attack escapes ignore them." />
+        <DataGrid infra:Layout.Key="Queue.FleetSlots" Grid.Row="4" Margin="8,0,8,8" ItemsSource="{Binding SlotRows}" AutoGenerateColumns="False" CanUserAddRows="False"
+                  CanUserDeleteRows="False" CanUserSortColumns="False" HeadersVisibility="Column" Background="Transparent" IsReadOnly="True" MaxHeight="140">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding SlotRows.Count}" Value="0">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Module" Binding="{Binding Owner}" />
+                <DataGridTextColumn Header="Kind" Binding="{Binding Kind}" />
+                <DataGridTextColumn Header="Held now" Binding="{Binding HeldNow}" />
+                <DataGridTextColumn Header="Slots" Binding="{Binding Total}" />
+                <DataGridTextColumn Header="In flight" Binding="{Binding InFlight}" />
+                <DataGridTextColumn Header="Next back" Binding="{Binding NextBack}" Width="*" MinWidth="120" />
+                <DataGridTextColumn Header="Since" Binding="{Binding Since}" />
+                <DataGridTextColumn Header="Until" Binding="{Binding Until}" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <TextBlock Grid.Row="5" Margin="8,0,8,4" FontWeight="SemiBold" Text="Finished lately" />
+        <DataGrid infra:Layout.Key="Queue.Finished" Grid.Row="6" Margin="8,0,8,8" ItemsSource="{Binding Finished}" AutoGenerateColumns="False" CanUserAddRows="False"
                   CanUserDeleteRows="False" HeadersVisibility="Column" Background="Transparent" IsReadOnly="True">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Result" Binding="{Binding State}" />

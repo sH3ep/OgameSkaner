@@ -33,17 +33,37 @@ public static class ExpeditionPlanner
             .Distinct()
             .Count();
 
+    /// <summary>
+    /// When the expeditions in the air from <paramref name="place"/> free their fleet slots (their returns), at most its
+    /// <paramref name="count"/> latest ones (those decide when it's short of its count; expeditions sent by hand beyond it
+    /// don't lower its reservation). The event list's, once per fleet; it may hide expeditions holding at position 16,
+    /// so when this run sent more than it lists, its latest computed returns stand in for the missing ones.
+    /// </summary>
+    public static IReadOnlyList<DateTimeOffset> BusyUntil(
+        IEnumerable<FleetMovement> movements, OwnPlanet place, bool sharedCoordinates, IEnumerable<DateTimeOffset> sentReturns, int count, DateTimeOffset now)
+    {
+        var listed = OwnExpeditions(movements)
+            .Where(m => m.Origin == place.Coordinates && (!sharedCoordinates || m.OriginName == place.Name))
+            .GroupBy(m => m.Id)
+            .Select(g => g.Max(m => m.ArrivesAt))
+            .Where(t => t > now)
+            .ToList();
+        var sent = sentReturns.Where(t => t > now).OrderByDescending(t => t).ToList();
+        IEnumerable<DateTimeOffset> all = sent.Count <= listed.Count ? listed : [.. listed, .. sent.Take(sent.Count - listed.Count)];
+        return all.OrderByDescending(t => t).Take(Math.Max(0, count)).ToList();
+    }
+
     /// <summary>The own expeditions of the event list.</summary>
     public static IEnumerable<FleetMovement> OwnExpeditions(IEnumerable<FleetMovement> movements) =>
         movements.Where(m => m.Relation == MovementRelation.Own && m.Mission == MovementMission.Expedition);
 
     /// <summary>
     /// Expeditions that may leave now: the free expedition slots, and the free fleet slots minus the ones kept for the
-    /// other pages (an expedition takes one of each).
+    /// other pages (an expedition takes one of each), at least <see cref="FleetSlots.KeptForEmergencies"/>.
     /// </summary>
     public static int Budget(FleetSlots fleets, FleetSlots? expeditions, int keepFleetSlotsFree)
     {
-        var byFleets = fleets.Free - Math.Max(0, keepFleetSlotsFree);
+        var byFleets = fleets.Free - Math.Max(FleetSlots.KeptForEmergencies, keepFleetSlotsFree);
         return Math.Max(0, expeditions is { } e ? Math.Min(e.Free, byFleets) : byFleets);
     }
 

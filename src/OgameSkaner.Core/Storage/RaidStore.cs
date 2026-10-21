@@ -14,6 +14,17 @@ public interface IRaidStore
     /// <summary>The newest report per target (planet or moon at coordinates).</summary>
     IReadOnlyList<EspionageReport> LoadReports(string universe);
 
+    /// <summary>Every stored report (not only the newest per target) taken at or after <paramref name="since"/>, oldest first.</summary>
+    IReadOnlyList<EspionageReport> LoadReports(string universe, DateTimeOffset since);
+
+    /// <summary>The low-resource bans, lifted and expired ones included (the history decides a new ban's length).</summary>
+    IReadOnlyList<TargetBan> LoadBans(string universe);
+
+    void AddBans(string universe, IEnumerable<TargetBan> bans);
+
+    /// <summary>Ends the planet's active bans at <paramref name="at"/>.</summary>
+    void LiftBans(string universe, Coordinates target, DateTimeOffset at);
+
     /// <summary>The ids of the stored reports; with <paramref name="withDetailsOnly"/> only those whose detail page was read.</summary>
     IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false);
 
@@ -65,6 +76,18 @@ public sealed class JsonRaidStore(IAppPaths paths) : IRaidStore
             return document?.Reports.Select(r => r.ToDomain()).ToList() ?? [];
         }
     }
+
+    public IReadOnlyList<EspionageReport> LoadReports(string universe, DateTimeOffset since) =>
+        LoadReports(universe).Where(r => r.Time >= since).OrderBy(r => r.Time).ToList();
+
+    /// <summary>Bans were never kept in JSON.</summary>
+    public IReadOnlyList<TargetBan> LoadBans(string universe) => [];
+
+    public void AddBans(string universe, IEnumerable<TargetBan> bans) =>
+        throw new NotSupportedException("Bans are stored in the SQLite database.");
+
+    public void LiftBans(string universe, Coordinates target, DateTimeOffset at) =>
+        throw new NotSupportedException("Bans are stored in the SQLite database.");
 
     public IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false) =>
         LoadReports(universe).Where(r => !withDetailsOnly || r.Ships is not null || r.Defenses is not null).Select(r => r.Id).ToHashSet();

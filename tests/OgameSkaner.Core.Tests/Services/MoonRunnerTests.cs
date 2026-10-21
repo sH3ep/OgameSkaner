@@ -5,6 +5,7 @@ using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Moons;
+using OgameSkaner.Core.Services.Transports;
 using OgameSkaner.Core.Tests.Fakes;
 
 namespace OgameSkaner.Core.Tests.Services;
@@ -50,7 +51,9 @@ public class MoonRunnerTests
         // The 3 levels just queued (paid from the moon's million of each) and the next 3: far less than the whole plan.
         var moon = MoonPlannerTests.FreshMoon(new ResourceSet(1_000_000, 1_000_000, 1_000_000));
         var plan = MoonPlanner.Simulate(moon, Settings);
-        Assert.Equal(MoonPlanner.Shipment(plan, moon, ResourceSet.Zero, Settings.Horizon, levels: 3 + Settings.MaxServerQueueDepth), transport.Cargo);
+        // Rounded up like a player would type it (the planet has plenty).
+        var shipment = MoonPlanner.Shipment(plan, moon, ResourceSet.Zero, Settings.Horizon, levels: 3 + Settings.MaxServerQueueDepth);
+        Assert.Equal(new ResourceSet(CargoRounding.Up(shipment.Metal), CargoRounding.Up(shipment.Crystal), CargoRounding.Up(shipment.Deuterium)), transport.Cargo);
         Assert.True(transport.Cargo.Metal < plan.Steps.Sum(s => s.Cost.Metal) / 10);
     }
 

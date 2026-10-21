@@ -30,16 +30,17 @@ public class SimulatedBuildRunnerTests
         _client.BuildStates[Colony.Id] = State(planet: Colony);
     }
 
-    private Task<BuildRunResult> RunAsync(BuildStrategy strategy, BuilderMode mode = BuilderMode.Simulated) =>
+    private Task<BuildRunResult> RunAsync(BuildStrategy strategy, BuilderMode mode = BuilderMode.Simulated, ResourceShareSettings? sharing = null) =>
         new SimulatedBuildRunner(
                 new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
                 TestQueues.Immediate,
                 new BuildOrderOptimizer(),
                 Options.Create(new OgamexOptions()),
                 TimeProvider.System,
-                NullLogger<SimulatedBuildRunner>.Instance)
+                NullLogger<SimulatedBuildRunner>.Instance,
+                new ResourceSharing(TestQueues.Immediate, TimeProvider.System, NullLogger<ResourceSharing>.Instance))
             .RunAsync(_client, new BuildRequest(strategy, new HashSet<PlanetId> { Colony.Id }),
-                new SimulatedBuildOptions(SimulationsPerPlan: 20_000, Mode: mode),
+                new SimulatedBuildOptions(SimulationsPerPlan: 20_000, Mode: mode, Sharing: sharing),
                 new SyncProgress(p =>
                 {
                     _progress.Add(p);
@@ -169,6 +170,23 @@ public class SimulatedBuildRunnerTests
         Assert.Equal([BuildingType.MetalMine, BuildingType.CrystalMine, BuildingType.MetalMine], _client.EnqueuedBuildings.Select(e => e.Building));
         Assert.DoesNotContain(_progress, p => p.Message.Contains("planned", StringComparison.Ordinal));
         Assert.Equal(0, _client.TemperatureReads);
+    }
+
+    [Fact]
+    public async Task With_sharing_a_planet_waiting_for_stock_gets_its_next_items_from_another_planet()
+    {
+        _client.BuildStates[Colony.Id] = State(planet: Colony, resources: ResourceSet.Zero);
+        _client.Fleets[Home.Id] = new FleetSnapshot(
+            [new ShipStack("HEAVY_CARGO", 100)], Home.Coordinates, new FleetSlots(0, 10),
+            new Dictionary<string, long> { ["HEAVY_CARGO"] = 25_000 }, Resources: new ResourceSet(1_000_000, 1_000_000, 1_000_000));
+
+        await RunAsync(MetalAndCrystal with { StorageFillPercent = 0 }, BuilderMode.ByPrice, new ResourceShareSettings(["HEAVY_CARGO"], MinTransportAmount: 0));
+
+        Assert.Empty(_client.EnqueuedBuildings);
+        var transport = Assert.Single(_client.SentMissions);
+        Assert.Equal((MissionType.Transport, Colony.Coordinates, Home.Id), (transport.Mission, transport.Target, Assert.Single(_client.SentOrigins)));
+        // Its next 3 items: Metal Mine 1 (80/20), Crystal Mine 1 (64/32), Metal Mine 2 (118/30) = 262/82, rounded up to thousands.
+        Assert.Equal(new ResourceSet(1_000, 1_000, 0), transport.Cargo);
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Raiding;
 
 namespace OgameSkaner.Core.Storage.Sqlite;
@@ -18,6 +19,32 @@ public sealed class SqliteRaidStore(UniverseDatabases databases, IAppPaths paths
     {
         using var connection = databases.Open(universe);
         return RaidTables.NewestReports(connection);
+    }
+
+    public IReadOnlyList<EspionageReport> LoadReports(string universe, DateTimeOffset since)
+    {
+        using var connection = databases.Open(universe);
+        return RaidTables.ReportsSince(connection, since);
+    }
+
+    public IReadOnlyList<TargetBan> LoadBans(string universe)
+    {
+        using var connection = databases.Open(universe);
+        return RaidTables.Bans(connection);
+    }
+
+    public void AddBans(string universe, IEnumerable<TargetBan> bans)
+    {
+        using var connection = databases.Open(universe);
+        using var transaction = connection.BeginTransaction();
+        RaidTables.AddBans(connection, transaction, bans);
+        transaction.Commit();
+    }
+
+    public void LiftBans(string universe, Coordinates target, DateTimeOffset at)
+    {
+        using var connection = databases.Open(universe);
+        RaidTables.LiftBans(connection, target, at);
     }
 
     public IReadOnlySet<string> LoadReportIds(string universe, bool withDetailsOnly = false)

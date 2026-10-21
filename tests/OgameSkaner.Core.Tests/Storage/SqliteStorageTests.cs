@@ -186,7 +186,7 @@ public class SqliteStorageTests : IDisposable
             // Back to version 1: the database as the first SQLite build left it.
             connection.Open();
             using var command = connection.CreateCommand();
-            command.CommandText = "DROP TABLE rankings; DROP TABLE asteroids; DROP TABLE asteroid_missions; DROP TABLE asteroid_reports; DROP TABLE action_history; PRAGMA user_version = 1;";
+            command.CommandText = "DROP TABLE rankings; DROP TABLE asteroids; DROP TABLE asteroid_missions; DROP TABLE asteroid_reports; DROP TABLE action_history; DROP TABLE target_bans; PRAGMA user_version = 1;";
             command.ExecuteNonQuery();
         }
         Microsoft.Data.Sqlite.SqliteConnection.ClearAllPools();
@@ -197,6 +197,29 @@ public class SqliteStorageTests : IDisposable
         Assert.Empty(new SqliteAsteroidStore(Databases(), _paths).LoadMissions("tron")); // and the asteroid tables
         Assert.Single(Directory.GetFiles(BackupDirectory, "data-*-before-upgrade.db"));
         Assert.Single((await Repository().GetAsync("tron")).Snapshot()); // the data survived
+    }
+
+    [Fact]
+    public void All_reports_since_a_time_and_the_bans_are_stored()
+    {
+        var store = new SqliteRaidStore(Databases(), _paths);
+        var at = new DateTimeOffset(2026, 10, 17, 20, 0, 0, TimeSpan.Zero);
+        var target = new Coordinates(1, 2, 3);
+        EspionageReport Report(string id, int hoursLater, long metal) =>
+            new(id, target, PlanetType.Planet, at.AddHours(hoursLater), "Bob", null, PlayerStatus.Inactive, new ResourceSet(metal, 0, 0), 0);
+        store.AddReports("tron", [Report("r1", 0, 100), Report("r2", 5, 200), Report("r3", 10, 300)]);
+
+        Assert.Equal(["r2", "r3"], store.LoadReports("tron", at.AddHours(1)).Select(r => r.Id));
+        Assert.Equal("r3", Assert.Single(store.LoadReports("tron")).Id); // still the newest per target
+
+        var ban = new TargetBan(target, at, at.AddDays(3), 1, "3 report(s), best loot 150");
+        store.AddBans("tron", [ban]);
+        Assert.Equal(ban, Assert.Single(store.LoadBans("tron")));
+
+        store.LiftBans("tron", target, at.AddDays(1));
+        var lifted = Assert.Single(store.LoadBans("tron"));
+        Assert.Equal(at.AddDays(1), lifted.LiftedAt);
+        Assert.False(lifted.IsActive(at.AddDays(2)));
     }
 
     [Fact]

@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using OgameSkaner.App.Infrastructure;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Scheduling;
@@ -104,6 +105,36 @@ public sealed partial class BuilderViewModel : PageViewModel
 
     public bool IsSimulatedMode => Mode == BuilderMode.Simulated;
 
+    /// <summary>Resource sharing: transports from planets with a surplus to planets waiting for stock.</summary>
+    [ObservableProperty]
+    private bool _shareResources;
+
+    [ObservableProperty]
+    private int _shareSpeedPercent;
+
+    [ObservableProperty]
+    private int _shareNextItems;
+
+    [ObservableProperty]
+    private long _shareMinTransportAmount;
+
+    [ObservableProperty]
+    private int _shareMaxSlots;
+
+    [ObservableProperty]
+    private long _shareKeepDeuterium;
+
+    /// <summary>Plan and log the transports without sending them (not saved).</summary>
+    [ObservableProperty]
+    private bool _shareTestMode;
+
+    /// <summary>The cargo ships the sharing may send; the order is the priority.</summary>
+    public ObservableCollection<CargoShipOptionViewModel> ShareCargoShips { get; } = [];
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(MoveShareCargoShipUpCommand), nameof(MoveShareCargoShipDownCommand))]
+    private CargoShipOptionViewModel? _selectedShareCargoShip;
+
     public static IReadOnlyList<BuilderModeOption> Modes { get; } =
     [
         new(BuilderMode.Simulated, "Simulated (fastest order)"),
@@ -155,6 +186,40 @@ public sealed partial class BuilderViewModel : PageViewModel
     partial void OnUseSolarSatellitesChanged(bool value) => SaveSettings();
 
     partial void OnModeChanged(BuilderMode value) => SaveSettings();
+
+    partial void OnShareResourcesChanged(bool value) => SaveSettings();
+
+    partial void OnShareSpeedPercentChanged(int value) => SaveSettings();
+
+    partial void OnShareNextItemsChanged(int value) => SaveSettings();
+
+    partial void OnShareMinTransportAmountChanged(long value) => SaveSettings();
+
+    partial void OnShareMaxSlotsChanged(int value) => SaveSettings();
+
+    partial void OnShareKeepDeuteriumChanged(long value) => SaveSettings();
+
+    [RelayCommand(CanExecute = nameof(CanMoveShareCargoShipUp))]
+    private void MoveShareCargoShipUp() => MoveShareCargoShip(-1);
+
+    private bool CanMoveShareCargoShipUp() => SelectedShareCargoShip is { } ship && ShareCargoShips.IndexOf(ship) > 0;
+
+    [RelayCommand(CanExecute = nameof(CanMoveShareCargoShipDown))]
+    private void MoveShareCargoShipDown() => MoveShareCargoShip(1);
+
+    private bool CanMoveShareCargoShipDown() =>
+        SelectedShareCargoShip is { } ship && ShareCargoShips.IndexOf(ship) is var i && i >= 0 && i < ShareCargoShips.Count - 1;
+
+    private void MoveShareCargoShip(int by)
+    {
+        if (SelectedShareCargoShip is not { } ship)
+            return;
+        var index = ShareCargoShips.IndexOf(ship);
+        ShareCargoShips.Move(index, index + by);
+        MoveShareCargoShipUpCommand.NotifyCanExecuteChanged();
+        MoveShareCargoShipDownCommand.NotifyCanExecuteChanged();
+        SaveSettings();
+    }
 
     partial void OnViewedPlanetChanged(PlanetSelectionItemViewModel? value)
     {
@@ -365,6 +430,16 @@ public sealed partial class BuilderViewModel : PageViewModel
             SimulationsPerPlan = settings.SimulationsPerPlan;
             UseSolarSatellites = settings.UseSolarSatellites;
             Mode = settings.Mode;
+            ShareResources = settings.ShareResources;
+            ShareSpeedPercent = settings.ShareSpeedPercent;
+            ShareNextItems = settings.ShareNextItems;
+            ShareMinTransportAmount = settings.ShareMinTransportAmount;
+            ShareMaxSlots = settings.ShareMaxSlots;
+            ShareKeepDeuterium = settings.ShareKeepDeuterium;
+            ShareCargoShips.Clear();
+            var priority = settings.ShareCargoShipTypes;
+            foreach (var unit in priority.Select(UnitCatalog.Get).OfType<UnitInfo>().Concat(UnitCatalog.CargoShips.Where(u => !priority.Contains(u.Id))))
+                ShareCargoShips.Add(new CargoShipOptionViewModel(unit, priority.Contains(unit.Id), SaveSettings));
             _excludedPlanetIds = settings.ExcludedPlanetIds.ToHashSet();
             ShowPlanets(_loadedUniverse is null ? OwnPlanetList.Empty : _ownPlanets.GetStored(_loadedUniverse));
 
@@ -431,6 +506,14 @@ public sealed partial class BuilderViewModel : PageViewModel
         SimulationsPerPlan = SimulationsPerPlan,
         UseSolarSatellites = UseSolarSatellites,
         Mode = Mode,
+        ShareResources = ShareResources,
+        ShareCargoShipTypes = ShareCargoShips.Where(c => c.IsSelected).Select(c => c.Id).ToList(),
+        ShareSpeedPercent = Math.Clamp(ShareSpeedPercent, 10, 100),
+        ShareNextItems = Math.Max(1, ShareNextItems),
+        ShareMinTransportAmount = Math.Max(0, ShareMinTransportAmount),
+        ShareMaxSlots = Math.Max(1, ShareMaxSlots),
+        ShareKeepDeuterium = Math.Max(0, ShareKeepDeuterium),
+        ShareTestMode = ShareTestMode,
         ExcludedPlanetIds = _excludedPlanetIds.Order(StringComparer.Ordinal).ToList()
     };
 

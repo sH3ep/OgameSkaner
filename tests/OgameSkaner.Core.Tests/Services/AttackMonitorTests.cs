@@ -85,6 +85,97 @@ public class AttackMonitorTests
         Assert.Contains("Escaped to its moon", _threats[^1].Select(t => t.State));
     }
 
+    /// <summary>
+    /// Makes the event list follow the game: an escape takes the ships off the planet and adds its own Deploy row (landing
+    /// after the briefing's flight, with a return button), and attacks leave the list once they landed (checked at every
+    /// "Next check").
+    /// </summary>
+    private void FollowTheGame()
+    {
+        _client.SendAnswer = mission =>
+        {
+            _client.Fleets[Home.Id] = _client.Fleets[Home.Id] with { Ships = [] };
+            _client.FleetMovements.Add(new FleetMovement("escape", MovementMission.Deploy, MovementRelation.Own, false, Now + _client.Briefing(mission).OneWayFlight,
+                Home.Coordinates, Home.Name, mission.Target, "Moon", 10, ReturnTimestamp: 1792315276));
+            return new FleetSendOutcome(true);
+        };
+    }
+
+    private Task<DefenseRunResult> RunFollowingAsync(DefenseSettings settings, int checks)
+    {
+        FollowTheGame();
+        var cancellation = new CancellationTokenSource();
+        var done = 0;
+        return Monitor().RunAsync(_client, settings, new SyncProgress(p =>
+        {
+            _log.Add(p.Message);
+            if (!p.Message.StartsWith("Next check", StringComparison.Ordinal))
+                return;
+            _client.FleetMovements.RemoveAll(m => m.Relation == MovementRelation.Hostile && m.ArrivesAt <= Now);
+            if (++done == checks)
+                cancellation.Cancel();
+        }), cancellation.Token);
+    }
+
+    private static readonly DefenseSettings Recalling = DefenseSettings.Default with { CheckIntervalSeconds = 30, EscapeSecondsBeforeArrival = 60, RecallDelaySeconds = 30 };
+
+    [Fact]
+    public async Task The_escaped_fleet_is_turned_back_once_the_attack_is_over()
+    {
+        _client.FleetMovements.Add(Hostile("a", MovementMission.Attack, TimeSpan.FromMinutes(3)));
+
+        await RunFollowingAsync(Recalling, checks: 12);
+
+        Assert.Single(_client.SentMissions);
+        Assert.Equal([("escape", 1792315276L)], _client.ReturnedFleets);
+        Assert.Contains(_channel.Received, a => a is { Severity: AlertSeverity.Info, Title: "Fleet returning to Home" });
+        Assert.Contains(_log, l => l.StartsWith("The attack on Home [8:260:3] is over: turned its fleet back", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_second_wave_keeps_the_fleet_away_until_it_landed_too()
+    {
+        _client.FleetMovements.AddRange([
+            Hostile("a", MovementMission.Attack, TimeSpan.FromMinutes(2)),
+            Hostile("b", MovementMission.Attack, TimeSpan.FromMinutes(8))]);
+        var returnedAt = new List<DateTimeOffset>();
+        _client.ReturnAnswer = _ =>
+        {
+            returnedAt.Add(Now);
+            return new FleetSendOutcome(true);
+        };
+
+        var start = Now;
+        await RunFollowingAsync(Recalling, checks: 30);
+
+        Assert.Single(_client.SentMissions); // the second wave finds no ships to escape
+        Assert.InRange(Assert.Single(returnedAt), start + TimeSpan.FromMinutes(8.5), start + TimeSpan.FromMinutes(9));
+    }
+
+    [Fact]
+    public async Task A_fleet_that_already_landed_stays_where_it_went()
+    {
+        _client.FleetMovements.Add(Hostile("a", MovementMission.Attack, TimeSpan.FromMinutes(3)));
+        var normal = _client.Briefing;
+        _client.Briefing = mission => normal(mission) with { OneWayFlight = TimeSpan.FromSeconds(30) };
+
+        await RunFollowingAsync(Recalling, checks: 12);
+
+        Assert.Empty(_client.ReturnedFleets);
+        Assert.Contains(_log, l => l.Contains("has landed at its moon and stays there", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Without_recall_the_fleet_flies_on()
+    {
+        _client.FleetMovements.Add(Hostile("a", MovementMission.Attack, TimeSpan.FromMinutes(3)));
+
+        await RunFollowingAsync(Recalling with { RecallAfterAttack = false }, checks: 12);
+
+        Assert.Single(_client.SentMissions);
+        Assert.Empty(_client.ReturnedFleets);
+    }
+
     [Fact]
     public async Task Without_a_moon_the_fleet_goes_to_the_nearest_planet()
     {

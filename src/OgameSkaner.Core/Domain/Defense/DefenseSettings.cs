@@ -38,6 +38,15 @@ public sealed record DefenseSettings
     /// <summary>The escaping fleet takes the planet's resources along, as far as its cargo holds them.</summary>
     public bool TakeResources { get; init; } = true;
 
+    /// <summary>
+    /// Turn an escaped fleet back once no attack on its planet is listed any more (after
+    /// <see cref="RecallDelaySeconds"/>), so it comes home in the time it has flown instead of finishing its slow flight.
+    /// </summary>
+    public bool RecallAfterAttack { get; init; } = true;
+
+    /// <summary>How long after the last attack landed the escaped fleet is turned back.</summary>
+    public int RecallDelaySeconds { get; init; } = 30;
+
     /// <summary>Start the protection when the app starts or the universe changes.</summary>
     public bool AutoStart { get; init; }
 

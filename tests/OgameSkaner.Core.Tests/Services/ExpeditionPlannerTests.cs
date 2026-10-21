@@ -31,6 +31,27 @@ public class ExpeditionPlannerTests
     }
 
     [Fact]
+    public void An_expedition_frees_its_slot_at_its_latest_time_in_the_event_list()
+    {
+        FleetMovement[] movements =
+        [
+            Expedition("a"),
+            Expedition("a", returning: true) with { ArrivesAt = Now.AddHours(3) },
+            Expedition("b") with { ArrivesAt = Now.AddHours(2) },
+            Expedition("c") with { ArrivesAt = Now.AddHours(-1) }
+        ];
+
+        Assert.Equal([Now.AddHours(3), Now.AddHours(2)], ExpeditionPlanner.BusyUntil(movements, Home, false, [], 5, Now));
+        // The run sent 3 that are still out but the list shows 2: its latest return stands in for the hidden one.
+        Assert.Equal([Now.AddHours(5), Now.AddHours(3), Now.AddHours(2)],
+            ExpeditionPlanner.BusyUntil(movements, Home, false, [Now.AddHours(1), Now.AddHours(5), Now.AddHours(4)], 5, Now));
+        // At most its count: the latest decide when it's short.
+        Assert.Equal([Now.AddHours(3)], ExpeditionPlanner.BusyUntil(movements, Home, false, [], 1, Now));
+        // Expeditions from elsewhere don't count.
+        Assert.Empty(ExpeditionPlanner.BusyUntil(movements, Home with { Coordinates = new Coordinates(1, 1, 1) }, false, [], 5, Now));
+    }
+
+    [Fact]
     public void A_planet_and_its_moon_are_told_apart_by_name()
     {
         var moon = new OwnPlanet(new PlanetId("m"), "Luna", Home.Coordinates);

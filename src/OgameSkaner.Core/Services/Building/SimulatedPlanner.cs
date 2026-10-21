@@ -24,12 +24,14 @@ public enum BuilderMode
 /// <param name="SimulationsPerPlan">Orders the optimizer simulates for one plan of one planet.</param>
 /// <param name="UseSolarSatellites">Satellites (and the Shipyard levels they need) may provide energy.</param>
 /// <param name="MaxCheckInterval">Longest wait between two checks of the planets.</param>
+/// <param name="Sharing">Resource sharing between the planets after each check; null = off.</param>
 public sealed record SimulatedBuildOptions(
     int SimulationsPerPlan = SimulatedBuildOptions.DefaultSimulations,
     bool UseSolarSatellites = true,
     int CpuPercent = OptimizerOptions.DefaultCpuPercent,
     TimeSpan? MaxCheckInterval = null,
-    BuilderMode Mode = BuilderMode.Simulated)
+    BuilderMode Mode = BuilderMode.Simulated,
+    ResourceShareSettings? Sharing = null)
 {
     public const int DefaultSimulations = 2_000_000;
 
@@ -248,6 +250,25 @@ public static class SimulatedPlanner
 
     /// <summary>The stock that pays <paramref name="cost"/> on top of the waiting queue items.</summary>
     public static ResourceSet StockNeeded(PlanetBuildState state, ResourceSet cost) => state.Resources - Unreserved(state) + cost;
+
+    /// <summary>What the waiting queue items will take from the planet's resources when they start.</summary>
+    public static ResourceSet Reserved(PlanetBuildState state) => state.Resources - Unreserved(state);
+
+    /// <summary>
+    /// The costs of up to <paramref name="count"/> steps of <paramref name="steps"/> from index <paramref name="from"/>
+    /// (buildings at the planned level, satellites at the shipyard's price; without a shipyard page they're left out).
+    /// </summary>
+    public static IEnumerable<ResourceSet> StepCosts(PlanetBuildState state, IReadOnlyList<OptimizedStep> steps, int from, int count, ShipyardState? shipyard)
+    {
+        var costs = new CostModel(state);
+        foreach (var step in steps.Skip(from).Take(Math.Max(0, count)))
+        {
+            if (!step.IsSatellites)
+                yield return costs.CostOf(GameModel.ToBuilding(step.Gene), step.Level);
+            else if (shipyard is not null)
+                yield return shipyard.SatelliteCost.Scale(step.Level);
+        }
+    }
 
     /// <summary>The planet's resources minus what the waiting queue items will take when they start.</summary>
     private static ResourceSet Unreserved(PlanetBuildState state)
