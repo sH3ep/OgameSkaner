@@ -7,6 +7,7 @@ using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
+using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Services.Scheduling;
 using OgameSkaner.Core.Storage;
 
@@ -85,6 +86,34 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
 
     /// <summary>When set, answers the reads with an id instead of <see cref="Fleets"/> (e.g. fleets that change).</summary>
     public Func<PlanetId, FleetSnapshot>? FleetOf { get; set; }
+
+    public int EmpireReads { get; private set; }
+
+    /// <summary>
+    /// Overrides the empire page; by default it shows <see cref="OwnPlanets"/> and <see cref="OwnMoons"/> with the ships of
+    /// their fleets (as the fleet reads would answer), the levels and stock of their <see cref="BuildStates"/> (else the
+    /// fleet's stock) and the satellites of <see cref="Shipyards"/>.
+    /// </summary>
+    public Func<EmpirePage>? Empire { get; set; }
+
+    public Task<EmpirePage> GetEmpireAsync(CancellationToken cancellationToken = default)
+    {
+        EmpireReads++;
+        return Task.FromResult(Empire?.Invoke() ?? new EmpirePage(OwnPlanets.Select(EmpireColumn).ToList(), OwnMoons.Select(EmpireColumn).ToList(), new Dictionary<string, int>()));
+    }
+
+    private EmpirePlanet EmpireColumn(OwnPlanet planet)
+    {
+        var fleet = FleetOf?.Invoke(planet.Id) ?? Fleets.GetValueOrDefault(planet.Id) ?? Fleet;
+        var state = BuildStates.GetValueOrDefault(planet.Id);
+        var ships = fleet.Ships.ToDictionary(s => s.ShipType, s => s.Quantity, StringComparer.Ordinal);
+        if (Shipyards.TryGetValue(planet.Id, out var shipyard))
+            ships[HangarPageParser.SolarSatellite] = shipyard.Satellites;
+        return new EmpirePlanet(
+            planet.Name, planet.Coordinates, 0, 0, 0, 0, 0, null,
+            state?.Resources ?? fleet.Resources ?? ResourceSet.Zero, ResourceSet.Zero, state?.StorageCapacity ?? ResourceSet.Zero,
+            state?.Levels ?? new Dictionary<BuildingType, int>(), ships, new Dictionary<string, long>());
+    }
 
     public Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default)
     {

@@ -186,6 +186,83 @@ public class SimulatedBuildRunnerTests
         Assert.Equal(0, _client.TemperatureReads);
     }
 
+    /// <summary>Runs <paramref name="cycles"/> cycles ("Check now" after each); <paramref name="between"/> sees the finished cycle's number.</summary>
+    private async Task RunCyclesAsync(BuildStrategy strategy, BuilderMode mode, int cycles, Action<int> between)
+    {
+        var runner = new SimulatedBuildRunner(
+            new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
+            TestQueues.Immediate,
+            new BuildOrderOptimizer(),
+            Options.Create(new OgamexOptions()),
+            TimeProvider.System,
+            NullLogger<SimulatedBuildRunner>.Instance);
+        var done = 0;
+        await runner.RunAsync(_client, new BuildRequest(strategy, new HashSet<PlanetId> { Colony.Id }),
+            new SimulatedBuildOptions(SimulationsPerPlan: 20_000, Mode: mode),
+            new SyncProgress(p =>
+            {
+                _progress.Add(p);
+                if (!p.Message.StartsWith("Next check", StringComparison.Ordinal))
+                    return;
+                between(++done);
+                if (done == cycles)
+                    _cancellation.Cancel();
+                else
+                    runner.CheckNow();
+            }),
+            _cancellation.Token).WaitAsync(TimeSpan.FromSeconds(30));
+    }
+
+    private int ColonyReads => _client.StateRequests.Count(r => r.Planet == Colony.Id);
+
+    [Fact]
+    public async Task A_planet_waiting_for_resources_is_read_again_only_when_the_empire_page_shows_enough()
+    {
+        // Metal Mine 1 costs 60/15: 10/10 doesn't pay it.
+        _client.BuildStates[Colony.Id] = State(resources: new ResourceSet(10, 10, 0), planet: Colony);
+        var reads = new List<int>();
+
+        await RunCyclesAsync(MetalAndCrystal with { StorageFillPercent = 0 }, BuilderMode.ByPrice, cycles: 3, between: cycle =>
+        {
+            reads.Add(ColonyReads);
+            if (cycle == 2)
+                _client.BuildStates[Colony.Id] = _client.BuildStates[Colony.Id] with { Resources = new ResourceSet(100, 100, 0) };
+        });
+
+        Assert.Equal([1, 1, 2], reads); // the 2nd cycle skips it; the 3rd sees the stock on the empire page
+        Assert.Equal(3, _client.EmpireReads);
+        Assert.Contains(_progress, p => p.Message.StartsWith("1 of 1 planet(s) unchanged on the empire page", StringComparison.Ordinal));
+        Assert.Equal(BuildingType.MetalMine, _client.EnqueuedBuildings.First().Building);
+    }
+
+    [Fact]
+    public async Task A_level_change_on_the_empire_page_makes_the_planet_read()
+    {
+        _client.BuildStates[Colony.Id] = State(resources: new ResourceSet(10, 10, 0), planet: Colony);
+        var reads = new List<int>();
+
+        await RunCyclesAsync(MetalAndCrystal with { StorageFillPercent = 0 }, BuilderMode.ByPrice, cycles: 2, between: cycle =>
+        {
+            reads.Add(ColonyReads);
+            _client.BuildStates[Colony.Id] = _client.BuildStates[Colony.Id] with { Levels = new Dictionary<BuildingType, int> { [BuildingType.MetalMine] = 1 } };
+        });
+
+        Assert.Equal([1, 2], reads);
+    }
+
+    [Fact]
+    public async Task Without_the_empire_page_every_planet_is_read()
+    {
+        _client.BuildStates[Colony.Id] = State(resources: new ResourceSet(10, 10, 0), planet: Colony);
+        _client.Empire = () => throw new OgamexException("markup changed");
+        var reads = new List<int>();
+
+        await RunCyclesAsync(MetalAndCrystal with { StorageFillPercent = 0 }, BuilderMode.ByPrice, cycles: 2, between: _ => reads.Add(ColonyReads));
+
+        Assert.Equal([1, 2], reads);
+        Assert.Contains(_progress, p => p.Message.StartsWith("Reading the empire page failed", StringComparison.Ordinal));
+    }
+
     private sealed class SyncProgress(Action<BuildProgress> handler) : IProgress<BuildProgress>
     {
         public void Report(BuildProgress value) => handler(value);

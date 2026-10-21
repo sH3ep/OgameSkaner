@@ -108,6 +108,12 @@ internal sealed class OgamexClient : IOgamexClient
             throw new OgamexException($"Spy on {target} was rejected by the server.");
     }
 
+    public async Task<EmpirePage> GetEmpireAsync(CancellationToken cancellationToken = default)
+    {
+        using var request = CreateRequest(HttpMethod.Get, "empire", referer: "home");
+        return EmpirePageParser.Parse(await SendForStringAsync(request, cancellationToken).ConfigureAwait(false));
+    }
+
     public async Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default)
     {
         if (planet is null)

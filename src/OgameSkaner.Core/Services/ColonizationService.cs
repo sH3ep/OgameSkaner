@@ -1,6 +1,7 @@
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Ogamex;
+using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Raiding;
 using OgameSkaner.Core.Services.Scheduling;
@@ -26,12 +27,25 @@ public sealed class ColonizationService(OwnPlanetService ownPlanets, IActionQueu
     {
         var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
 
-        // Nearest first, so usually only one fleet page is read.
+        // The nearest planet with a Colony Ship, from the empire page (one request, no planet switch); a planet the page
+        // doesn't show, or every planet when it can't be read, by its fleet page.
+        EmpirePage? empire;
+        try
+        {
+            empire = await client.GetEmpireAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (OgamexException ex) when (ex is not SessionExpiredException)
+        {
+            empire = null;
+        }
+
         var origin = default(OwnPlanet);
         foreach (var planet in refresh.List.Planets.OrderBy(p => RaidPlanner.Distance(p.Coordinates, target, client.Universe)))
         {
-            var fleet = await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false);
-            if (fleet.QuantityOf(ColonyShipType) > 0)
+            var ships = empire?.PlanetAt(planet.Coordinates) is { } shown
+                ? shown.ShipCount(ColonyShipType)
+                : (await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false)).QuantityOf(ColonyShipType);
+            if (ships > 0)
             {
                 origin = planet;
                 break;

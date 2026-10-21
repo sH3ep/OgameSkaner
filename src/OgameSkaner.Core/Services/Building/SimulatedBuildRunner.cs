@@ -123,7 +123,32 @@ public sealed class SimulatedBuildRunner(
                 run.Report($"Account bonuses read: {run.Bonuses.ClassName}, construction speed +{run.Bonuses.ConstructionSpeed:P0}");
             }
 
-            foreach (var batch in planets.Chunk(PlanetsPerGroup))
+            var toRead = new List<OwnPlanet>();
+            var now = timeProvider.GetUtcNow();
+            var empire = await ReadEmpireAsync(queue, client, run, cancellationToken).ConfigureAwait(false);
+            foreach (var planet in planets)
+            {
+                var memory = run.Planet(planet.Id);
+                var column = empire?.PlanetAt(planet.Coordinates);
+                // The same range as the overview page, which would take a request and a planet switch.
+                if (column is { MinTemperature: not 0 } or { MaxTemperature: not 0 })
+                    memory.Temperature ??= (column.MinTemperature, column.MaxTemperature);
+                var seen = column is not null ? (Signature: EmpireSignature(column), column.Resources) : default;
+                if (seen.Signature is not null && seen.Signature == memory.Seen && memory.Idle?.Skip(seen.Resources, now) is { } kept)
+                {
+                    allDone &= kept.Done;
+                    if (kept.NextIn is { } d && (nextIn is null || d < nextIn))
+                        nextIn = d;
+                    continue;
+                }
+
+                memory.Seen = seen.Signature;
+                toRead.Add(planet);
+            }
+            if (empire is not null && toRead.Count < planets.Count)
+                run.Report($"{planets.Count - toRead.Count} of {planets.Count} planet(s) unchanged on the empire page and still waiting: not read");
+
+            foreach (var batch in toRead.Chunk(PlanetsPerGroup))
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 foreach (var (done, due) in await ProcessBatchAsync(queue, client, batch, strategy, settings, run, cancellationToken).ConfigureAwait(false))
@@ -142,6 +167,28 @@ public sealed class SimulatedBuildRunner(
 
         return (allDone, nextIn);
     }
+
+    /// <summary>
+    /// The empire page (one request, no planet switch), which tells which planets changed since they were read; null
+    /// when it can't be read, then every planet is read.
+    /// </summary>
+    private static async Task<EmpirePage?> ReadEmpireAsync(IActionQueue queue, IOgamexClient client, Run run, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await queue.RunAsync(Owner, "Read the empire page", ct => client.GetEmpireAsync(ct), cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+        catch (OgamexException ex) when (ex is not SessionExpiredException)
+        {
+            run.Report($"Reading the empire page failed, reading every planet: {ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>What a planet's building pages depend on that the empire page shows: its levels and satellites.</summary>
+    private static string EmpireSignature(EmpirePlanet planet) =>
+        string.Join(",", planet.Buildings.OrderBy(b => b.Key).Select(b => $"{b.Key}={b.Value}"))
+        + $"|{planet.ShipCount(HangarPageParser.SolarSatellite)}";
 
     /// <summary>
     /// Up to <see cref="PlanetsPerGroup"/> planets: one queue group reads each and pushes what its plan allows. The
@@ -220,8 +267,9 @@ public sealed class SimulatedBuildRunner(
     private async Task<PlanetStep> ReadAndPushAsync(
         IOgamexClient client, OwnPlanet planet, BuildStrategy strategy, SimulatedBuildOptions settings, Run run, CancellationToken cancellationToken)
     {
-        var state = await client.GetPlanetBuildStateAsync(planet.Id, includeFacilities: true, cancellationToken).ConfigureAwait(false);
         var memory = run.Planet(planet.Id);
+        memory.Idle = null;
+        var state = await client.GetPlanetBuildStateAsync(planet.Id, includeFacilities: true, cancellationToken).ConfigureAwait(false);
 
         // The game answers "success" even when it ignores an item, so check that the last pushed ones really got queued.
         var ignored = memory.LastPushed.Where(u => !state.HasReached(u.Building, u.Level)).ToList();
@@ -234,6 +282,7 @@ public sealed class SimulatedBuildRunner(
         if (state.VacationMode)
         {
             run.Finish(planet, BuildStopReason.VacationMode);
+            memory.Idle = new IdleState(timeProvider.GetUtcNow(), (false, null), null);
             return new PlanetStep((false, null));
         }
 
@@ -282,10 +331,13 @@ public sealed class SimulatedBuildRunner(
             }
         }
 
+        (bool, TimeSpan?) result = (false, push.NextIn ?? TimeSpan.FromSeconds(steps[^1].FinishSeconds));
         if (push.Actions.Count > 0)
             memory.Plan = null; // the planet changed; the next cycle plans from the new state
+        else if (push.Needs is not null || push.WaitsForLevels)
+            memory.Idle = new IdleState(timeProvider.GetUtcNow(), result, push.Needs);
         run.Report($"{planet}: {push.Actions.Count} sent, {steps.Count - push.StepsPushed} to go – {push.Waiting}");
-        return new PlanetStep((false, push.NextIn ?? TimeSpan.FromSeconds(steps[^1].FinishSeconds)));
+        return new PlanetStep(result);
     }
 
     private async Task<OptimizedOrder?> PlanAsync(OwnPlanet planet, OptimizerSetup setup, SimulatedBuildOptions settings, PlanetMemory memory, Run run, CancellationToken cancellationToken)
@@ -359,10 +411,12 @@ public sealed class SimulatedBuildRunner(
     private async Task<(bool Done, TimeSpan? NextIn)> BuildInOrderAsync(
         IOgamexClient client, PlanetBuildState state, BuildStrategy strategy, BuildOrder order, string waitingPrefix, Run run, CancellationToken cancellationToken)
     {
+        var memory = run.Planet(state.Planet.Id);
         var plan = BuildPlanner.Plan(state, strategy, Math.Max(1, QueueCapacity - state.Queue.Count), requireAffordable: false, order);
         if (plan.Upgrades.Count == 0)
         {
             run.Finish(state.Planet, plan.Reason);
+            memory.Idle = new IdleState(timeProvider.GetUtcNow(), (true, null), null);
             return (true, null);
         }
 
@@ -378,15 +432,18 @@ public sealed class SimulatedBuildRunner(
                 run.Report($"{state.Planet}: the game refused {name}: {outcome.Message ?? outcome.Result.ToString()}");
                 return (false, nextIn);
             }
-            run.Planet(state.Planet.Id).LastPushed.Add(upgrade);
+            memory.LastPushed.Add(upgrade);
             run.Queued(state.Planet, $"{state.Planet}: queued {name} ({(order == BuildOrder.ByLevel ? "by level" : "by price")})");
         }
 
         if (push.Count < plan.Upgrades.Count)
         {
             var next = plan.Upgrades[push.Count];
+            var queueFull = state.Queue.Count + push.Count >= QueueCapacity;
             run.Report($"{state.Planet}: {waitingPrefix}waiting for {BuildingCatalog.Get(next.Building).DisplayName} {next.Level}"
-                       + (state.Queue.Count + push.Count >= QueueCapacity ? " (queue full)" : " (resources, queued items reserved)"));
+                       + (queueFull ? " (queue full)" : " (resources, queued items reserved)"));
+            if (push.Count == 0)
+                memory.Idle = new IdleState(timeProvider.GetUtcNow(), (false, nextIn), queueFull ? null : SimulatedPlanner.StockNeeded(state, next.Cost));
         }
         return (false, nextIn);
     }
@@ -399,10 +456,39 @@ public sealed class SimulatedBuildRunner(
 
     private sealed record PendingSatellites(int ExpectedCount, DateTimeOffset Until);
 
+    /// <summary>
+    /// A planet read without anything to send: what it waits for, so a later cycle can skip reading it while the empire
+    /// page shows the same levels and satellites (<see cref="PlanetMemory.Seen"/>).
+    /// </summary>
+    /// <param name="Needs">The stock that lets the next item go; null when it waits for a level to change.</param>
+    private sealed record IdleState(DateTimeOffset ReadAt, (bool Done, TimeSpan? NextIn) Result, ResourceSet? Needs)
+    {
+        /// <summary>
+        /// The planet's result again, with its due time counted from now; null when it must be read: the stock covers
+        /// what it waits for, its next item is due, or the read is older than <see cref="PlanLifetime"/> (a plan is
+        /// redone then anyway, and the empire page doesn't show the queue: items added by hand).
+        /// </summary>
+        public (bool Done, TimeSpan? NextIn)? Skip(ResourceSet stock, DateTimeOffset now)
+        {
+            if (now - ReadAt >= PlanLifetime || Needs is { } needs && stock.CanAfford(needs))
+                return null;
+            if (Result.NextIn is not { } nextIn)
+                return Result;
+            var left = ReadAt + nextIn - now;
+            return left > TimeSpan.Zero ? (Result.Done, left) : null;
+        }
+    }
+
     /// <summary>What the runner remembers about a planet between cycles.</summary>
     private sealed class PlanetMemory
     {
         public (int Min, int Max)? Temperature { get; set; }
+
+        /// <summary>Set when the last read had nothing to send; see <see cref="IdleState"/>.</summary>
+        public IdleState? Idle { get; set; }
+
+        /// <summary>The planet's levels and satellites on the empire page of the cycle that last read it.</summary>
+        public string? Seen { get; set; }
 
         /// <summary>The current plan; null = plan again. The last one is kept to seed the next search.</summary>
         public OptimizedOrder? Plan

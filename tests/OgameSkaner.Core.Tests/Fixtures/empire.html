@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html><head><link href="/assets/styles/app/pages/empire.css" rel="stylesheet">
+<style>
+#empire-container.planetView{
+width:4061px;
+}
+#empire-container.moonView{
+width:3560px;
+}
+</style>
+<title>Genesis | OgameX</title>
+<link rel="shortcut icon" href="/assets/images/favicon.ico">
+<link rel="stylesheet" href="/assets/styles/default.css">
+<link rel="stylesheet" href="/assets/styles/app/app.css">
+<script src="/assets/js/libs/jquery-1.12.4.min.js"></script>
+</head>
+<body>
+<div id="empire-container" class="planetView">
+<a href="#" class="btnChangePlanet">Planet</a>
+<a href="#" class="btnChangeMoon">Moon</a>
+<div class="planetViewContainer">
+<div style="float:left; width:100%;">
+<div class="col header">  </div>
+<div class="col">
+<div class="planet-row odd">
+<span class="planet-name"></span>
+</div>
+<div class="planet-img" style="background-color: #0d1a25;border: 1px solid #0b4a64;font-size: 20px;line-height: 152px;text-align: center;color:#CCC;">Sum</div>
+<div class="planet-row odd">
+<span class="planet-coords"></span>
+<span class="planet-fields"></span>
+</div>
+<div class="planet-row odd">
+<span class="planet-energy-text"></span>
+<span class="planet-energy-value"></span>
+</div>
+<div class="planet-row odd">
+<span class="planet-temperature"></span>
+</div>
+</div>
+<div class="col">
+<div class="planet-row odd">
+<span class="planet-name">Home planet</span>
+</div>
+<div class="planet-img" style="background:url(../../assets/images/V2/planet/1/1_big.jpg) no-repeat;"></div>
+<div class="planet-row odd">
+<span class="planet-coords">[8:260:3]</span>
+<span class="planet-fields">450/480</span>
+</div>
+<div class="planet-row even">
+<span class="planet-energy-text">Energy :</span>
+<span class="planet-energy-value green">670.458.644</span>
+</div>
+<div class="planet-row odd">
+<span class="planet-temperature">Approximately 74°C to 75°C</span>
+</div>
+</div>
+<div class="col">
+<div class="planet-row odd">
+<span class="planet-name">Colony</span>
+</div>
+<div class="planet-img" style="background:url(../../assets/images/V2/planet/15/15_big.jpg) no-repeat;"></div>
+<div class="planet-row odd">
+<span class="planet-coords">[8:260:4]</span>
+<span class="planet-fields">394/454</span>
+</div>
+<div class="planet-row even">
+<span class="planet-energy-text">Energy :</span>
+<span class="planet-energy-value green">644.830.184</span>
+</div>
+<div class="planet-row odd">
+<span class="planet-temperature">Approximately 69°C to 74°C</span>
+</div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Resources</div>
+<div class="prop-sub-title"><img src="/assets/images/resource/metal.png" class="img" style="width:32px;"><span>Metal</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/crystal.png" class="img" style="width:32px;"><span>Crystal</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/deuterium.png" class="img" style="width:32px;"><span>Deuterium</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 72.497.060.213.009</span></div>
+<div class="planet-row"><span class="cell-value even"> 24.313.494.055.875</span></div>
+<div class="planet-row"><span class="cell-value odd"> 17.068.611.470.136</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 1.996.852.382.134</span></div>
+<div class="planet-row"><span class="cell-value even">2.066.757.426.948</span></div>
+<div class="planet-row"><span class="cell-value odd">767.067.493.030</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 258.124.917.636</span></div>
+<div class="planet-row"><span class="cell-value even">170.562.559.193</span></div>
+<div class="planet-row"><span class="cell-value odd">111.378.510.564</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Production</div>
+<div class="prop-sub-title"><img src="/assets/images/resource/metal.png" class="img" style="width:32px;"><span>Metal (Hourly)</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/crystal.png" class="img" style="width:32px;"><span>Crystal (Hourly)</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/deuterium.png" class="img" style="width:32px;"><span>Deuterium (Hourly)</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/metal.png" class="img" style="width:32px;"><span>Metal (Daily)</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/crystal.png" class="img" style="width:32px;"><span>Crystal (Daily)</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/deuterium.png" class="img" style="width:32px;"><span>Deuterium (Daily)</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">1.912.680.849.461</span></div>
+<div class="planet-row"><span class="cell-value even">855.100.204.574</span></div>
+<div class="planet-row"><span class="cell-value odd">202.622.073.849</span></div>
+<div class="planet-row"><span class="cell-value even">45.904.340.387.068</span></div>
+<div class="planet-row"><span class="cell-value odd">20.522.404.909.786</span></div>
+<div class="planet-row"><span class="cell-value even">4.862.929.772.386</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">93.631.212.803</span></div>
+<div class="planet-row"><span class="cell-value even">57.079.459.189</span></div>
+<div class="planet-row"><span class="cell-value odd">23.107.321.373</span></div>
+<div class="planet-row"><span class="cell-value even">2.247.149.107.272</span></div>
+<div class="planet-row"><span class="cell-value odd">1.369.907.020.543</span></div>
+<div class="planet-row"><span class="cell-value even">554.575.712.944</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">78.231.524.909</span></div>
+<div class="planet-row"><span class="cell-value even">43.023.288.758</span></div>
+<div class="planet-row"><span class="cell-value odd">10.487.070.091</span></div>
+<div class="planet-row"><span class="cell-value even">1.877.556.597.826</span></div>
+<div class="planet-row"><span class="cell-value odd">1.032.558.930.200</span></div>
+<div class="planet-row"><span class="cell-value even">251.689.682.180</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Storage</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/METAL_STORAGE.gif" class="img"><span>Metal Storage</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/CRYSTAL_STORAGE.gif" class="img"><span>Crystal Storage</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/DEUTERIUM_TANK.gif" class="img"><span>Deuterium Tank</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 243.395.580.788.206</span></div>
+<div class="planet-row"><span class="cell-value even">143.264.238.691.199</span></div>
+<div class="planet-row"><span class="cell-value odd">41.372.013.907.999</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 65.017.372.347.127</span></div>
+<div class="planet-row"><span class="cell-value even">27.520.717.254.339</span></div>
+<div class="planet-row"><span class="cell-value odd">11.619.987.756.276</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 7.542.874.559.337</span></div>
+<div class="planet-row"><span class="cell-value even">4.892.748.776.327</span></div>
+<div class="planet-row"><span class="cell-value odd">1.329.036.440.483</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Resources</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/METAL_MINE.gif" class="img"><span>Metal Mine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/CRYSTAL_MINE.gif" class="img"><span>Crystal Mine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/DEUTERIUM_REFINERY.gif" class="img"><span>Deuterium Refinery</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/SOLAR_POWER_PLANT.gif" class="img"><span>Solar Power Plant</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/FUSION_REACTOR.gif" class="img"><span>Fusion Reactor</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/METAL_STORAGE.gif" class="img"><span>Metal Storage</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/CRYSTAL_STORAGE.gif" class="img"><span>Crystal Storage</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/DEUTERIUM_TANK.gif" class="img"><span>Deuterium Tank</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"> </span></div>
+<div class="planet-row"><span class="cell-value odd">1.397</span></div>
+<div class="planet-row"><span class="cell-value even">1.354</span></div>
+<div class="planet-row"><span class="cell-value odd">1.249</span></div>
+<div class="planet-row"><span class="cell-value even">224</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">756</span></div>
+<div class="planet-row"><span class="cell-value odd">733</span></div>
+<div class="planet-row"><span class="cell-value even">667</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"> </span></div>
+<div class="planet-row"><span class="cell-value odd">65</span></div>
+<div class="planet-row"><span class="cell-value even">63</span></div>
+<div class="planet-row"><span class="cell-value odd">63</span></div>
+<div class="planet-row"><span class="cell-value even">9</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">39</span></div>
+<div class="planet-row"><span class="cell-value odd">37</span></div>
+<div class="planet-row"><span class="cell-value even">35</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"> </span></div>
+<div class="planet-row"><span class="cell-value odd">63</span></div>
+<div class="planet-row"><span class="cell-value even">62</span></div>
+<div class="planet-row"><span class="cell-value odd">58</span></div>
+<div class="planet-row"><span class="cell-value even">16</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">34</span></div>
+<div class="planet-row"><span class="cell-value odd">33</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Facilities</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/ROBOT_FACTORY.gif" class="img"><span>Robot Factory</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/NANITE_FACTORY.gif" class="img"><span>Nanite Factory</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/SHIPYARD.gif" class="img"><span>Shipyard</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/RESEARCH_LAB.gif" class="img"><span>Research Lab</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/UNIVERSITY.gif" class="img"><span>University</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/TERRAFORMER.gif" class="img"><span>Terraformer</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/MISSILE_SILO.gif" class="img"><span>Missile Silo</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"> </span></div>
+<div class="planet-row"><span class="cell-value odd">517</span></div>
+<div class="planet-row"><span class="cell-value even">421</span></div>
+<div class="planet-row"><span class="cell-value odd">432</span></div>
+<div class="planet-row"><span class="cell-value even">473</span></div>
+<div class="planet-row"><span class="cell-value odd">41</span></div>
+<div class="planet-row"><span class="cell-value even">322</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">26</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value even">19</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">18</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">21</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">16</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Researches</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/COMPUTER_TECHNOLOGY.gif" class="img"><span>Computer Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/SPY_TECHNOLOGY.gif" class="img"><span>Spy Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ENERGY_TECHNOLOGY.gif" class="img"><span>Energy Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/WEAPONS_TECHNOLOGY.gif" class="img"><span>Weapons Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ARMOUR_TECHNOLOGY.gif" class="img"><span>Armour Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/SHIELD_TECHNOLOGY.gif" class="img"><span>Shield Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/LASER_TECHNOLOGY.gif" class="img"><span>Laser Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ION_TECHNOLOGY.gif" class="img"><span>Ion Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/PLASMA_TECHNOLOGY.gif" class="img"><span>Plasma Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/HYPERSPACE_TECHNOLOGY.gif" class="img"><span>Hyperspace Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/INTERGALACTIC_RESEARCH.gif" class="img"><span>Intergalactic Research Network</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ASTROPHYSICS.gif" class="img"><span>Astrophysics</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/COMBUSTION_ENGINE.gif" class="img"><span>Combustion Engine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/IMPULSE_ENGINE.gif" class="img"><span>Impulse Engine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/HYPERSPACE_ENGINE.gif" class="img"><span>Hyperspace Engine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/GRAVITON_RESEARCH.gif" class="img"><span>Graviton Research</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">31</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">24</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">25</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">40</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">26</span></div>
+<div class="planet-row"><span class="cell-value odd">27</span></div>
+<div class="planet-row"><span class="cell-value even">8</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">31</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">24</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">25</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">40</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">26</span></div>
+<div class="planet-row"><span class="cell-value odd">27</span></div>
+<div class="planet-row"><span class="cell-value even">8</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">31</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">24</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">25</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">40</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">26</span></div>
+<div class="planet-row"><span class="cell-value odd">27</span></div>
+<div class="planet-row"><span class="cell-value even">8</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Defenses</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/MISSILE_LAUNCHER.gif" class="img"> <span>Missile Launcher</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/LIGHT_LASER_TURRET.gif" class="img"> <span>Light Laser Turret</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/HEAVY_LASER_TURRET.gif" class="img"> <span>Heavy Laser Turret</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/ION_CANNON.gif" class="img"> <span>Ion Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/GAUSS_CANNON.gif" class="img"> <span>Gauss Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/PLASMA_CANNON.gif" class="img"> <span>Plasma Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/DORA_GUN.gif" class="img"> <span>Dora Gun</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/SMALL_SHIELD_DOME.gif" class="img"><span>Small Shield Dome</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/LARGE_SHIELD_DOME.gif" class="img"> <span>Large Shield Dome</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/ATMOSPHERIC_SHIELD.gif" class="img"> <span>Atmospheric Shield</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/PHOTON_CANNON.gif" class="img"> <span>Photon Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/FORTRESS.gif" class="img"> <span>Fortress</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/DOOM_CANNON.gif" class="img"> <span>Doom Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/ORBITAL_DEFENSE_PLATFORM.gif" class="img"> <span>Orbital Defense Platform</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/INTERCEPTOR.gif" class="img"><span>Interceptor</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/INTERPLANETARY_MISSILE.gif" class="img"> <span>Interplanetary Missiles</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">15.886.462.999</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">80.840</span></div>
+<div class="planet-row"><span class="cell-value odd">8.085</span></div>
+<div class="planet-row"><span class="cell-value even">1.070</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">38.405</span></div>
+<div class="planet-row"><span class="cell-value odd">7.531</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">10.100.150.000</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">80.840</span></div>
+<div class="planet-row"><span class="cell-value odd">8.085</span></div>
+<div class="planet-row"><span class="cell-value even">817</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">36.532</span></div>
+<div class="planet-row"><span class="cell-value odd">7.531</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">350.150.000</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">253</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">1.873</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Ships</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/SOLAR_SATELLITE.gif" class="img"> <span>Solar Satellite</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/CRAWLER.gif" class="img"> <span>Crawler</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/SPY_PROBE.gif" class="img"> <span>Spy Probe</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/LIGHT_FIGHTER.gif" class="img"> <span>Light Fighter</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/HEAVY_FIGHTER.gif" class="img"> <span>Heavy Fighter</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/CRUISER.gif" class="img"> <span>Cruiser</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/BATTLESHIP.gif" class="img"> <span>Battleship</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/BATTLE_CRUISER.gif" class="img"> <span>Battle Cruiser</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/PLANET_BOMBER.gif" class="img"> <span>Planet Bomber</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/DESTROYER.gif" class="img"><span>Destroyer</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/REAPER.gif" class="img"> <span>Reaper</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/GALLEON.gif" class="img"> <span>Galleon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/DEATH_STAR.gif" class="img"> <span>Death Star</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/FALCON.gif" class="img"> <span>Falcon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/AVATAR.gif" class="img"> <span>Avatar</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/LIGHT_CARGO.gif" class="img"> <span>Light Cargo</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/HEAVY_CARGO.gif" class="img"> <span>Heavy Cargo</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/COLONY_SHIP.gif" class="img"> <span>Colony Ship</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/RECYCLER.gif" class="img"> <span>Recycler</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/ASTEROID_MINER.gif" class="img"> <span>Asteroid Miner</span></div>
+</div>
+</div>
+<div class="col col-sum">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">191.182.066</span></div>
+<div class="planet-row"><span class="cell-value even">190.000.000</span></div>
+<div class="planet-row"><span class="cell-value odd">1.162.454</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">5.814.176.443</span></div>
+<div class="planet-row"><span class="cell-value odd">4.352.053</span></div>
+<div class="planet-row"><span class="cell-value even">78</span></div>
+<div class="planet-row"><span class="cell-value odd">36.936.683</span></div>
+<div class="planet-row"><span class="cell-value even">66.839.963</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">10.076.645</span></div>
+<div class="planet-row"><span class="cell-value even">10.000.000</span></div>
+<div class="planet-row"><span class="cell-value odd">282.894</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">964.036.527</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">10</span></div>
+<div class="planet-row"><span class="cell-value odd">36.936.683</span></div>
+<div class="planet-row"><span class="cell-value even">66.839.963</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">10.065.794</span></div>
+<div class="planet-row"><span class="cell-value even">10.000.000</span></div>
+<div class="planet-row"><span class="cell-value odd">50.000</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">20.000.000</span></div>
+<div class="planet-row"><span class="cell-value odd">4.352.053</span></div>
+<div class="planet-row"><span class="cell-value even">18</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+</div>
+</div>
+<div class="moonViewContainer">
+<div style="float:left; width:100%;">
+<div class="col header">  </div>
+<div class="col">
+<div class="planet-row odd">
+<span class="planet-name"></span>
+</div>
+<div class="planet-img" style="background-color: #0d1a25;border: 1px solid #0b4a64;font-size: 20px;line-height: 152px;text-align: center;color:#CCC;">Sum</div>
+<div class="planet-row odd">
+<span class="planet-coords"></span>
+<span class="planet-fields"></span>
+</div>
+<div class="planet-row odd">
+<span class="planet-energy-text"></span>
+<span class="planet-energy-value"></span>
+</div>
+<div class="planet-row odd">
+<span class="planet-temperature"></span>
+</div>
+</div>
+<div class="col">
+<div class="planet-row odd">
+<span class="planet-name">Moon</span>
+</div>
+<div class="planet-img" style="background:url(../../assets/images/V2/planet/moon/1/1_big.jpg) no-repeat;"></div>
+<div class="planet-row odd">
+<span class="planet-coords">[8:260:3]</span>
+<span class="planet-fields">50/58</span>
+</div>
+<div class="planet-row even">
+<span class="planet-energy-text">Diameter</span>
+<span class="planet-energy-value">4.000</span>
+</div>
+<div class="planet-row odd">
+<span class="planet-temperature">Approximately 67°C to 76°C</span>
+</div>
+</div>
+<div class="col">
+<div class="planet-row odd">
+<span class="planet-name">Moon</span>
+</div>
+<div class="planet-img" style="background:url(../../assets/images/V2/planet/moon/1/1_big.jpg) no-repeat;"></div>
+<div class="planet-row odd">
+<span class="planet-coords">[8:260:4]</span>
+<span class="planet-fields">50/58</span>
+</div>
+<div class="planet-row even">
+<span class="planet-energy-text">Diameter</span>
+<span class="planet-energy-value">4.000</span>
+</div>
+<div class="planet-row odd">
+<span class="planet-temperature">Approximately 68°C to 74°C</span>
+</div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Resources</div>
+<div class="prop-sub-title"><img src="/assets/images/resource/metal.png" class="img" style="width:32px;"><span>Metal</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/crystal.png" class="img" style="width:32px;"><span>Crystal</span></div>
+<div class="prop-sub-title"><img src="/assets/images/resource/deuterium.png" class="img" style="width:32px;"><span>Deuterium</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd"> 0</span></div>
+<div class="planet-row"><span class="cell-value even"> 0</span></div>
+<div class="planet-row"><span class="cell-value odd"> 0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd red"> 0</span></div>
+<div class="planet-row"><span class="cell-value even red"> 0</span></div>
+<div class="planet-row"><span class="cell-value odd red"> 0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd red"> 0</span></div>
+<div class="planet-row"><span class="cell-value even red"> 0</span></div>
+<div class="planet-row"><span class="cell-value odd red"> 0</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Facilities</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/MOON_BASE.gif" class="img"><span>Moon Base</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/ROBOT_FACTORY.gif" class="img"><span>Robot Factory</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/NANITE_FACTORY.gif" class="img"><span>Nanite Factory</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/SHIPYARD.gif" class="img"><span>Shipyard</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/JUMP_GATE.gif" class="img"><span>Jump Gate</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/building/PHALANX_SENSOR.gif" class="img"><span>Phalanx Sensor</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"> </span></div>
+<div class="planet-row"><span class="cell-value odd">361</span></div>
+<div class="planet-row"><span class="cell-value even">380</span></div>
+<div class="planet-row"><span class="cell-value odd">190</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">19</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">19</span></div>
+<div class="planet-row"><span class="cell-value even">20</span></div>
+<div class="planet-row"><span class="cell-value odd">10</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">1</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">19</span></div>
+<div class="planet-row"><span class="cell-value even">20</span></div>
+<div class="planet-row"><span class="cell-value odd">10</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">1</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Researches</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/COMPUTER_TECHNOLOGY.gif" class="img"><span>Computer Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/SPY_TECHNOLOGY.gif" class="img"><span>Spy Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ENERGY_TECHNOLOGY.gif" class="img"><span>Energy Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/WEAPONS_TECHNOLOGY.gif" class="img"><span>Weapons Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ARMOUR_TECHNOLOGY.gif" class="img"><span>Armour Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/SHIELD_TECHNOLOGY.gif" class="img"><span>Shield Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/LASER_TECHNOLOGY.gif" class="img"><span>Laser Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ION_TECHNOLOGY.gif" class="img"><span>Ion Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/PLASMA_TECHNOLOGY.gif" class="img"><span>Plasma Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/HYPERSPACE_TECHNOLOGY.gif" class="img"><span>Hyperspace Technology</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/INTERGALACTIC_RESEARCH.gif" class="img"><span>Intergalactic Research Network</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/ASTROPHYSICS.gif" class="img"><span>Astrophysics</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/COMBUSTION_ENGINE.gif" class="img"><span>Combustion Engine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/IMPULSE_ENGINE.gif" class="img"><span>Impulse Engine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/HYPERSPACE_ENGINE.gif" class="img"><span>Hyperspace Engine</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/research/GRAVITON_RESEARCH.gif" class="img"><span>Graviton Research</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">31</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">24</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">25</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">40</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">26</span></div>
+<div class="planet-row"><span class="cell-value odd">27</span></div>
+<div class="planet-row"><span class="cell-value even">8</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">31</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">24</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">25</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">40</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">26</span></div>
+<div class="planet-row"><span class="cell-value odd">27</span></div>
+<div class="planet-row"><span class="cell-value even">8</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">30</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">31</span></div>
+<div class="planet-row"><span class="cell-value even">24</span></div>
+<div class="planet-row"><span class="cell-value odd">24</span></div>
+<div class="planet-row"><span class="cell-value even">22</span></div>
+<div class="planet-row"><span class="cell-value odd">20</span></div>
+<div class="planet-row"><span class="cell-value even">25</span></div>
+<div class="planet-row"><span class="cell-value odd">23</span></div>
+<div class="planet-row"><span class="cell-value even">40</span></div>
+<div class="planet-row"><span class="cell-value odd">30</span></div>
+<div class="planet-row"><span class="cell-value even">26</span></div>
+<div class="planet-row"><span class="cell-value odd">27</span></div>
+<div class="planet-row"><span class="cell-value even">8</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Defenses</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/MISSILE_LAUNCHER.gif" class="img"> <span>Missile Launcher</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/LIGHT_LASER_TURRET.gif" class="img"><span>Light Laser Turret</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/HEAVY_LASER_TURRET.gif" class="img"><span>Heavy Laser Turret</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/ION_CANNON.gif" class="img"><span>Ion Cannon</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/GAUSS_CANNON.gif" class="img"> <span>Gauss Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/PLASMA_CANNON.gif" class="img"><span>Plasma Cannon</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/DORA_GUN.gif" class="img"> <span>Dora Gun</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/SMALL_SHIELD_DOME.gif" class="img"><span>Small Shield Dome</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/LARGE_SHIELD_DOME.gif" class="img"> <span>Large Shield Dome</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/ATMOSPHERIC_SHIELD.gif" class="img"> <span>Atmospheric Shield</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/PHOTON_CANNON.gif" class="img"> <span>Photon Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/FORTRESS.gif" class="img"><span>Fortress</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/DOOM_CANNON.gif" class="img"> <span>Doom Cannon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/ORBITAL_DEFENSE_PLATFORM.gif" class="img"><span>Orbital Defense Platform</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/INTERCEPTOR.gif" class="img"> <span>Interceptor</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/defense/INTERPLANETARY_MISSILE.gif" class="img"><span>Interplanetary Missiles</span></div>
+</div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+</div>
+<div class="prop-row">
+<div class="col header">
+<div class="planet-row">
+<div class="prop-title closed">Ships</div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/SOLAR_SATELLITE.gif" class="img"><span>Solar Satellite</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/CRAWLER.gif" class="img"> <span>Crawler</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/SPY_PROBE.gif" class="img"> <span>Spy Probe</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/LIGHT_FIGHTER.gif" class="img"> <span>Light Fighter</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/HEAVY_FIGHTER.gif" class="img"> <span>Heavy Fighter</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/CRUISER.gif" class="img"><span>Cruiser</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/BATTLESHIP.gif" class="img"><span>Battleship</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/BATTLE_CRUISER.gif" class="img"><span>Battle Cruiser</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/PLANET_BOMBER.gif" class="img"><span> Planet Bomber</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/DESTROYER.gif" class="img"> <span>Destroyer</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/REAPER.gif" class="img"><span>Reaper</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/GALLEON.gif" class="img"><span>Galleon</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/DEATH_STAR.gif" class="img"><span>Death Star</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/FALCON.gif" class="img"><span>Falcon</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/AVATAR.gif" class="img"><span>Avatar</span> </div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/LIGHT_CARGO.gif" class="img"> <span>Light Cargo</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/HEAVY_CARGO.gif" class="img"><span>Heavy Cargo</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/COLONY_SHIP.gif" class="img"> <span>Colony Ship</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/RECYCLER.gif" class="img"><span>Recycler</span></div>
+<div class="prop-sub-title"><img src="/assets/images/V2/hangar/ASTEROID_MINER.gif" class="img"><span>Asteroid Miner</span></div>
+</div>
+</div>
+<div class="col col-sum">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+<div class="col">
+<div class="planet-row"><span class="cell-empty-value"></span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+<div class="planet-row"><span class="cell-value odd">0</span></div>
+<div class="planet-row"><span class="cell-value even">0</span></div>
+</div>
+</div>
+</div>
+</div>
+<script>
+$(function () {
+$('.prop-title').click(function () {
+$(this).toggleClass('open');
+$(this).closest('.prop-row').toggleClass('open');
+return false;
+});
+$('#empire-container .btnChangePlanet').click(function () {
+$('#empire-container').removeClass('moonView').addClass('planetView');
+return false;
+});
+$('#empire-container .btnChangeMoon').click(function () {
+$('#empire-container').removeClass('planetView').addClass('moonView');
+return false;
+});
+});
+</script>
+</body></html>

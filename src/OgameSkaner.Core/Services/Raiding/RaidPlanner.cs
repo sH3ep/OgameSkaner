@@ -229,7 +229,14 @@ public static class RaidPlanner
     /// of probes may go past the share.
     /// </summary>
     public static int SpySlotBudget(FleetSlots slots, RaidSettings settings, int sentSince = 0) =>
-        slots.Used + sentSince >= AllowedSlots(slots, settings) ? 0 : SpySlotBudget(slots, sentSince);
+        SlotsFull(slots, settings, sentSince) ? 0 : SpySlotBudget(slots, sentSince);
+
+    /// <summary>
+    /// Whether the fleets in use (with the <paramref name="sentSince"/> sent since the slots were read) reach
+    /// <see cref="RaidSettings.FleetSlotUsePercent"/>: the raid cycle can neither attack nor spy until a fleet returns.
+    /// </summary>
+    public static bool SlotsFull(FleetSlots slots, RaidSettings settings, int sentSince = 0) =>
+        slots.Used + sentSince >= AllowedSlots(slots, settings);
 
     /// <summary><see cref="RaidSettings.FleetSlotUsePercent"/> of all fleet slots.</summary>
     private static int AllowedSlots(FleetSlots slots, RaidSettings settings) =>

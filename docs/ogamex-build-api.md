@@ -48,6 +48,27 @@ page script `/assets/js/app/pages/buildingFacility.js` uses the same `/building/
 Locked buildings (requirements not met, e.g. Nanite Factory needing Computer Technology 10, shown "8/10"):
 no "Required resources" section, "Required technologies" instead, `a.upgrade-btn.disabled`, and `a.building-btn.disabled` in the compact list.
 
+## Source: `GET /empire` (HTML, ~440 KB with 22 planets; read 2026-10-21, genesis)
+One server-rendered page with every planet and moon side by side; no further requests (only images and CSS), no
+`var resources`, no `currentPlanetId`, no sidebar, and it doesn't select a planet. Parsed by `EmpirePageParser`
+(fixture `empire.html`, cut down to the "Sum" column and two planets and moons).
+- `#empire-container` holds `.planetViewContainer` and `.moonViewContainer` (the "Moon" button only swaps a CSS class).
+- First row = column headers: column 0 the labels, column 1 "Sum", then one `div.col` per planet with `span.planet-name`,
+  `.planet-coords` (`[8:260:3]`), `.planet-fields` (`450/480`), `.planet-energy-value` (planets: energy, `green`/`red`;
+  moons: diameter) and `.planet-temperature` ("Approximately 74°C to 75°C").
+- Each `.prop-row` is a section: column 0 has the title and one `.prop-sub-title` per value (icon + label), the other
+  columns one `span.cell-value` ("1.234.567") per value at the same index. The Sum column is `col col-sum` in some rows.
+- Planet sections: stock, production (hourly then daily), storage capacity, building levels (resources), facilities,
+  researches, defenses, ships. Moon sections: stock, facilities (Moon Base, Robotics, Nanite, Shipyard, Jump Gate,
+  Phalanx), researches, defenses, ships. Titles and labels are translated, so the parser goes by the icons
+  (`/assets/images/V2/{building|research|defense|hangar}/{ID}.gif`, `/assets/images/resource/{metal|crystal|deuterium}.png`).
+- **Not on the page:** planet ids (match by coordinates), the build queue and the running item's time, next-level costs
+  and durations, free fields with the queue counted, vacation mode, energy production vs. consumption.
+- So it can't replace the building pages for the Builder/Schemas/Moons planners, but it gives every planet's levels,
+  stock, storage, production, temperature and ship/defense counts in one request without switching planet.
+- Used by `EmpireFleets` (Asteroids, Raids from the nearest planet: ships per planet, fleet pages only for the slots and
+  cargo capacities), Colonization (nearest Colony Ship) and the Builder (skips planets unchanged on it, temperature).
+
 ## Live tests (2026-10-16, test account, via the browser)
 Requests sent exactly like the game's `PostRequest` (JSON, `__PlanetId` = current planet). All answers were HTTP 200.
 

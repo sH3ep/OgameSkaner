@@ -137,6 +137,21 @@ public class SimulatedPlannerTests
 
         Assert.Empty(push.Actions);
         Assert.Contains("planning again", push.Waiting);
+        Assert.Null(push.Needs); // read it again next cycle, whatever the empire page shows
+        Assert.False(push.WaitsForLevels);
+    }
+
+    [Fact]
+    public void Waiting_for_resources_tells_the_stock_that_lets_the_next_item_go()
+    {
+        var costs = new Dictionary<BuildingType, ResourceSet> { [BuildingType.MetalMine] = new(1_000, 200, 0) };
+        var state = State(resources: new ResourceSet(500, 300, 0), pageCosts: costs, planet: Colony);
+
+        var push = SimulatedPlanner.Push(state, [new OptimizedStep(Gene.MetalMine, 1, 30, 40)], null, 15);
+
+        Assert.Empty(push.Actions);
+        Assert.Equal(new ResourceSet(1_000, 200, 0), push.Needs);
+        Assert.False(push.WaitsForLevels);
     }
 
     [Fact]
@@ -149,5 +164,7 @@ public class SimulatedPlannerTests
 
         Assert.Empty(push.Actions);
         Assert.Equal("the build queue is full", push.Waiting);
+        Assert.True(push.WaitsForLevels);
+        Assert.Null(push.Needs);
     }
 }

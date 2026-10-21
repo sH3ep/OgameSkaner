@@ -57,7 +57,17 @@ public abstract record SimulatedAction
 
 /// <summary>What to push now and when the next item of the plan can follow.</summary>
 /// <param name="NextIn">Time until the first item not pushed is due (null when everything is pushed).</param>
-public sealed record PushPlan(IReadOnlyList<SimulatedAction> Actions, int StepsPushed, string Waiting, TimeSpan? NextIn);
+public sealed record PushPlan(IReadOnlyList<SimulatedAction> Actions, int StepsPushed, string Waiting, TimeSpan? NextIn)
+{
+    /// <summary>The stock the planet needs before the next item can go (it plus the waiting queue items); null when it waits for something else.</summary>
+    public ResourceSet? Needs { get; init; }
+
+    /// <summary>
+    /// The next item waits for a level to change (the queue is full, no free fields, a requirement missing, or every
+    /// planned item is queued): nothing can go before something gets built.
+    /// </summary>
+    public bool WaitsForLevels { get; init; }
+}
 
 /// <summary>
 /// The pure part of the Builder's Simulated mode. <see cref="SetupFor"/> turns a real planet and the Builder strategy
@@ -236,6 +246,9 @@ public static class SimulatedPlanner
         return result;
     }
 
+    /// <summary>The stock that pays <paramref name="cost"/> on top of the waiting queue items.</summary>
+    public static ResourceSet StockNeeded(PlanetBuildState state, ResourceSet cost) => state.Resources - Unreserved(state) + cost;
+
     /// <summary>The planet's resources minus what the waiting queue items will take when they start.</summary>
     private static ResourceSet Unreserved(PlanetBuildState state)
     {
@@ -263,6 +276,8 @@ public static class SimulatedPlanner
         {
             var step = steps[i];
             PushPlan Wait(string reason) => new(actions, i, reason, TimeSpan.FromSeconds(Math.Max(0, step.StartSeconds)));
+            PushPlan WaitForStock(ResourceSet cost) => Wait($"{step} needs {Missing(cost, available)}") with { Needs = state.Resources - available + cost };
+            PushPlan WaitForLevels(string reason) => Wait(reason) with { WaitsForLevels = true };
 
             if (step.IsSatellites)
             {
@@ -270,7 +285,7 @@ public static class SimulatedPlanner
                     return Wait($"{step.Level} solar satellites: the shipyard can't build them yet");
                 var cost = shipyard.SatelliteCost.Scale(step.Level);
                 if (!available.CanAfford(cost))
-                    return Wait($"{step} needs {Missing(cost, available)}");
+                    return WaitForStock(cost);
                 actions.Add(new SimulatedAction.Satellites(step.Level, cost));
                 available -= cost;
                 continue;
@@ -281,15 +296,15 @@ public static class SimulatedPlanner
             if (step.Level != next)
                 return Wait($"{step} doesn't follow level {next - 1} (the planet changed; planning again)");
             if (state.Locked.Contains(building))
-                return Wait($"{step} is locked until its requirements are built");
+                return WaitForLevels($"{step} is locked until its requirements are built");
             if (queued >= queueCapacity)
-                return Wait("the build queue is full");
+                return WaitForLevels("the build queue is full");
             if (fields is <= 0)
-                return Wait("no free planet fields");
+                return WaitForLevels("no free planet fields");
 
             var upgrade = costs.CostOf(building, step.Level);
             if (!available.CanAfford(upgrade))
-                return Wait($"{step} needs {Missing(upgrade, available)}");
+                return WaitForStock(upgrade);
 
             actions.Add(new SimulatedAction.Upgrade(building, step.Level, upgrade));
             available -= upgrade;
@@ -298,7 +313,7 @@ public static class SimulatedPlanner
             fields--;
         }
 
-        return new PushPlan(actions, steps.Count, "every planned item is queued", null);
+        return new PushPlan(actions, steps.Count, "every planned item is queued", null) { WaitsForLevels = true };
     }
 
     private static string Missing(ResourceSet cost, ResourceSet available)

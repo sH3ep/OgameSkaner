@@ -424,6 +424,72 @@ public class RaidRunnerTests
         Assert.Equal([1], _client.RankingPageReads); // old: read again
     }
 
+    [Fact]
+    public void Probes_back_during_the_cycle_bring_the_next_check_forward()
+    {
+        // The slots were read while the probes flew; they came back during the attacks, which then used up the budget.
+        var readAt = _now;
+        var probes = Raid(MissionType.Spy, sent: readAt.AddSeconds(-30), flight: TimeSpan.FromSeconds(25)); // back 20 s after the read
+        var attack = Raid(MissionType.Attack, sent: readAt.AddSeconds(30), flight: TimeSpan.FromMinutes(14));
+
+        Assert.Equal(TimeSpan.FromSeconds(15), RaidRunner.NextWait([probes, attack], [], readAt, readAt.AddSeconds(35), slotsFull: true));
+        Assert.Equal(TimeSpan.FromSeconds(15), RaidRunner.NextWait([probes, attack], [], readAt, readAt.AddSeconds(35), slotsFull: false));
+    }
+
+    [Fact]
+    public void The_next_check_waits_for_the_next_report_or_return()
+    {
+        var readAt = _now;
+        var probes = Raid(MissionType.Spy, sent: readAt, flight: TimeSpan.FromMinutes(1)); // report due at 1:10
+        var attack = Raid(MissionType.Attack, sent: readAt.AddHours(-1), flight: TimeSpan.FromMinutes(14)); // back long ago
+
+        Assert.Equal(TimeSpan.FromSeconds(60), RaidRunner.NextWait([probes, attack], [], readAt, readAt.AddSeconds(10), slotsFull: false));
+        Assert.Equal(TimeSpan.FromMinutes(10), RaidRunner.NextWait([Raid(MissionType.Attack, readAt, TimeSpan.FromMinutes(30))], [], readAt, readAt, slotsFull: false));
+        Assert.Equal(TimeSpan.FromMinutes(5), RaidRunner.NextWait([attack], [], readAt, readAt.AddSeconds(10), slotsFull: false));
+    }
+
+    [Fact]
+    public void A_report_not_in_by_its_due_time_is_checked_again_when_it_is_overdue()
+    {
+        // Landed 30 s ago, the read at its due time (+10 s) found no report; the probes need 5 minutes back.
+        var readAt = _now;
+        var probes = Raid(MissionType.Spy, sent: readAt.AddMinutes(-5).AddSeconds(-30), flight: TimeSpan.FromMinutes(5));
+
+        // Landing + 2 minutes, 90 s from now, before the probes return in 5 minutes.
+        Assert.Equal(TimeSpan.FromSeconds(90), RaidRunner.NextWait([probes], [], readAt, readAt, slotsFull: false));
+    }
+
+    [Fact]
+    public void A_read_report_adds_no_report_checks()
+    {
+        var readAt = _now;
+        var probes = Raid(MissionType.Spy, sent: readAt.AddMinutes(-5).AddSeconds(-30), flight: TimeSpan.FromMinutes(5));
+        var report = new EspionageReport("r", Rich.Coordinates, PlanetType.Planet, readAt.AddSeconds(-20), "Rich", null, PlayerStatus.Inactive, ResourceSet.Zero, 0);
+
+        // Only the probes' return, 4.5 minutes from now.
+        Assert.Equal(TimeSpan.FromSeconds(270), RaidRunner.NextWait([probes], [report], readAt, readAt, slotsFull: false));
+    }
+
+    [Fact]
+    public void With_full_slots_it_waits_for_the_whole_batch_of_probes_to_return()
+    {
+        // 19 probe fleets sent 1.5 s apart, 25 s each way: back from 50 s to 77 s after the first send.
+        var readAt = _now;
+        var batch = Enumerable.Range(0, 19)
+            .Select(i => Raid(MissionType.Spy, sent: readAt.AddSeconds(i * 1.5), flight: TimeSpan.FromSeconds(25)))
+            .ToList();
+        var attack = Raid(MissionType.Attack, sent: readAt.AddMinutes(-1), flight: TimeSpan.FromMinutes(14));
+        var now = readAt.AddSeconds(30);
+
+        // Not at the first report (landing + 10 s) or the first return: the last probes back, 77 s after the read.
+        Assert.Equal(TimeSpan.FromSeconds(47), RaidRunner.NextWait([.. batch, attack], [], readAt, now, slotsFull: true));
+        // With free slots the first report is worth a cycle: landing at 25 s + 10 s.
+        Assert.Equal(TimeSpan.FromSeconds(15), RaidRunner.NextWait([.. batch, attack], [], readAt, now, slotsFull: false));
+    }
+
+    private static RaidRecord Raid(MissionType mission, DateTimeOffset sent, TimeSpan flight) =>
+        new(Rich.Coordinates, PlanetType.Planet, "Rich", mission, Home.Coordinates, "HEAVY_CARGO", 1, 0, sent, sent + flight, sent + 2 * flight);
+
     private static PlayerPlanet Inactive(string name, Coordinates coordinates, int rank, PlayerStatus status = PlayerStatus.Inactive) =>
         new(name, coordinates, false, DateTimeOffset.UtcNow, status, null, rank);
 

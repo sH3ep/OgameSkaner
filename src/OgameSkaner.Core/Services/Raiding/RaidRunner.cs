@@ -65,6 +65,12 @@ public sealed class RaidRunner(
     private static readonly TimeSpan IdleWait = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan ErrorWait = TimeSpan.FromMinutes(1);
 
+    /// <summary>How long after the probes land their report is expected.</summary>
+    private static readonly TimeSpan ReportDue = TimeSpan.FromSeconds(10);
+
+    /// <summary>Fleets returning within this of the first one are waited for together when the slots are full.</summary>
+    private static readonly TimeSpan ReturnGroup = TimeSpan.FromMinutes(1);
+
     /// <summary>A later attack that would land this much too early waits before it's sent instead of flying slower.</summary>
     private static readonly TimeSpan MaxWaveWait = TimeSpan.FromSeconds(30);
 
@@ -254,8 +260,10 @@ public sealed class RaidRunner(
         IOgamexClient client, RaidSettings settings, IProgress<RaidProgress>? progress, CancellationToken cancellationToken)
     {
         var queue = queues.For(client);
+        var readAt = DateTimeOffset.MaxValue;
         var origins = await queue.RunAsync(Owner, "Read the fleets and espionage reports", async ct =>
         {
+            readAt = timeProvider.GetUtcNow();
             var read = await ReadOriginsAsync(client, queue, settings, ct).ConfigureAwait(false);
             await ReadReportsCoreAsync(client, settings, progress, ct).ConfigureAwait(false);
             return read;
@@ -300,7 +308,9 @@ public sealed class RaidRunner(
                     .ConfigureAwait(false);
         }
 
-        return (attacks, spies, NextWait(client.Universe.Name));
+        var universe = client.Universe.Name;
+        return (attacks, spies, NextWait(
+            store.LoadRaids(universe), store.LoadReports(universe), readAt, timeProvider.GetUtcNow(), RaidPlanner.SlotsFull(slots, settings, attacks + spies)));
     }
 
     /// <summary>Each spy leaves from the nearest of <paramref name="origins"/> that still has <see cref="RaidSettings.ProbeCount"/> probes.</summary>
@@ -554,13 +564,13 @@ public sealed class RaidRunner(
             return [new Origin(new OwnPlanet(homeId, fleet.CurrentPlanet.ToString(), fleet.CurrentPlanet), fleet)];
         }
 
-        var planets = settings.UseNearestPlanet
-            ? refresh.List.Planets.Where(p => settings.OriginPlanetIds.Contains(p.Id.Value)).OrderBy(p => p.Id == current.Id ? 0 : 1).ToList()
-            : [current];
-        var origins = new List<Origin>();
-        foreach (var planet in planets)
-            origins.Add(new Origin(planet, await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false)));
-        return origins;
+        if (!settings.UseNearestPlanet)
+            return [new Origin(current, await client.GetFleetAsync(current.Id, cancellationToken).ConfigureAwait(false))];
+
+        // Every ticked planet's ships from the empire page; fleet pages only for the slots and capacities.
+        var planets = refresh.List.Planets.Where(p => settings.OriginPlanetIds.Contains(p.Id.Value)).OrderBy(p => p.Id == current.Id ? 0 : 1).ToList();
+        var fleets = await EmpireFleets.ReadAsync(client, planets, [.. settings.CargoShipPriority, ProbeType], current.Id, cancellationToken).ConfigureAwait(false);
+        return fleets.Select(f => new Origin(f.Planet, f.Fleet)).ToList();
     }
 
     private const string NoOriginMessage = "No planet is ticked to send raids from (Send from the nearest planet).";
@@ -572,19 +582,49 @@ public sealed class RaidRunner(
         origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)
         ?? throw new OgamexException("The fleet page shows no fleet slots.");
 
-    /// <summary>Until the next report is due or the next fleet is back, within <see cref="MinWait"/>..<see cref="MaxWait"/>.</summary>
-    private TimeSpan NextWait(string universe)
+    /// <summary>
+    /// Until the next fleet is back or, for probes whose report hasn't been read, their report is due (landing + 10 s)
+    /// or overdue (landing + <see cref="RaidPlanner.ReportDelay"/>, after which the target counts as needing a spy
+    /// again); within <see cref="MinWait"/>..<see cref="MaxWait"/>.
+    /// <para>With <paramref name="slotsFull"/> nothing can be sent before a fleet returns, so reports don't count and it
+    /// waits for the fleets returning together: the last return within <see cref="ReturnGroup"/> of the first (a batch
+    /// of probes comes back over a few seconds), so one cycle finds their slots free and their reports in.</para>
+    /// <para>When one of those moments passed after <paramref name="readAt"/> (the cycle read the slots and reports),
+    /// what the cycle saw is out of date: e.g. the probes came back while it attacked with the slots they had taken.
+    /// Then the next cycle comes after <see cref="MinWait"/>.</para>
+    /// </summary>
+    internal static TimeSpan NextWait(
+        IEnumerable<RaidRecord> raids, IEnumerable<EspionageReport> reports, DateTimeOffset readAt, DateTimeOffset now, bool slotsFull)
     {
-        var now = timeProvider.GetUtcNow();
-        var events = store.LoadRaids(universe)
-            .SelectMany(r => r.Mission == MissionType.Spy ? [r.ArrivesAt + TimeSpan.FromSeconds(10), r.ReturnsAt] : new[] { r.ReturnsAt })
-            .Where(t => t > now)
-            .ToList();
+        var raidList = raids.ToList();
+        var returns = raidList.Select(r => r.ReturnsAt).ToList();
+        var reportEvents = new List<DateTimeOffset>();
+        if (!slotsFull)
+        {
+            var newestReport = reports
+                .Where(r => r.TargetType == PlanetType.Planet)
+                .GroupBy(r => r.Target)
+                .ToDictionary(g => g.Key, g => g.Max(r => r.Time));
+            foreach (var spy in raidList.Where(r => r.Mission == MissionType.Spy))
+            {
+                // Same rule as RaidPlanner.Evaluate: a report from up to a minute before the send answers it.
+                if (newestReport.TryGetValue(spy.Target, out var time) && time >= spy.SentAt - TimeSpan.FromMinutes(1))
+                    continue;
+                reportEvents.Add(spy.ArrivesAt + ReportDue);
+                reportEvents.Add(spy.ArrivesAt + RaidPlanner.ReportDelay);
+            }
+        }
+
+        var events = returns.Concat(reportEvents).Where(t => t > readAt).ToList();
+        if (events.Any(t => t <= now))
+            return MinWait;
         if (events.Count == 0)
             return IdleWait;
 
-        var next = events.Min() - now;
-        return TimeSpan.FromTicks(Math.Clamp(next.Ticks, MinWait.Ticks, MaxWait.Ticks));
+        var next = events.Min();
+        if (slotsFull)
+            next = events.Where(t => t <= next + ReturnGroup).Max();
+        return TimeSpan.FromTicks(Math.Clamp((next - now).Ticks, MinWait.Ticks, MaxWait.Ticks));
     }
 
     private void Save(string universe, IReadOnlyList<RaidRecord> sent)

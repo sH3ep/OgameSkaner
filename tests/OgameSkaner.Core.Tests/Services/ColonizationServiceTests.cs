@@ -1,3 +1,4 @@
+using OgameSkaner.Core.Ogamex.Parsing;
 using Microsoft.Extensions.Logging.Abstractions;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
@@ -46,6 +47,19 @@ public class ColonizationServiceTests
         Assert.Equal(PlanetType.Planet, mission.TargetType);
         Assert.Equal(MissionType.Colonize, mission.Mission);
         Assert.Equal([new ShipStack(ColonizationService.ColonyShipType, 1)], mission.Ships);
+        Assert.Equal(Near.Id, Assert.Single(_client.SentOrigins));
+        Assert.Empty(_client.FleetReads); // the empire page shows every planet's ships
+        Assert.Equal(1, _client.EmpireReads);
+    }
+
+    [Fact]
+    public async Task A_planet_missing_from_the_empire_page_is_read_by_its_fleet_page()
+    {
+        _client.Empire = () => new EmpirePage([], [], new Dictionary<string, int>());
+
+        var result = await Service().ColonizeAsync(_client, Target);
+
+        Assert.True(result.Sent, result.Message);
         Assert.Equal(Near.Id, Assert.Single(_client.SentOrigins));
         Assert.Equal([(PlanetId?)Near.Id], _client.FleetReads); // nearest first, stops at the first with a ship
     }

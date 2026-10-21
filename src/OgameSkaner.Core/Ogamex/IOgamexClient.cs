@@ -6,6 +6,8 @@ using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
 
+using OgameSkaner.Core.Ogamex.Parsing;
+
 namespace OgameSkaner.Core.Ogamex;
 
 /// <summary>Typed access to the OgameX endpoints used by the app. One instance per universe.</summary>
@@ -34,6 +36,12 @@ public interface IOgamexClient : IDisposable
     Task<IReadOnlyList<AsteroidReport>> GetAsteroidReportsAsync(int page = 1, CancellationToken cancellationToken = default);
 
     Task SendSpyAsync(Coordinates target, PlanetType targetType, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// The empire page: every planet's and moon's levels, stock, production, storage, ships and defenses in one request.
+    /// Read-only; doesn't change the current planet. No planet ids (match by coordinates), queue, slots or cargo capacities.
+    /// </summary>
+    Task<EmpirePage> GetEmpireAsync(CancellationToken cancellationToken = default);
 
     /// <summary>Ships, cargo capacities and fleet slots of the current planet, or of <paramref name="planet"/> (which then becomes the current planet).</summary>
     Task<FleetSnapshot> GetFleetAsync(PlanetId? planet = null, CancellationToken cancellationToken = default);

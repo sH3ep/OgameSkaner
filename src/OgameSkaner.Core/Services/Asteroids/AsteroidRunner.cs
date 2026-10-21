@@ -372,13 +372,16 @@ public sealed class AsteroidRunner(
             .ToList();
     }
 
-    /// <summary>Reads the planets and every planet's fleet, so each asteroid gets its miners from the nearest planet that has enough.</summary>
+    /// <summary>
+    /// Reads the planets and every planet's miners (the empire page plus one fleet page for the slots and the miners'
+    /// capacity, <see cref="EmpireFleets"/>), so each asteroid gets its miners from the nearest planet that has enough.
+    /// </summary>
     private async Task<Round> StartRoundAsync(IOgamexClient client, AsteroidSettings settings, CancellationToken cancellationToken)
     {
         var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
-        var origins = new List<Origin>();
-        foreach (var planet in refresh.List.Planets)
-            origins.Add(new Origin(planet, await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false)));
+        var fleets = await EmpireFleets.ReadAsync(client, refresh.List.Planets, [MinerType], queues.For(client).HomePlanet ?? refresh.CurrentPlanet, cancellationToken)
+            .ConfigureAwait(false);
+        var origins = fleets.Select(f => new Origin(f.Planet, f.Fleet)).ToList();
         var slots = origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)
                     ?? throw new OgamexException("The fleet page shows no fleet slots.");
         var cargo = origins.Select(o => o.Fleet.CargoCapacityOf(MinerType)).FirstOrDefault(c => c > 0);
