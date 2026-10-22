@@ -36,6 +36,9 @@ public enum RaidTargetState
 /// <param name="Stats">What its reports of the last days say (<see cref="TargetStatistics"/>); null without one.</param>
 /// <param name="IsTop">One of the best <see cref="RaidSettings.TopTargetsPercent"/>: spied on first.</param>
 /// <param name="Ban">Its active low-resource ban.</param>
+/// <param name="EstimatedLoot">
+/// The loot an attack could take now (<see cref="RaidPlanner.EstimateLoot"/>): what spying on it is worth.
+/// </param>
 public sealed record RaidTarget(
     PlayerPlanet Planet,
     EspionageReport? Report,
@@ -45,7 +48,8 @@ public sealed record RaidTarget(
     long? RankingDefensePoints = null,
     TargetStats? Stats = null,
     bool IsTop = false,
-    TargetBan? Ban = null)
+    TargetBan? Ban = null,
+    long EstimatedLoot = 0)
 {
     /// <summary>Showed a big stock lately (<see cref="TargetStatistics.HighValue"/>): spied on right after the top targets.</summary>
     public bool IsHighValue => Stats?.HighValue is not null;
@@ -128,7 +132,8 @@ public static class RaidPlanner
         var stats = analytics?.Stats.GetValueOrDefault(planet.Coordinates);
         var isTop = analytics?.Top.Contains(planet.Coordinates) == true;
         var ban = analytics?.ActiveBan(planet.Coordinates, now);
-        RaidTarget Target(RaidTargetState state, string? note = null) => new(planet, report, state, loot, note, rankingDefensePoints, stats, isTop, ban);
+        var estimate = EstimateLoot(report, raids, stats, now, settings);
+        RaidTarget Target(RaidTargetState state, string? note = null) => new(planet, report, state, loot, note, rankingDefensePoints, stats, isTop, ban, estimate);
 
         if (raids.Any(r => r.Mission == MissionType.Attack && r.ArrivesAt > now))
             return Target(RaidTargetState.UnderAttack);
@@ -192,6 +197,27 @@ public static class RaidPlanner
 
     public static long ExpectedLoot(EspionageReport report, RaidSettings settings) =>
         (long)(report.TotalResources * (settings.LootPercent / 100.0));
+
+    /// <summary>The refill counted since the newest report at most: storages fill up and the statistics cover a day.</summary>
+    public static readonly TimeSpan MaxRefillEstimate = TimeSpan.FromHours(24);
+
+    /// <summary>
+    /// The loot an attack could take now: the newest report's stock less what our attacks since took (each
+    /// <see cref="RaidSettings.LootPercent"/> of what was left), plus the refill since (<see cref="TargetStats.RefillPerHour"/>,
+    /// at most <see cref="MaxRefillEstimate"/>). Without a report the median stock of the statistics, else
+    /// <see cref="RaidSettings.MinLoot"/>: an unknown planet ranks below the known rich ones and above the known poor ones.
+    /// </summary>
+    public static long EstimateLoot(EspionageReport? report, IReadOnlyList<RaidRecord> raids, TargetStats? stats, DateTimeOffset now, RaidSettings settings)
+    {
+        var share = Math.Clamp(settings.LootPercent, 1, 100) / 100.0;
+        if (report is null)
+            return stats is null ? settings.MinLoot : (long)(stats.MedianResources * share);
+
+        var attacksSince = raids.Count(r => r.Mission == MissionType.Attack && r.ArrivesAt > report.Time && r.ArrivesAt <= now);
+        var left = report.TotalResources * Math.Pow(1 - share, attacksSince);
+        var hours = Math.Clamp((now - report.Time).TotalHours, 0, MaxRefillEstimate.TotalHours);
+        return (long)((left + (stats?.RefillPerHour ?? 0) * hours) * share);
+    }
 
     /// <summary>A later attack on the same planet must land at least this long after the one before it.</summary>
     public static readonly TimeSpan MinWaveGap = TimeSpan.FromSeconds(1);
@@ -287,13 +313,13 @@ public static class RaidPlanner
     }
 
     /// <summary>
-    /// <paramref name="targets"/> ordered by the distance from the nearest of <paramref name="from"/>; the sort is stable,
-    /// so targets at the same distance keep their order.
+    /// <paramref name="targets"/> ordered by loot per flight time, best first: <paramref name="loot"/> divided by the
+    /// square root of the distance from the nearest of <paramref name="from"/> (a flight takes about that long, so this
+    /// is the loot per hour a fleet slot is busy); by loot alone without <paramref name="from"/>. The sort is stable.
     /// </summary>
-    public static IReadOnlyList<RaidTarget> NearestFirst(IEnumerable<RaidTarget> targets, IReadOnlyCollection<Coordinates> from, UniverseProfile universe) =>
-        from.Count == 0
-            ? targets.ToList()
-            : targets.OrderBy(t => from.Min(o => Distance(o, t.Planet.Coordinates, universe))).ToList();
+    public static IReadOnlyList<RaidTarget> MostLootPerFlightFirst(
+        IEnumerable<RaidTarget> targets, Func<RaidTarget, long> loot, IReadOnlyCollection<Coordinates> from, UniverseProfile universe) =>
+        targets.OrderByDescending(t => from.Count == 0 ? loot(t) : loot(t) / Math.Sqrt(from.Min(o => Distance(o, t.Planet.Coordinates, universe)))).ToList();
 
     /// <summary>The nearest origin that has <paramref name="shipsNeeded"/>; otherwise the one with the most ships, or null without any.</summary>
     public static T? ChooseOrigin<T>(

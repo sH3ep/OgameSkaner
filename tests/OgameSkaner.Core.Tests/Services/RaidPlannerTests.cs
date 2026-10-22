@@ -263,21 +263,37 @@ public class RaidPlannerTests
     }
 
     [Fact]
-    public void Nearest_first_orders_by_the_nearest_own_planet_and_keeps_ties_in_order()
+    public void Most_loot_per_flight_first_weighs_loot_by_the_square_root_of_the_distance_to_the_nearest_own_planet()
     {
-        RaidTarget At(string name, Coordinates coordinates) => new(Planet(name, coordinates, PlayerStatus.Inactive, 1), null, RaidTargetState.Ready, 0);
+        RaidTarget At(string name, Coordinates coordinates, long loot) => new(Planet(name, coordinates, PlayerStatus.Inactive, 1), null, RaidTargetState.Ready, loot);
         RaidTarget[] targets =
         [
-            At("OtherGalaxy", new Coordinates(2, 1, 1)),
-            At("FarSystem", new Coordinates(5, 200, 1)),
-            At("SameSystemA", new Coordinates(5, 288, 5)),
-            At("NearSecondPlanet", new Coordinates(7, 51, 1)),
-            At("SameSystemB", new Coordinates(5, 288, 1))
+            At("NearPoor", new Coordinates(5, 288, 5), 100_000),        // distance 1,010: ~3,146 per √
+            At("TwoSystemsRich", new Coordinates(5, 290, 1), 2_000_000), // 2,890: ~37,203
+            At("NearSecondPlanet", new Coordinates(7, 51, 1), 500_000),  // 2,795 from (7, 50, 1): ~9,458
+            At("OtherGalaxyRich", new Coordinates(2, 1, 1), 2_000_000)   // 60,000: ~8,165
         ];
+        var universe = new UniverseProfile("tron");
 
-        var ordered = RaidPlanner.NearestFirst(targets, [Target, new Coordinates(7, 50, 1)], new UniverseProfile("tron"));
+        var ordered = RaidPlanner.MostLootPerFlightFirst(targets, t => t.ExpectedLoot, [Target, new Coordinates(7, 50, 1)], universe);
+        var byLoot = RaidPlanner.MostLootPerFlightFirst(targets, t => t.ExpectedLoot, [], universe);
 
-        Assert.Equal(["SameSystemA", "SameSystemB", "NearSecondPlanet", "FarSystem", "OtherGalaxy"], ordered.Select(t => t.Planet.PlayerName));
+        Assert.Equal(["TwoSystemsRich", "NearSecondPlanet", "OtherGalaxyRich", "NearPoor"], ordered.Select(t => t.Planet.PlayerName));
+        Assert.Equal(["TwoSystemsRich", "OtherGalaxyRich", "NearSecondPlanet", "NearPoor"], byLoot.Select(t => t.Planet.PlayerName));
+    }
+
+    [Fact]
+    public void The_estimated_loot_takes_our_attacks_since_the_report_off_and_adds_the_refill()
+    {
+        var report = FullReport(time: Now.AddHours(-4)); // 6,000 resources
+        var stats = new TargetStats(Target, "Kowalski", 2, report.Time, 6_000, 6_000, RefillPerHour: 500, Attacks: 0, LootTaken: 0);
+
+        Assert.Equal(4_000, RaidPlanner.EstimateLoot(report, [], stats, Now, Settings)); // 50% of (6,000 + 4 h × 500)
+        Assert.Equal(2_500, RaidPlanner.EstimateLoot(report, [Raid(MissionType.Attack, Now.AddHours(-3), Now.AddHours(-2))], stats, Now, Settings)); // 50% of (3,000 left + 2,000)
+        Assert.Equal(3_000, RaidPlanner.EstimateLoot(report, [], null, Now, Settings));
+        Assert.Equal(3_000, RaidPlanner.EstimateLoot(null, [], stats, Now, Settings)); // the median stock
+        Assert.Equal(Settings.MinLoot, RaidPlanner.EstimateLoot(null, [], null, Now, Settings));
+        Assert.Equal(9_000, RaidPlanner.EstimateLoot(FullReport(time: Now.AddDays(-3)), [], stats, Now, Settings)); // a day of refill at most
     }
 
     [Fact]

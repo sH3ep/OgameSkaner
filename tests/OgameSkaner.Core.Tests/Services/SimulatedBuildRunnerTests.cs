@@ -34,7 +34,7 @@ public class SimulatedBuildRunnerTests
         new SimulatedBuildRunner(
                 new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
                 TestQueues.Immediate,
-                new BuildOrderOptimizer(),
+                new BuildOrderOptimizer(TestLicense.Valid),
                 Options.Create(new OgamexOptions()),
                 TimeProvider.System,
                 NullLogger<SimulatedBuildRunner>.Instance,
@@ -210,7 +210,7 @@ public class SimulatedBuildRunnerTests
         var runner = new SimulatedBuildRunner(
             new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System),
             TestQueues.Immediate,
-            new BuildOrderOptimizer(),
+            new BuildOrderOptimizer(TestLicense.Valid),
             Options.Create(new OgamexOptions()),
             TimeProvider.System,
             NullLogger<SimulatedBuildRunner>.Instance);

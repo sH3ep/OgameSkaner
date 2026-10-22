@@ -106,11 +106,7 @@ public sealed partial class RaidsViewModel : PageViewModel
     private int _lowLootRespyHours;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanOrderByDistance))]
     private bool _useNearestPlanet;
-
-    /// <summary>Sending from the nearest planet takes the best targets anywhere, so the distance order is off then.</summary>
-    public bool CanOrderByDistance => !UseNearestPlanet;
 
     [ObservableProperty]
     private bool _nearestTargetsFirst;
@@ -191,8 +187,7 @@ public sealed partial class RaidsViewModel : PageViewModel
             case nameof(HideRejected) or nameof(GalaxyFrom) or nameof(GalaxyTo) or nameof(SystemFrom) or nameof(SystemTo) or nameof(MaxRankingDefensePoints):
                 ShowTargets();
                 break;
-            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip)
-                or nameof(CanOrderByDistance):
+            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip):
                 break;
             default:
                 if (!_loading && _loadedUniverse is not null)

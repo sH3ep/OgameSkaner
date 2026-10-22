@@ -193,7 +193,7 @@
                                      ToolTip="The raider only spies on and attacks players with at most this many defense points in the ranking (0 = only players without defenses). Players not in the ranking are skipped while this is set. Empty = no limit." />
                             <StackPanel Grid.Row="11" Grid.ColumnSpan="2" Margin="0,0,6,6">
                                 <CheckBox Content="Send from the nearest planet" IsChecked="{Binding UseNearestPlanet}" Margin="0,0,0,4"
-                                          ToolTip="Each attack and spy leaves from the nearest ticked planet that has the ships, and targets are taken from the whole universe: best ranked first for spies, most loot first for attacks. Otherwise every fleet leaves from the planet selected in the game." />
+                                          ToolTip="Each attack and spy leaves from the nearest ticked planet that has the ships, so targets near any of them count as near. Otherwise every fleet leaves from the planet selected in the game." />
                                 <DockPanel Margin="18,0,0,4" IsEnabled="{Binding UseNearestPlanet}">
                                     <Button DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshPlanetsCommand}" Margin="0" MinWidth="0" Padding="8,2"
                                             ToolTip="Reads your planets from the game" />
@@ -217,9 +217,8 @@
                             <TextBlock Grid.Row="13" Text="Low loot: spy again after (h)" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="13" Grid.Column="1" Text="{Binding LowLootRespyHours, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="A planet whose newest report has less loot than Min loot isn't spied on again for this many hours, which saves probes and fleet slots (0 = off)" />
-                            <CheckBox Grid.Row="12" Grid.ColumnSpan="2" Content="Nearest targets first" IsChecked="{Binding NearestTargetsFirst}" IsEnabled="{Binding CanOrderByDistance}"
-                                      ToolTip="The raider spies on and attacks nearer targets first (fleets come back sooner). Targets at the same distance: most loot first for attacks, best ranked first for spies. Off while sending from the nearest planet." Margin="0,0,0,6"
-                                      ToolTipService.ShowOnDisabled="True" />
+                            <CheckBox Grid.Row="12" Grid.ColumnSpan="2" Content="Most loot per flight time first" IsChecked="{Binding NearestTargetsFirst}"
+                                      ToolTip="Attacks go to the targets with the most loot per flight time first (loot ÷ √distance from the nearest planet sending: a fleet slot brings in the most per hour), spies to those likely holding the most now (newest report, our attacks since, refill), the same way. Off: by loot alone, however far." Margin="0,0,0,6" />
                             <TextBlock Grid.Row="14" Text="Max attacks per report" VerticalAlignment="Center" Margin="0,0,6,6" />
                             <TextBox Grid.Row="14" Grid.Column="1" Text="{Binding MaxAttacksPerTarget, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="One report can get several attacks: each takes Loot % of what the ones before it left and goes only while that is at least Min loot (with 50%: 2 attacks from 2× min loot, 3 from 4×). Each lands after the one before it, waiting or flying slower if needed. 1 = one attack per report." />

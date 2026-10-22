@@ -1,0 +1,53 @@
+// The OgameSkaner license server (Cloudflare Worker + D1). Setup and deployment: README.md.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ogameskaner-license",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "observability": { "enabled": true },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ogameskaner-licenses",
+      // Replace with the id `wrangler d1 create ogameskaner-licenses` prints (local dev works with any id).
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  // Token requests per machine (or IP when the body can't be read); the app asks every 4 h.
+  "ratelimits": [
+    { "name": "TOKEN_LIMITER", "namespace_id": "4711", "simple": { "limit": 10, "period": 60 } }
+  ],
+
+  "vars": {
+    // How long an issued token is valid; the app renews every 4 h, so this covers a server outage.
+    "TOKEN_HOURS": "72",
+    // Days a subscription keeps working after its paid period ends (Paddle retries failed payments meanwhile).
+    "GRACE_DAYS": "3",
+    // A machine not seen for this many days frees its slot when the license is activated on another PC (0 = never).
+    "MACHINE_RELEASE_DAYS": "14",
+    // Builds below this are refused and the token names it, so old (cracked) builds stop; "" = any.
+    "MIN_APP_VERSION": "",
+    // Plans: limits per license, and the Paddle prices that buy them. DEFAULT_PLAN is used for unknown prices
+    // and licenses created by hand. maxAccounts 0 = any game account.
+    "PLANS": {
+      "standard": { "maxMachines": 1, "maxAccounts": 1, "paddlePriceIds": [] },
+      "pro": { "maxMachines": 2, "maxAccounts": 3, "paddlePriceIds": [] }
+    },
+    "DEFAULT_PLAN": "standard",
+    // "sandbox" or "production": which Paddle API looks up customers' e-mail addresses.
+    "PADDLE_ENVIRONMENT": "sandbox",
+    // Sender of the license key e-mails (Resend); "" = no e-mails, keys are handed out by hand.
+    "MAIL_FROM": ""
+  },
+
+  // Set with `wrangler secret put <NAME>` (locally in .dev.vars):
+  //   SIGNING_KEY            the private key PEM (ogs-license keygen), PKCS#8
+  //   ADMIN_TOKEN            bearer token of the /admin API (ogs-license admin …)
+  //   PADDLE_WEBHOOK_SECRET  the Paddle notification destination's secret (optional until Paddle is set up)
+  //   PADDLE_API_KEY         Paddle API key with customer read access (optional: e-mail addresses)
+  //   RESEND_API_KEY         Resend API key (optional: key e-mails)
+  "secrets": { "required": ["SIGNING_KEY", "ADMIN_TOKEN"] }
+}

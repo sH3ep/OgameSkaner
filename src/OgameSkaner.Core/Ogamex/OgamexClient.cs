@@ -9,6 +9,7 @@ using OgameSkaner.Core.Domain.Defense;
 using OgameSkaner.Core.Domain.Moons;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Domain.Raiding;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex.Parsing;
 using OgameSkaner.Core.Storage;
 
@@ -43,13 +44,19 @@ internal sealed class OgamexClient : IOgamexClient
     /// <summary>Time zone the game shows dates in, learned from the fleet page's clock; null until then.</summary>
     private TimeSpan? _displayOffset;
 
+    private readonly ILicenseService _license;
+
+    /// <summary>The game account the license was last confirmed for (the pages name the logged-in player).</summary>
+    private string? _confirmedPlayer;
+
     public OgamexClient(
         UniverseProfile universe,
         HttpClient http,
         CookieContainer cookies,
         ISessionStore sessions,
         OgamexOptions options,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ILicenseService license)
     {
         Universe = universe;
         _http = http;
@@ -57,6 +64,7 @@ internal sealed class OgamexClient : IOgamexClient
         _sessions = sessions;
         _options = options;
         _timeProvider = timeProvider;
+        _license = license;
         _cacheBuster = timeProvider.GetUtcNow().ToUnixTimeMilliseconds();
     }
 
@@ -647,8 +655,23 @@ internal sealed class OgamexClient : IOgamexClient
             if (!response.IsSuccessStatusCode)
                 throw new OgamexException($"{request.Method} {request.RequestUri} returned {(int)response.StatusCode} {response.ReasonPhrase}.");
 
-            return await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+            await ConfirmPlayerAsync(body, cancellationToken).ConfigureAwait(false);
+            return body;
         }
+    }
+
+    /// <summary>
+    /// Stops the client when a page shows a logged-in player the license doesn't cover, so one key can't drive
+    /// other accounts. Checked again whenever the player changes (another session saved).
+    /// </summary>
+    private async Task ConfirmPlayerAsync(string body, CancellationToken cancellationToken)
+    {
+        if (PageIdentityParser.CurrentPlayerId(body) is not { } player || player == Volatile.Read(ref _confirmedPlayer))
+            return;
+
+        await _license.ConfirmAccountAsync(Universe.Name, player, cancellationToken).ConfigureAwait(false);
+        Volatile.Write(ref _confirmedPlayer, player);
     }
 
     private static T Deserialize<T>(string body)

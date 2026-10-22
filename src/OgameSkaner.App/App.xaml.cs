@@ -11,6 +11,7 @@ using OgameSkaner.App.ViewModels;
 using OgameSkaner.App.Views;
 using OgameSkaner.Core;
 using OgameSkaner.Core.Domain.Alerts;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
@@ -21,6 +22,7 @@ namespace OgameSkaner.App;
 public partial class App : Application
 {
     private IHost? _host;
+    private readonly CancellationTokenSource _renewal = new();
 
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -32,11 +34,20 @@ public partial class App : Application
 
         PageRegistration.RegisterTemplates(Resources, _host.Services.GetServices<PageDescriptor>());
 
+        if (!EnsureLicensed(_host.Services))
+        {
+            Shutdown();
+            return;
+        }
+
+        _ = _host.Services.GetRequiredService<ILicenseService>().KeepRenewedAsync(_renewal.Token);
+
         var importMessage = await ImportLegacyDataOnFirstRunAsync(_host.Services);
 
         var window = _host.Services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.Show();
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
 
         if (importMessage is not null)
             _host.Services.GetRequiredService<IDialogService>().ShowInfo(importMessage);
@@ -48,6 +59,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _renewal.Cancel();
         _host?.Dispose();
         base.OnExit(e);
     }
@@ -71,7 +83,9 @@ public partial class App : Application
                 retainedFileCountLimit: 14));
 
         builder.Services.Configure<OgamexOptions>(builder.Configuration.GetSection(OgamexOptions.SectionName));
+        builder.Services.Configure<LicenseOptions>(builder.Configuration.GetSection(LicenseOptions.SectionName));
         builder.Services.AddOgameSkanerCore(paths);
+        builder.Services.AddSingleton<IMachineFingerprint, WindowsMachineFingerprint>();
 
         builder.Services.AddSingleton<ISecretProtector, DpapiSecretProtector>();
         builder.Services.AddSingleton<IMessenger>(WeakReferenceMessenger.Default);
@@ -92,6 +106,8 @@ public partial class App : Application
         builder.Services.AddSingleton<MainWindow>();
         builder.Services.AddTransient<ProfilesViewModel>();
         builder.Services.AddTransient<ProfilesWindow>();
+        builder.Services.AddTransient<LicenseViewModel>();
+        builder.Services.AddTransient<LicenseWindow>();
 
         builder.Services.AddPage<ScannerViewModel, ScannerView>("Scanner");
         builder.Services.AddPage<PlayersViewModel, PlayersView>("Players");
@@ -109,6 +125,26 @@ public partial class App : Application
         builder.Services.AddPage<UtilitiesViewModel, UtilitiesView>("Utilities");
 
         return builder.Build();
+    }
+
+    /// <summary>
+    /// The first of the license checks: without accepted terms and a valid license the license window opens, and the app
+    /// ends when it's closed without one. The license is renewed in the background while the app runs.
+    /// </summary>
+    private bool EnsureLicensed(IServiceProvider services)
+    {
+        var license = services.GetRequiredService<ILicenseService>();
+        if (license.TermsAccepted && license.Status.IsValid)
+            return true;
+
+        // Closing the license window must not end the app before the main window is open.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+        services.GetRequiredService<LicenseWindow>().ShowDialog();
+        if (license.TermsAccepted && license.Status.IsValid)
+            return true;
+
+        services.GetRequiredService<ILogger<App>>().LogWarning("Not started: {License}", license.Status.Text);
+        return false;
     }
 
     /// <summary>On the very first start, picks up GamesConfiguration.xml from the old version if it sits next to the app.</summary>

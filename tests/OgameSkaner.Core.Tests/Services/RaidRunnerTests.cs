@@ -38,7 +38,7 @@ public class RaidRunnerTests
     }
 
     private RaidRunner Runner(TimeProvider? clock = null) =>
-        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), TestQueues.Immediate, _planets, _store, clock ?? TimeProvider.System, NullLogger<RaidRunner>.Instance);
+        new(new OwnPlanetService(new FakeOwnPlanetStore(), TimeProvider.System), TestQueues.Immediate, _planets, _store, clock ?? TimeProvider.System, NullLogger<RaidRunner>.Instance, TestLicense.Valid);
 
     /// <summary>Runs one cycle: the run is cancelled when it announces the next check.</summary>
     private Task<RaidRunResult> RunCycleAsync(RaidSettings settings, CancellationTokenSource? cancellation = null)

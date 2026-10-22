@@ -2,6 +2,7 @@ using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex.Http;
 using OgameSkaner.Core.Storage;
 
@@ -9,16 +10,18 @@ namespace OgameSkaner.Core.Ogamex;
 
 /// <summary>
 /// Builds an <see cref="IOgamexClient"/> with its own cookie jar and the handler pipeline:
-/// logging → throttling → browser headers → network.
+/// logging → throttling → browser headers → network. No client without a valid license.
 /// </summary>
 public sealed class OgamexClientFactory(
     ISessionStore sessions,
+    ILicenseService license,
     IOptions<OgamexOptions> options,
     TimeProvider timeProvider,
     ILoggerFactory loggerFactory) : IOgamexClientFactory
 {
     public IOgamexClient Create(UniverseProfile universe)
     {
+        LicenseChecks.DemandA(license);
         var settings = options.Value;
         var cookies = new CookieContainer();
 
@@ -44,6 +47,6 @@ public sealed class OgamexClientFactory(
             Timeout = settings.RequestTimeout
         };
 
-        return new OgamexClient(universe, http, cookies, sessions, settings, timeProvider);
+        return new OgamexClient(universe, http, cookies, sessions, settings, timeProvider, license);
     }
 }

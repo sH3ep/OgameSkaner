@@ -563,5 +563,5 @@ public sealed class InstantTimeProvider(DateTimeOffset start) : TimeProvider
 /// <summary>Action queues that run each group as soon as it's queued, without pauses or switching back home.</summary>
 public static class TestQueues
 {
-    public static IActionQueues Immediate => new ActionQueues(ActionQueueSettings.Immediate, TimeProvider.System, NullLoggerFactory.Instance);
+    public static IActionQueues Immediate => new ActionQueues(ActionQueueSettings.Immediate, TestLicense.Valid, TimeProvider.System, NullLoggerFactory.Instance);
 }

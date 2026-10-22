@@ -65,6 +65,14 @@
                     <TextBlock Text="{Binding SessionStatusText}" Foreground="White" TextWrapping="Wrap" MaxWidth="130" />
                 </StackPanel>
                 <Button Content="Check now" Command="{Binding CheckSessionCommand}" HorizontalAlignment="Left" Margin="0,6,0,12" />
+                <TextBlock Text="License" Foreground="White" Margin="0,0,0,4" />
+                <StackPanel Orientation="Horizontal">
+                    <Ellipse Style="{StaticResource StatusDot}" Margin="0,0,8,0"
+                             Fill="{Binding LicenseStatus, Converter={StaticResource StatusToBrush}}" />
+                    <TextBlock Text="{Binding LicenseText}" Foreground="White" TextWrapping="Wrap" MaxWidth="130" />
+                </StackPanel>
+                <Button Content="License…" Command="{Binding ShowLicenseCommand}" HorizontalAlignment="Left" Margin="0,6,0,12"
+                        ToolTip="Activate, import a license token or read the terms" />
                 <TextBlock Text="sH3ep @2019" Foreground="#99FFFFFF" />
             </StackPanel>
         </DockPanel>

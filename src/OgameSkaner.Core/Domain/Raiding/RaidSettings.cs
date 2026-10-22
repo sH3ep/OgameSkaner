@@ -60,8 +60,7 @@ public sealed record RaidSettings
 
     /// <summary>
     /// Send each attack and spy from the nearest planet of <see cref="OriginPlanetIds"/> that has the ships, instead of
-    /// the current planet. Targets then keep their usual order over the whole universe (best ranked first for spies,
-    /// most loot first for attacks): <see cref="NearestTargetsFirst"/> is ignored.
+    /// the current planet; <see cref="NearestTargetsFirst"/> then measures from the nearest of them.
     /// </summary>
     public bool UseNearestPlanet { get; init; }
 
@@ -69,9 +68,9 @@ public sealed record RaidSettings
     public IReadOnlyList<string> OriginPlanetIds { get; init; } = [];
 
     /// <summary>
-    /// The raider spies on and attacks nearer targets first (the fleets are back sooner, so the slots are used more
-    /// often): ties keep the usual order, most loot first for attacks and best ranked first for spies. Ignored with
-    /// <see cref="UseNearestPlanet"/>.
+    /// The raider attacks the targets with the most loot per flight time first (loot ÷ √distance from the nearest
+    /// origin: a fleet slot brings in the most per hour) and spies on them by the loot they likely hold now the same way
+    /// (<see cref="Services.Raiding.RaidPlanner.EstimateLoot"/>). Off = by loot alone, however far.
     /// </summary>
     public bool NearestTargetsFirst { get; init; } = true;
 

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Raiding;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Scheduling;
@@ -39,6 +40,7 @@ public sealed class RaidRunner(
     IRaidStore store,
     TimeProvider timeProvider,
     ILogger<RaidRunner> logger,
+    ILicenseService license,
     IFleetSlotClaimsProvider? claims = null)
 {
     private readonly WakeUp _wakeUp = new();
@@ -150,6 +152,7 @@ public sealed class RaidRunner(
         int attacks = 0, spies = 0;
         try
         {
+            LicenseChecks.DemandC(license);
             _wakeUp.Reset();
             while (true)
             {
@@ -308,8 +311,8 @@ public sealed class RaidRunner(
         // Slots other modules claimed count as used, so the fleets coming back free them for those.
         var slots = claims?.For(client).Effective(Owner, Slots(origins)) ?? Slots(origins);
         var budget = RaidPlanner.SlotBudget(slots, settings);
-        // Sending from the nearest planet goes for the best targets anywhere instead.
-        var byDistance = settings.NearestTargetsFirst && !settings.UseNearestPlanet;
+        // Loot per flight time from the nearest origin, else loot alone.
+        IReadOnlyCollection<Coordinates> from = settings.NearestTargetsFirst ? origins.Select(o => o.Planet.Coordinates).ToList() : [];
 
         if (DefenseRankingReadAt(client.Universe.Name) is not { } rankingAt || timeProvider.GetUtcNow() - rankingAt >= RankingMaxAge)
             await ReadDefenseRankingAsync(client, progress, cancellationToken, ActionPriority.Automation).ConfigureAwait(false);
@@ -320,9 +323,7 @@ public sealed class RaidRunner(
         var spies = 0;
         if (budget > 0)
         {
-            IReadOnlyList<RaidTarget> ready = targets.Where(t => t.State == RaidTargetState.Ready).OrderByDescending(t => t.ExpectedLoot).ToList();
-            if (byDistance)
-                ready = RaidPlanner.NearestFirst(ready, origins.Select(o => o.Planet.Coordinates).ToList(), client.Universe);
+            var ready = RaidPlanner.MostLootPerFlightFirst(targets.Where(t => t.State == RaidTargetState.Ready), t => t.ExpectedLoot, from, client.Universe);
             attacks = await AttackAsync(client, ready, settings, origins, budget, progress, cancellationToken).ConfigureAwait(false);
         }
 
@@ -331,12 +332,10 @@ public sealed class RaidRunner(
             Report(progress, $"No spying: {slots.Used + attacks}/{slots.Max} fleet slots in use, the limit is {settings.FleetSlotUsePercent}%.");
         if (spyBudget > 0)
         {
-            IReadOnlyList<RaidTarget> needSpy = targets.Where(t => t.State == RaidTargetState.NeedsSpy).ToList();
-            if (byDistance)
-                needSpy = RaidPlanner.NearestFirst(needSpy, [Home(origins).Planet.Coordinates], client.Universe);
-            // The richest targets by their history first, then those that showed a big stock lately; the order within
-            // each group stays (OrderBy is stable).
-            needSpy = needSpy.OrderBy(t => t.IsTop ? 0 : t.IsHighValue ? 1 : 2).ToList();
+            // The richest targets by their history first, then those that showed a big stock lately, each group by the
+            // loot it likely holds now per flight time (OrderBy is stable).
+            var needSpy = RaidPlanner.MostLootPerFlightFirst(targets.Where(t => t.State == RaidTargetState.NeedsSpy), t => t.EstimatedLoot, from, client.Universe)
+                .OrderBy(t => t.IsTop ? 0 : t.IsHighValue ? 1 : 2).ToList();
             var chosen = needSpy.Take(spyBudget).ToList();
             if (chosen.Count > 0)
                 spies = await queue.RunAsync(Owner, $"Spy on {chosen.Count} planet(s)", ct => SpyAsync(client, chosen, settings, origins, progress, ct), cancellationToken: cancellationToken)
@@ -609,9 +608,6 @@ public sealed class RaidRunner(
     }
 
     private const string NoOriginMessage = "No planet is ticked to send raids from (Send from the nearest planet).";
-
-    /// <summary>The player's planet: <see cref="ReadOriginsAsync"/> puts it first.</summary>
-    private static Origin Home(IReadOnlyList<Origin> origins) => origins[0];
 
     private static FleetSlots Slots(IReadOnlyList<Origin> origins) =>
         origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)

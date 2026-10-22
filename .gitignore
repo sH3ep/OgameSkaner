@@ -14,3 +14,6 @@ sessions.json
 
 # Temporary project files of the WPF markup compiler
 *_wpftmp.csproj
+
+# License signing keys (the private key never goes into the repo)
+*.pem

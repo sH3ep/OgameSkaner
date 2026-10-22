@@ -1,6 +1,7 @@
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Domain.Optimizer;
 using OgameSkaner.Core.Services.Optimizer;
+using OgameSkaner.Core.Tests.Fakes;
 
 namespace OgameSkaner.Core.Tests.Services;
 
@@ -23,7 +24,7 @@ public class BuildOrderOptimizerTests
         var simulator = new BuildSimulator(new GameModel(Small.Bonuses, Small.Planet), Small);
         var exhaustive = Orders(4, 3, 2).Min(order => simulator.Evaluate(order));
 
-        var result = await new BuildOrderOptimizer().RunAsync(Small, new OptimizerOptions(Runs: 8, IterationsPerRun: 3_000, Threads: 4));
+        var result = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(Small, new OptimizerOptions(Runs: 8, IterationsPerRun: 3_000, Threads: 4));
 
         Assert.NotNull(result);
         Assert.Equal(exhaustive, result.TotalSeconds, 6);
@@ -40,7 +41,7 @@ public class BuildOrderOptimizerTests
             StartResources = new ResourceSet(1_000_000, 1_000_000, 0)
         };
 
-        var result = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 500, Threads: 2));
+        var result = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 500, Threads: 2));
 
         Assert.NotNull(result);
         Assert.Equal(
@@ -54,8 +55,8 @@ public class BuildOrderOptimizerTests
         var setup = new OptimizerSetup { MetalMine = 10, CrystalMine = 8, DeuteriumSynthesizer = 5 };
         var options = new OptimizerOptions(Runs: 6, IterationsPerRun: 1_000, Seed: 7);
 
-        var first = await new BuildOrderOptimizer().RunAsync(setup, options);
-        var second = await new BuildOrderOptimizer().RunAsync(setup, options);
+        var first = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, options);
+        var second = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, options);
 
         Assert.NotNull(first);
         Assert.Equal(first.TotalSeconds, second!.TotalSeconds);
@@ -70,7 +71,7 @@ public class BuildOrderOptimizerTests
         var greedy = new BuildOrderOptimizer.RunSearch(simulator, new Random(1)).Greedy();
         var greedySeconds = simulator.Evaluate(greedy);
 
-        var result = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 4, IterationsPerRun: 5_000));
+        var result = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, new OptimizerOptions(Runs: 4, IterationsPerRun: 5_000));
 
         Assert.NotNull(result);
         Assert.True(result.TotalSeconds <= greedySeconds);
@@ -87,7 +88,7 @@ public class BuildOrderOptimizerTests
         var setup = new OptimizerSetup { MetalMine = 25, CrystalMine = 22, DeuteriumSynthesizer = 18 };
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(500));
 
-        var result = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 10_000, IterationsPerRun: 1_000_000), cancellationToken: cancel.Token);
+        var result = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, new OptimizerOptions(Runs: 10_000, IterationsPerRun: 1_000_000), cancellationToken: cancel.Token);
 
         Assert.NotNull(result);
         Assert.True(result.Runs < 10_000);
@@ -163,7 +164,7 @@ public class BuildOrderOptimizerTests
             Start = new PlanetStart { Levels = new Dictionary<Gene, int> { [Gene.MetalMine] = 5 } }
         };
 
-        var order = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 4, IterationsPerRun: 2_000, Threads: 2));
+        var order = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, new OptimizerOptions(Runs: 4, IterationsPerRun: 2_000, Threads: 2));
 
         Assert.NotNull(order);
         Assert.Empty(order.Steps);
@@ -183,7 +184,7 @@ public class BuildOrderOptimizerTests
             }
         };
 
-        var order = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 200, Threads: 2));
+        var order = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 200, Threads: 2));
 
         Assert.NotNull(order);
         Assert.Equal(72, order.Steps.Where(s => s.Gene == Gene.MetalMine).Max(s => s.Level));
@@ -201,7 +202,7 @@ public class BuildOrderOptimizerTests
         };
 
         Assert.Equal(GameModel.MaxLevel, setup.TargetOf(Gene.MetalMine));
-        var order = await new BuildOrderOptimizer().RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 100, Threads: 2));
+        var order = await new BuildOrderOptimizer(TestLicense.Valid).RunAsync(setup, new OptimizerOptions(Runs: 2, IterationsPerRun: 100, Threads: 2));
 
         Assert.NotNull(order);
         Assert.Equal(GameModel.MaxLevel, order.Steps.Where(s => s.Gene == Gene.MetalMine).Max(s => s.Level));

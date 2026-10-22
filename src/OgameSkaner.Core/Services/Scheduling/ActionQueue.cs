@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using OgameSkaner.Core.Domain.Buildings;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 
@@ -27,9 +28,11 @@ public sealed record ActionQueueSettings(TimeSpan MinGap, TimeSpan MaxGap, TimeS
 /// <see cref="IActionQueue"/> of one client. A single pump task runs the groups while there are any: player groups first,
 /// then the modules in turn (one group of each owner before the next of the same one, first come first served within an
 /// owner), so a module that queues many groups can't hold up the others. The pump ends once it switched back home.
-/// Every finished group also goes to <paramref name="history"/> (when given) for later analysis.
+/// Every finished group also goes to <paramref name="history"/> (when given) for later analysis. Without a valid license
+/// no group is taken (<see cref="LicenseException"/>).
 /// </summary>
-public sealed class ActionQueue(IOgamexClient client, ActionQueueSettings settings, TimeProvider timeProvider, ILogger logger, IActionHistoryStore? history = null)
+public sealed class ActionQueue(
+    IOgamexClient client, ActionQueueSettings settings, ILicenseService license, TimeProvider timeProvider, ILogger logger, IActionHistoryStore? history = null)
     : IActionQueue
 {
     private const int FinishedKept = 50;
@@ -74,6 +77,7 @@ public sealed class ActionQueue(IOgamexClient client, ActionQueueSettings settin
         if (priority == ActionPriority.Urgent)
             return await RunUrgentAsync(owner, description, work, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
+        LicenseChecks.DemandB(license);
         if (Inside.Value == this)
             return await work(cancellationToken).ConfigureAwait(false); // waiting for the queue here would never end
 
@@ -95,6 +99,7 @@ public sealed class ActionQueue(IOgamexClient client, ActionQueueSettings settin
 
     public async Task<T> RunUrgentAsync<T>(string owner, string description, Func<CancellationToken, Task<T>> work, CancellationToken cancellationToken = default)
     {
+        LicenseChecks.DemandB(license);
         var entry = new Entry(NewInfo(owner, description, ActionPriority.Urgent), _ => Task.CompletedTask, cancellationToken);
         bool captureHome;
         lock (_sync)

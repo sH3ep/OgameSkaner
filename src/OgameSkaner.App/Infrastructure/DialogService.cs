@@ -24,6 +24,9 @@ public interface IDialogService
     string? OpenFile(string filter);
 
     void ShowProfiles();
+
+    /// <summary>The license window (terms, activation); modal.</summary>
+    void ShowLicense();
 }
 
 public sealed class DialogService(IServiceProvider services) : IDialogService
@@ -60,6 +63,13 @@ public sealed class DialogService(IServiceProvider services) : IDialogService
     public void ShowProfiles()
     {
         var window = services.GetRequiredService<ProfilesWindow>();
+        window.Owner = Owner;
+        window.ShowDialog();
+    }
+
+    public void ShowLicense()
+    {
+        var window = services.GetRequiredService<LicenseWindow>();
         window.Owner = Owner;
         window.ShowDialog();
     }

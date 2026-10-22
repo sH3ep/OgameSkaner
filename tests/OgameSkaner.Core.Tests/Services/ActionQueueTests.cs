@@ -23,7 +23,7 @@ public class ActionQueueTests
     }
 
     private ActionQueue Queue(ActionQueueSettings? settings = null) =>
-        new(_client, settings ?? ActionQueueSettings.Immediate, TimeProvider.System, NullLogger.Instance);
+        new(_client, settings ?? ActionQueueSettings.Immediate, TestLicense.Valid, TimeProvider.System, NullLogger.Instance);
 
     private void Log(string entry)
     {
@@ -131,7 +131,7 @@ public class ActionQueueTests
     public async Task Every_finished_group_goes_to_the_history_and_a_failing_history_stops_nothing()
     {
         var history = new FakeActionHistoryStore();
-        var queue = new ActionQueue(_client, ActionQueueSettings.Immediate, TimeProvider.System, NullLogger.Instance, history);
+        var queue = new ActionQueue(_client, ActionQueueSettings.Immediate, TestLicense.Valid, TimeProvider.System, NullLogger.Instance, history);
 
         await queue.RunAsync("Builder", "done", Group("done")).WaitAsync(Timeout);
         await Assert.ThrowsAsync<InvalidOperationException>(() => queue.RunAsync<int>("Raids", "failing", _ => throw new InvalidOperationException("boom")).WaitAsync(Timeout));

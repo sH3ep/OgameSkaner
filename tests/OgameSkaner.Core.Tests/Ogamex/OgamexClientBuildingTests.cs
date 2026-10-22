@@ -4,6 +4,7 @@ using OgameSkaner.Core.Domain;
 using OgameSkaner.Core.Domain.Buildings;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
+using OgameSkaner.Core.Tests.Fakes;
 
 namespace OgameSkaner.Core.Tests.Ogamex;
 
@@ -18,7 +19,7 @@ public class OgamexClientBuildingTests
     {
         var universe = new UniverseProfile("genesis");
         var sessions = new StubSessionStore();
-        return new OgamexClient(universe, new HttpClient(_handler) { BaseAddress = universe.BaseUri }, new CookieContainer(), sessions, new OgamexOptions(), TimeProvider.System);
+        return new OgamexClient(universe, new HttpClient(_handler) { BaseAddress = universe.BaseUri }, new CookieContainer(), sessions, new OgamexOptions(), TimeProvider.System, TestLicense.Valid);
     }
 
     private static string Fixture(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));

@@ -1,4 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services;
 using OgameSkaner.Core.Services.Alerts;
@@ -9,8 +11,8 @@ using OgameSkaner.Core.Services.Expeditions;
 using OgameSkaner.Core.Services.Moons;
 using OgameSkaner.Core.Services.Optimizer;
 using OgameSkaner.Core.Services.Raiding;
-using OgameSkaner.Core.Services.Schemas;
 using OgameSkaner.Core.Services.Scheduling;
+using OgameSkaner.Core.Services.Schemas;
 using OgameSkaner.Core.Storage;
 using OgameSkaner.Core.Storage.Legacy;
 using OgameSkaner.Core.Storage.Sqlite;
@@ -21,7 +23,8 @@ public static class ServiceCollectionExtensions
 {
     /// <summary>
     /// Registers storage, the OgameX client factory and the domain services.
-    /// The host must also register an <see cref="ISecretProtector"/> and configure <see cref="OgamexOptions"/>; the
+    /// The host must also register an <see cref="ISecretProtector"/> and an <see cref="IMachineFingerprint"/> and configure
+    /// <see cref="OgamexOptions"/> and <see cref="LicenseOptions"/>; the
     /// <see cref="Domain.Alerts.IAlertChannel"/>s it registers are the ways alerts reach the player.
     /// </summary>
     public static IServiceCollection AddOgameSkanerCore(this IServiceCollection services, IAppPaths paths)
@@ -45,6 +48,10 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IExpeditionSettingsStore, JsonExpeditionSettingsStore>();
         services.AddSingleton<IMoonSettingsStore, JsonMoonSettingsStore>();
         services.AddSingleton<LegacyImporter>();
+
+        services.AddSingleton<ILicenseStore, JsonLicenseStore>();
+        services.AddSingleton<ILicenseServer>(sp => new HttpLicenseServer(sp.GetRequiredService<IOptions<LicenseOptions>>()));
+        services.AddSingleton<ILicenseService, LicenseService>();
 
         services.AddSingleton<IOgamexClientFactory, OgamexClientFactory>();
         services.AddSingleton<IActionQueues, ActionQueues>();

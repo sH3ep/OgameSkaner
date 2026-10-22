@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using OgameSkaner.Core.Domain.Optimizer;
+using OgameSkaner.Core.Licensing;
 
 namespace OgameSkaner.Core.Services.Optimizer;
 
@@ -28,7 +29,7 @@ public sealed record OptimizerProgress(int RunsDone, int Runs, double BestSecond
 /// when it pays back with a random threshold), then improves it by simulated annealing: moving and swapping genes,
 /// adding and removing helper levels. Every candidate is scored by <see cref="BuildSimulator"/>.
 /// </summary>
-public sealed class BuildOrderOptimizer
+public sealed class BuildOrderOptimizer(ILicenseService license)
 {
     /// <summary>Runs the search; when cancelled it returns the best order found so far (null when none finished).</summary>
     /// <param name="initial">
@@ -40,8 +41,11 @@ public sealed class BuildOrderOptimizer
         OptimizerOptions options,
         IProgress<OptimizerProgress>? progress = null,
         CancellationToken cancellationToken = default,
-        IReadOnlyList<Gene>? initial = null) =>
-        Task.Run(() => Run(setup, options, progress, cancellationToken, initial?.ToArray()), CancellationToken.None);
+        IReadOnlyList<Gene>? initial = null)
+    {
+        LicenseChecks.DemandA(license);
+        return Task.Run(() => Run(setup, options, progress, cancellationToken, initial?.ToArray()), CancellationToken.None);
+    }
 
     private static OptimizedOrder? Run(OptimizerSetup setup, OptimizerOptions options, IProgress<OptimizerProgress>? progress, CancellationToken cancellationToken, Gene[]? initial)
     {

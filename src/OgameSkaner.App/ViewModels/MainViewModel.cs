@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using OgameSkaner.App.Infrastructure;
 using OgameSkaner.App.Infrastructure.Alerts;
 using OgameSkaner.Core.Domain;
+using OgameSkaner.Core.Licensing;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Storage;
 
@@ -16,12 +17,16 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
 {
     private static readonly TimeSpan SessionCheckInterval = TimeSpan.FromSeconds(60);
 
+    /// <summary>The sidebar's license line is verified again this often (an expiry raises no event).</summary>
+    private const int LicenseRefreshSeconds = 30;
+
     private readonly IServiceProvider _services;
     private readonly IProfileStore _profiles;
     private readonly ISessionStore _sessions;
     private readonly IUniverseContext _context;
     private readonly IDialogService _dialogs;
     private readonly ILogger<MainViewModel> _logger;
+    private readonly ILicenseService _license;
     private CancellationTokenSource? _sessionMonitor;
 
     public MainViewModel(
@@ -35,6 +40,7 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
         ActionQueueMonitor queue,
         DefenseViewModel defense,
         AlarmPlayer alarm,
+        ILicenseService license,
         ILogger<MainViewModel> logger)
     {
         Queue = queue;
@@ -46,6 +52,7 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
         _context = context;
         _dialogs = dialogs;
         _logger = logger;
+        _license = license;
 
         Pages = pages.ToList();
         messenger.Register(this);
@@ -54,9 +61,24 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
         SelectedPage = Pages.FirstOrDefault();
 
         var clock = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-        clock.Tick += (_, _) => Now = DateTime.Now;
+        var ticks = 0;
+        clock.Tick += (_, _) =>
+        {
+            Now = DateTime.Now;
+            if (++ticks % LicenseRefreshSeconds == 0)
+                RefreshLicense();
+        };
         clock.Start();
+
+        RefreshLicense();
+        license.Changed += (_, _) => System.Windows.Application.Current?.Dispatcher.BeginInvoke(RefreshLicense);
     }
+
+    [ObservableProperty]
+    private SessionStatus _licenseStatus;
+
+    [ObservableProperty]
+    private string _licenseText = "";
 
     /// <summary>The local time for the sidebar clock, updated every second.</summary>
     [ObservableProperty]
@@ -111,6 +133,20 @@ public sealed partial class MainViewModel : ObservableObject, IRecipient<Session
     {
         _dialogs.ShowProfiles();
         ReloadProfiles(SelectedProfile?.Name);
+    }
+
+    [RelayCommand]
+    private void ShowLicense()
+    {
+        _dialogs.ShowLicense();
+        RefreshLicense();
+    }
+
+    private void RefreshLicense()
+    {
+        var status = _license.Status;
+        LicenseStatus = status.IsValid ? SessionStatus.Valid : SessionStatus.Invalid;
+        LicenseText = status.Text;
     }
 
     [RelayCommand]

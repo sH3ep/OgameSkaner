@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Issues license tokens by hand and manages the license server (admin). Never ship it: it works with the private key. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <AssemblyName>ogs-license</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\OgameSkaner.Core\OgameSkaner.Core.csproj" />
+  </ItemGroup>
+
+</Project>
