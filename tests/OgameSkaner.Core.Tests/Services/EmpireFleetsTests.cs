@@ -88,6 +88,34 @@ public class EmpireFleetsTests
     }
 
     [Fact]
+    public async Task A_moon_gets_its_own_column_not_its_planets()
+    {
+        var moon = new OwnPlanet(new PlanetId("m1"), "Moon", Home.Coordinates);
+        _client.OwnMoons.Add(moon);
+        _client.Fleets[moon.Id] = Fleet(moon, ("HEAVY_CARGO", 7, 25_000));
+
+        var fleets = await EmpireFleets.ReadAsync(_client, [Home, moon], ["HEAVY_CARGO"], Home.Id, moons: [moon.Id]);
+
+        Assert.Equal([(PlanetId?)Home.Id], _client.FleetReads);
+        Assert.Equal(100, fleets[0].Fleet.QuantityOf("HEAVY_CARGO"));
+        Assert.Equal(7, fleets[1].Fleet.QuantityOf("HEAVY_CARGO"));
+    }
+
+    [Fact]
+    public async Task A_moon_missing_from_the_empire_page_is_read_by_its_fleet_page()
+    {
+        var moon = new OwnPlanet(new PlanetId("m1"), "Moon", Home.Coordinates);
+        _client.Fleets[moon.Id] = Fleet(moon, ("HEAVY_CARGO", 7, 25_000));
+        // The page shows the planet at the same coordinates, but no moon column.
+        _client.Empire = null;
+
+        var fleets = await EmpireFleets.ReadAsync(_client, [Home, moon], ["HEAVY_CARGO"], Home.Id, moons: [moon.Id]);
+
+        Assert.Contains((PlanetId?)moon.Id, _client.FleetReads);
+        Assert.Equal(7, fleets[1].Fleet.QuantityOf("HEAVY_CARGO"));
+    }
+
+    [Fact]
     public async Task An_expired_session_is_not_hidden()
     {
         _client.Empire = () => throw new SessionExpiredException("login");

@@ -53,7 +53,7 @@ public sealed partial class ShipyardViewModel : PageViewModel
 
     /// <summary>Committed when the field loses focus (it shows thousands separators), so it's checked on click.</summary>
     [ObservableProperty]
-    private int _quantity = 10;
+    private long _quantity = 10;
 
     [ObservableProperty]
     private string _planetsInfo = string.Empty;

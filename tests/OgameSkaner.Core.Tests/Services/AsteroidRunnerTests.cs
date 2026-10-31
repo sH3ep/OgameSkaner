@@ -101,6 +101,21 @@ public class AsteroidRunnerTests
     }
 
     [Fact]
+    public async Task Miners_on_a_moon_are_sent_from_the_moon()
+    {
+        // The moon of Near (same coordinates) holds the miners; its planet has only 500.
+        var moon = new OwnPlanet(new PlanetId("m2"), "Moon", Near.Coordinates);
+        _client.OwnMoons.Add(moon);
+        _client.Fleets[Home.Id] = Fleet(Home, miners: 0);
+        _client.Fleets[moon.Id] = Fleet(moon, miners: 2_000_000);
+
+        var result = await RunCycleAsync(AsteroidSettings.Default with { MinersWithoutEstimate = 1_000_000 });
+
+        Assert.Equal(2, result.Sent);
+        Assert.All(_client.SentOrigins, o => Assert.Equal(moon.Id, o));
+    }
+
+    [Fact]
     public async Task Known_asteroids_get_miners_gone_soonest_first()
     {
         _store.SaveAsteroids("tron", [Asteroid(7, 40, TimeSpan.FromHours(1)), Asteroid(7, 16, TimeSpan.FromMinutes(20))]); // 7:40 is nearer to Near

@@ -124,6 +124,9 @@ public sealed partial class BuilderViewModel : PageViewModel
     [ObservableProperty]
     private long _shareKeepDeuterium;
 
+    [ObservableProperty]
+    private double _shareMinHoursSaved;
+
     /// <summary>Plan and log the transports without sending them (not saved).</summary>
     [ObservableProperty]
     private bool _shareTestMode;
@@ -198,6 +201,8 @@ public sealed partial class BuilderViewModel : PageViewModel
     partial void OnShareMaxSlotsChanged(int value) => SaveSettings();
 
     partial void OnShareKeepDeuteriumChanged(long value) => SaveSettings();
+
+    partial void OnShareMinHoursSavedChanged(double value) => SaveSettings();
 
     [RelayCommand(CanExecute = nameof(CanMoveShareCargoShipUp))]
     private void MoveShareCargoShipUp() => MoveShareCargoShip(-1);
@@ -436,6 +441,7 @@ public sealed partial class BuilderViewModel : PageViewModel
             ShareMinTransportAmount = settings.ShareMinTransportAmount;
             ShareMaxSlots = settings.ShareMaxSlots;
             ShareKeepDeuterium = settings.ShareKeepDeuterium;
+            ShareMinHoursSaved = settings.ShareMinHoursSaved;
             ShareCargoShips.Clear();
             var priority = settings.ShareCargoShipTypes;
             foreach (var unit in priority.Select(UnitCatalog.Get).OfType<UnitInfo>().Concat(UnitCatalog.CargoShips.Where(u => !priority.Contains(u.Id))))
@@ -513,6 +519,7 @@ public sealed partial class BuilderViewModel : PageViewModel
         ShareMinTransportAmount = Math.Max(0, ShareMinTransportAmount),
         ShareMaxSlots = Math.Max(1, ShareMaxSlots),
         ShareKeepDeuterium = Math.Max(0, ShareKeepDeuterium),
+        ShareMinHoursSaved = Math.Max(0, ShareMinHoursSaved),
         ShareTestMode = ShareTestMode,
         ExcludedPlanetIds = _excludedPlanetIds.Order(StringComparer.Ordinal).ToList()
     };

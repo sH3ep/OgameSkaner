@@ -374,13 +374,16 @@ public sealed class AsteroidRunner(
     }
 
     /// <summary>
-    /// Reads the planets and every planet's miners (the empire page plus one fleet page for the slots and the miners'
-    /// capacity, <see cref="EmpireFleets"/>), so each asteroid gets its miners from the nearest planet that has enough.
+    /// Reads the planets and moons and the miners of each (the empire page plus one fleet page for the slots and the
+    /// miners' capacity, <see cref="EmpireFleets"/>), so each asteroid gets its miners from the nearest planet or moon that
+    /// has enough.
     /// </summary>
     private async Task<Round> StartRoundAsync(IOgamexClient client, AsteroidSettings settings, CancellationToken cancellationToken)
     {
         var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
-        var fleets = await EmpireFleets.ReadAsync(client, refresh.List.Planets, [MinerType], queues.For(client).HomePlanet ?? refresh.CurrentPlanet, cancellationToken)
+        var places = refresh.List.Planets.Concat(refresh.List.Moons).ToList();
+        var moons = refresh.List.Moons.Select(m => m.Id).ToHashSet();
+        var fleets = await EmpireFleets.ReadAsync(client, places, [MinerType], queues.For(client).HomePlanet ?? refresh.CurrentPlanet, moons, cancellationToken)
             .ConfigureAwait(false);
         var origins = fleets.Select(f => new Origin(f.Planet, f.Fleet)).ToList();
         var read = origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)
@@ -425,7 +428,7 @@ public sealed class AsteroidRunner(
 
         if (round.WithMiners().Count == 0)
         {
-            Report(progress, "No Asteroid Miners left on any planet.");
+            Report(progress, "No Asteroid Miners left on any planet or moon.");
             return false;
         }
 
@@ -466,7 +469,7 @@ public sealed class AsteroidRunner(
         Report(progress, $"Sent {miners:N0} miners from {origin.Planet.Name} to [{asteroid.Coordinates}] ({expected}), arriving {(now + flight).ToLocalTime():T}");
     }
 
-    /// <summary>The fleet for one asteroid, or null (reported) when no planet's miners reach it in time.</summary>
+    /// <summary>The fleet for one asteroid, or null (reported) when no planet's or moon's miners reach it in time.</summary>
     private async Task<(FleetMission Fleet, Origin Origin, TimeSpan Flight, AsteroidEstimate? Estimate)?> PlanAsync(
         IOgamexClient client,
         Asteroid asteroid,
@@ -480,13 +483,13 @@ public sealed class AsteroidRunner(
         var target = asteroid.Coordinates;
         var needed = AsteroidPlanner.MinersNeeded(AsteroidEstimator.Estimate(reports, timeProvider.GetUtcNow())?.Resources, cargo, settings);
 
-        // The nearest planet with enough miners (or the one with most), then the nearest with any: flights only get
+        // The nearest planet or moon with enough miners (or the one with most), then the nearest with any: flights only get
         // longer with the distance, so a farther planet can't make it when these don't.
         var best = RaidPlanner.ChooseOrigin(target, origins, o => o.Planet.Coordinates, o => o.Miners, needed, client.Universe);
         var nearest = origins.Where(o => o.Miners > 0).MinBy(o => RaidPlanner.Distance(o.Planet.Coordinates, target, client.Universe));
         if (best is null || nearest is null)
         {
-            Report(progress, $"[{target}]: no Asteroid Miners left on any planet.");
+            Report(progress, $"[{target}]: no Asteroid Miners left on any planet or moon.");
             return null;
         }
 

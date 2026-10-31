@@ -63,8 +63,11 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
     /// <summary>The asteroid at position 17 per system (none by default).</summary>
     public Dictionary<SolarSystemAddress, Asteroid> Asteroids { get; } = new();
 
+    /// <summary>The debris fields per system and position (none by default).</summary>
+    public Dictionary<SolarSystemAddress, Dictionary<int, ResourceSet>> Debris { get; } = new();
+
     public async Task<GalaxySystemView> GetGalaxySystemAsync(SolarSystemAddress address, CancellationToken cancellationToken = default) =>
-        new(await GetSolarSystemAsync(address, cancellationToken), Asteroids.GetValueOrDefault(address));
+        new(await GetSolarSystemAsync(address, cancellationToken), Asteroids.GetValueOrDefault(address), Debris.GetValueOrDefault(address));
 
     public List<AsteroidHint> AsteroidHints { get; } = [];
 
@@ -263,9 +266,9 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         return Task.FromResult(Bonuses);
     }
 
-    public List<(PlanetId Planet, string ShipType, int Quantity)> OrderedShips { get; } = [];
+    public List<(PlanetId Planet, string ShipType, long Quantity)> OrderedShips { get; } = [];
 
-    public List<(PlanetId Planet, string DefenseType, int Quantity)> OrderedDefenses { get; } = [];
+    public List<(PlanetId Planet, string DefenseType, long Quantity)> OrderedDefenses { get; } = [];
 
     /// <summary>The answer to a ship or defense order; queued by default.</summary>
     public Func<PlanetId, EnqueueOutcome> UnitOrderAnswer { get; set; } = _ => EnqueueOutcome.Queued;
@@ -289,7 +292,7 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
             : new ShipyardState(planet, 0, 0, ResourceSet.Zero, SatellitesLocked: true));
     }
 
-    public Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default)
+    public Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, long quantity, CancellationToken cancellationToken = default)
     {
         var outcome = UnitOrderAnswer(planet);
         if (outcome.Result == EnqueueResult.Queued)
@@ -297,7 +300,7 @@ public sealed class FakeOgamexClient(UniverseProfile universe) : IOgamexClient
         return Task.FromResult(outcome);
     }
 
-    public Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, int quantity, CancellationToken cancellationToken = default)
+    public Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, long quantity, CancellationToken cancellationToken = default)
     {
         var outcome = UnitOrderAnswer(planet);
         if (outcome.Result == EnqueueResult.Queued)

@@ -270,6 +270,18 @@ public static class SimulatedPlanner
         }
     }
 
+    /// <summary>
+    /// When the build queue runs empty: the running item's time left plus the estimated construction times of the
+    /// waiting items and of <paramref name="added"/> (items just pushed). Times the page doesn't give count as none.
+    /// </summary>
+    public static TimeSpan QueueFreeIn(PlanetBuildState state, IEnumerable<PlannedUpgrade> added)
+    {
+        var costs = new CostModel(state);
+        var waiting = state.Queue.Where(q => !q.Started).Select(q => (q.Building, q.Level))
+            .Concat(added.Select(u => (u.Building, u.Level)));
+        return waiting.Aggregate(state.RunningRemaining ?? TimeSpan.Zero, (sum, q) => sum + (costs.DurationOf(q.Building, q.Level) ?? TimeSpan.Zero));
+    }
+
     /// <summary>The planet's resources minus what the waiting queue items will take when they start.</summary>
     private static ResourceSet Unreserved(PlanetBuildState state)
     {

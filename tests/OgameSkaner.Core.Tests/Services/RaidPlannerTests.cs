@@ -283,6 +283,29 @@ public class RaidPlannerTests
     }
 
     [Fact]
+    public void Spies_go_to_top_targets_then_high_value_ones_by_loot_per_flight_then_to_the_best_ranked_players()
+    {
+        RaidTarget At(string name, Coordinates coordinates, int rank, long estimate) =>
+            new(Planet(name, coordinates, PlayerStatus.Inactive, rank), null, RaidTargetState.NeedsSpy, ExpectedLoot: 0, EstimatedLoot: estimate);
+        var highValue = new TargetStats(Target, null, 2, Now, 9_000, 9_000, null, 0, 0, new HighValueMark(Now, 9_000, 0));
+        RaidTarget[] targets =
+        [
+            At("NearTiny", new Coordinates(5, 288, 5), 2_000, 1_000),
+            At("FarStrong", new Coordinates(2, 1, 1), 50, 1_000),
+            At("StrongPoorPlanet", new Coordinates(5, 289, 1), 120, 1_000),
+            At("StrongRichPlanet", new Coordinates(4, 100, 1), 120, 900_000),
+            At("HighValue", new Coordinates(1, 2, 1), 3_000, 9_000) with { Stats = highValue },
+            At("TopPoor", new Coordinates(5, 288, 6), 10, 2_000) with { IsTop = true },
+            At("TopRich", new Coordinates(1, 1, 1), 900, 5_000_000) with { IsTop = true }
+        ];
+
+        var ordered = RaidPlanner.SpyOrder(targets, [Target], new UniverseProfile("tron"));
+
+        Assert.Equal(["TopRich", "TopPoor", "HighValue", "FarStrong", "StrongRichPlanet", "StrongPoorPlanet", "NearTiny"],
+            ordered.Select(t => t.Planet.PlayerName));
+    }
+
+    [Fact]
     public void The_estimated_loot_takes_our_attacks_since_the_report_off_and_adds_the_refill()
     {
         var report = FullReport(time: Now.AddHours(-4)); // 6,000 resources
@@ -315,6 +338,83 @@ public class RaidPlannerTests
         var ban = new TargetBan(Target, Now.AddDays(-1), Now.AddDays(2), 1, "3 report(s)");
         var banned = RaidPlanner.Evaluate(Inactive, poor, [], Now, Settings, analytics: new TargetAnalytics(new Dictionary<Coordinates, TargetStats>(), new HashSet<Coordinates>(), [ban]));
         Assert.Equal((RaidTargetState.LowResource, ban), (banned.State, banned.Ban));
+    }
+
+    [Fact]
+    public void During_a_farming_event_bans_are_ignored_and_low_loot_planets_are_spied_on_again_soon()
+    {
+        var poor = FullReport(time: Now.AddHours(-2)) with { Resources = new ResourceSet(100, 0, 0) };
+        var ban = new TargetBan(Target, Now.AddDays(-1), Now.AddDays(2), 1, "3 report(s)");
+        var analytics = new TargetAnalytics(new Dictionary<Coordinates, TargetStats>(), new HashSet<Coordinates>(), [ban]);
+
+        // The event started after the report: spied on again at once, ban or not.
+        var started = Settings with { FarmingEvents = [new FarmingEventPeriod(Now.AddHours(-1))] };
+        Assert.Equal(RaidTargetState.NeedsSpy, RaidPlanner.Evaluate(Inactive, poor, [], Now, started, analytics: analytics).State);
+
+        // A poor report of the event: again after the event's minutes (60), not the 5 hours.
+        var inEvent = Settings with { FarmingEvents = [new FarmingEventPeriod(Now.AddHours(-3))] };
+        Assert.Equal(RaidTargetState.NeedsSpy, RaidPlanner.Evaluate(Inactive, poor, [], Now, inEvent, analytics: analytics).State);
+        Assert.Equal(RaidTargetState.TooLittleLoot, RaidPlanner.Evaluate(Inactive, poor with { Time = Now.AddMinutes(-30) }, [], Now, inEvent).State);
+
+        // Switched off: the ban and the 5 hours are back.
+        var ended = Settings with { FarmingEvents = [new FarmingEventPeriod(Now.AddHours(-3), Now.AddMinutes(-10))] };
+        Assert.Equal(RaidTargetState.LowResource, RaidPlanner.Evaluate(Inactive, poor, [], Now, ended, analytics: analytics).State);
+        Assert.Equal(RaidTargetState.TooLittleLoot, RaidPlanner.Evaluate(Inactive, poor, [], Now, ended).State);
+    }
+
+    [Fact]
+    public void During_a_farming_event_spies_go_to_planets_without_an_event_report_nearest_first_then_oldest_report_first()
+    {
+        var start = Now.AddHours(-3);
+        RaidTarget At(string name, Coordinates coordinates, DateTimeOffset? reportAt) =>
+            new(Planet(name, coordinates, PlayerStatus.Inactive, 1), reportAt is { } t ? FullReport(time: t) with { Target = coordinates } : null,
+                RaidTargetState.NeedsSpy, ExpectedLoot: 0, IsTop: name == "Top");
+        RaidTarget[] targets =
+        [
+            At("Top", new Coordinates(1, 1, 1), null),
+            At("SpiedLate", new Coordinates(5, 288, 4), Now.AddMinutes(-40)),
+            At("SpiedEarly", new Coordinates(5, 288, 5), Now.AddHours(-2)),
+            At("Near", new Coordinates(5, 288, 6), Now.AddDays(-1)),
+            At("Middle", new Coordinates(5, 300, 1), null)
+        ];
+
+        var ordered = RaidPlanner.SpyOrder(targets, [Target], new UniverseProfile("tron"), new FarmingEventPeriod(start));
+
+        Assert.Equal(["Near", "Middle", "Top", "SpiedEarly", "SpiedLate"], ordered.Select(t => t.Planet.PlayerName));
+    }
+
+    [Fact]
+    public void During_a_farming_event_spies_may_use_every_slot_but_one()
+    {
+        var full = new FleetSlots(9, 10);
+        var settings = Settings with { FleetSlotUsePercent = 50 };
+
+        Assert.Equal(0, RaidPlanner.SpySlotBudget(new FleetSlots(5, 10), settings));
+        Assert.Equal(4, RaidPlanner.SpySlotBudget(new FleetSlots(5, 10), settings with { FarmingEvents = [new FarmingEventPeriod(Now)] }));
+        Assert.Equal(0, RaidPlanner.SpySlotBudget(full, settings with { FarmingEvents = [new FarmingEventPeriod(Now)] }));
+    }
+
+    [Fact]
+    public void PlanAttacks_gives_a_rich_planets_later_waves_the_slots_before_poor_planets_first()
+    {
+        var settings = Settings with { MinLoot = 1_000, LootPercent = 50, MaxAttacksPerTarget = 5 };
+        RaidTarget Ready(Coordinates c, long resources) => new(
+            Planet("x", c, PlayerStatus.Inactive, 1),
+            FullReport() with { Target = c, Resources = new ResourceSet(resources, 0, 0) },
+            RaidTargetState.Ready, resources / 2);
+        var rich = new Coordinates(1, 165, 10);
+        var targets = new[] { Ready(rich, 16_000), Ready(new Coordinates(1, 1, 1), 3_000), Ready(new Coordinates(1, 1, 2), 2_400) };
+
+        // Rich: 8,000 / 4,000 / 2,000 / 1,000 (then 500 < min loot); the poor ones 1,500 and 1,200.
+        var plan = RaidPlanner.PlanAttacks(targets, settings, 3, [], new UniverseProfile("tron"));
+
+        Assert.Equal(3, plan[rich]);
+        Assert.Single(plan);
+
+        var all = RaidPlanner.PlanAttacks(targets, settings, 20, [], new UniverseProfile("tron"));
+        Assert.Equal(4, all[rich]);
+        Assert.Equal(1, all[new Coordinates(1, 1, 1)]);
+        Assert.Equal(1, all[new Coordinates(1, 1, 2)]);
     }
 
     private sealed record Origin(Coordinates Coordinates, long Ships);

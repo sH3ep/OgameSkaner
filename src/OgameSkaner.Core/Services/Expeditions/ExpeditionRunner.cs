@@ -7,6 +7,7 @@ using OgameSkaner.Core.Domain.Raiding;
 using OgameSkaner.Core.Ogamex;
 using OgameSkaner.Core.Services.Building;
 using OgameSkaner.Core.Services.Scheduling;
+using OgameSkaner.Core.Services.Transports;
 
 namespace OgameSkaner.Core.Services.Expeditions;
 
@@ -31,7 +32,11 @@ public sealed record ExpeditionRunResult(ExpeditionOutcome Outcome, int Sent, st
 /// Keeps expeditions flying. Each cycle of <see cref="RunAsync"/> reads the planets (and moons) and the event list, and
 /// every origin short of its configured count sends expeditions to position 16 of its system with the ticked ships
 /// (<see cref="ExpeditionPlanner.Fleet"/>), as far as the expedition and fleet slots allow (the cycle is one
-/// <see cref="IActionQueue"/> group). Then the runner sleeps until an expedition comes back or the check interval passed.
+/// <see cref="IActionQueue"/> group). With <see cref="ExpeditionSettings.CollectDebris"/> the same group then reads the
+/// galaxy page of every origin's system once one of its expeditions reached position 16 (fights with pirates or aliens
+/// leave a debris field there) and sends Recyclers from that system's origin to a debris field of at least
+/// <see cref="ExpeditionSettings.MinDebris"/>. Then the runner sleeps until an expedition (or Recycler) arrives or comes
+/// back, or the check interval passed.
 /// </summary>
 /// <remarks>
 /// The event list may not list an expedition while it stays at position 16, so the runner also counts the expeditions it
@@ -66,7 +71,7 @@ public sealed class ExpeditionRunner(
                         .ConfigureAwait(false);
                     Reserve(client, settings, state);
                     var interval = TimeSpan.FromMinutes(Math.Max(1, settings.CheckIntervalMinutes));
-                    wait = ExpeditionPlanner.NextWait(state.Changes(), timeProvider.GetUtcNow(), interval);
+                    wait = ExpeditionPlanner.NextWait(state.Changes(settings.CollectDebris), timeProvider.GetUtcNow(), interval);
                 }
                 catch (OgamexException ex) when (ex is not SessionExpiredException)
                 {
@@ -151,8 +156,110 @@ public sealed class ExpeditionRunner(
             (fleets, expeditions) = await SendAsync(client, settings, due, state, progress, cancellationToken).ConfigureAwait(false);
         state.ExpeditionSlots = expeditions ?? state.ExpeditionSlots;
 
+        if (settings.CollectDebris)
+            await CollectDebrisAsync(client, settings, origins, state, progress, cancellationToken).ConfigureAwait(false);
+
         progress?.Report(new ExpeditionProgress("", new ExpeditionOverview(WithFlying(origins, state, timeProvider.GetUtcNow()), fleets, expeditions)));
     }
+
+    /// <summary>
+    /// Reads the systems of the origins whose expeditions (or Recyclers) arrived since the system's last read (all of them
+    /// on the run's first cycle) and sends Recyclers to a debris field at position 16 that has none on the way yet.
+    /// </summary>
+    private async Task CollectDebrisAsync(
+        IOgamexClient client, ExpeditionSettings settings, IReadOnlyList<ExpeditionOriginState> origins, RunState state,
+        IProgress<ExpeditionProgress>? progress, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetUtcNow();
+        foreach (var movement in ExpeditionPlanner.OwnExpeditions(state.Movements).Where(m => m.Target.Position == ExpeditionPlanner.Position))
+            state.Arrivals.Add((System(movement.Target), movement.ArrivesAt));
+        state.Recycling.RemoveAll(r => r.ArrivesAt <= now);
+
+        var systems = origins.Where(o => o.Count > 0)
+            .OrderBy(o => IndexOf(settings, o.Place.Id))
+            .GroupBy(o => System(o.Place.Coordinates));
+        foreach (var system in systems)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (state.DebrisChecked.TryGetValue(system.Key, out var last) && !state.Arrivals.Any(a => a.System == system.Key && a.At > last && a.At <= now))
+                continue;
+
+            var view = await client.GetGalaxySystemAsync(system.Key, cancellationToken).ConfigureAwait(false);
+            state.DebrisChecked[system.Key] = now;
+            state.Arrivals.RemoveWhere(a => a.System == system.Key && a.At <= now);
+
+            var target = ExpeditionPlanner.Target(system.First().Place.Coordinates);
+            var debris = view.DebrisAt(ExpeditionPlanner.Position);
+            var total = TransportSender.Total(debris);
+            if (total == 0 || ExpeditionPlanner.Recycling(state.Movements, target) || state.Recycling.Any(r => r.Target == target))
+                continue;
+            if (total < settings.MinDebris)
+            {
+                Report(progress, $"Debris field at [{target}] ({Describe(debris)}) is below {settings.MinDebris:N0}; no Recyclers sent.");
+                continue;
+            }
+
+            await SendRecyclersAsync(client, settings, system.ToList(), target, debris, state, progress, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>Sends Recyclers to <paramref name="target"/> from the first origin of its system that has any at home.</summary>
+    private async Task SendRecyclersAsync(
+        IOgamexClient client, ExpeditionSettings settings, IReadOnlyList<ExpeditionOriginState> origins, Coordinates target, ResourceSet debris,
+        RunState state, IProgress<ExpeditionProgress>? progress, CancellationToken cancellationToken)
+    {
+        foreach (var origin in origins)
+        {
+            var place = origin.Place;
+            var fleet = await client.GetFleetAsync(place.Id, cancellationToken).ConfigureAwait(false);
+            var count = ExpeditionPlanner.Recyclers(debris, fleet.CargoCapacityOf(ExpeditionPlanner.RecyclerType), fleet.QuantityOf(ExpeditionPlanner.RecyclerType));
+            if (count == 0)
+                continue;
+
+            // Slots other modules claimed count as used.
+            var read = fleet.Slots ?? throw new OgamexException("The fleet page shows no fleet slots.");
+            var slots = claims?.For(client).Effective(Owner, read) ?? read;
+            if (slots.Free - Math.Max(FleetSlots.KeptForEmergencies, settings.KeepFleetSlotsFree) <= 0)
+            {
+                Report(progress, $"Debris field at [{target}] ({Describe(debris)}): no free fleet slot for the Recyclers (fleets {slots.Used}/{slots.Max}).");
+                return;
+            }
+
+            var mission = new FleetMission(target, PlanetType.DebrisField, MissionType.Recycle, [new ShipStack(ExpeditionPlanner.RecyclerType, count)]);
+            var briefing = await client.GetFleetBriefingAsync(mission, place.Id, cancellationToken).ConfigureAwait(false);
+            if (!briefing.AvailableMissions.Contains(MissionType.Recycle))
+            {
+                var warning = briefing.Warning is { } w ? $" ({w})" : "";
+                Report(progress, $"{place}: the game doesn't offer Recycle to the debris field at [{target}]{warning}.");
+                return;
+            }
+
+            var description = $"{count:N0} {UnitCatalog.NameOf(ExpeditionPlanner.RecyclerType)} from {place} to the debris field at [{target}] ({Describe(debris)})";
+            if (!settings.TestMode)
+            {
+                var outcome = await client.SendFleetAsync(mission, place.Id, cancellationToken).ConfigureAwait(false);
+                if (!outcome.Sent)
+                {
+                    Report(progress, $"{place}: the Recyclers were refused: {outcome.Message}");
+                    return;
+                }
+            }
+
+            // Their arrival reads the system again, so what they couldn't carry gets more Recyclers.
+            var arrivesAt = timeProvider.GetUtcNow() + briefing.OneWayFlight;
+            state.Recycling.Add(new SentRecycling(target, arrivesAt));
+            state.Arrivals.Add((System(target), arrivesAt));
+            Report(progress, settings.TestMode ? $"[Test] Would send {description}" : $"Sent {description}");
+            return;
+        }
+
+        Report(progress, $"Debris field at [{target}] ({Describe(debris)}): no Recyclers at home in that system.");
+    }
+
+    private static SolarSystemAddress System(Coordinates coordinates) => new(coordinates.Galaxy, coordinates.System);
+
+    private static string Describe(ResourceSet debris) =>
+        $"{debris.Metal:N0} metal, {debris.Crystal:N0} crystal" + (debris.Deuterium > 0 ? $", {debris.Deuterium:N0} deuterium" : "");
 
     /// <summary>Sends the due expeditions in the settings' order until the slots run out; returns the slots read.</summary>
     private async Task<(FleetSlots? Fleets, FleetSlots? Expeditions)> SendAsync(
@@ -205,7 +312,8 @@ public sealed class ExpeditionRunner(
 
                 var hold = ExpeditionPlanner.Hold(briefing.ExpeditionDurations, settings.HoldMinutes);
                 mission = mission with { HoldMinutes = hold };
-                var returnsAt = timeProvider.GetUtcNow() + 2 * briefing.OneWayFlight + TimeSpan.FromMinutes(hold);
+                var arrivesAt = timeProvider.GetUtcNow() + briefing.OneWayFlight;
+                var returnsAt = arrivesAt + briefing.OneWayFlight + TimeSpan.FromMinutes(hold);
                 var description = $"{Describe(ships)} from {place} to [{mission.Target}] for {Duration(hold)}, back at {returnsAt.ToLocalTime():g}";
                 if (!settings.TestMode)
                 {
@@ -219,7 +327,8 @@ public sealed class ExpeditionRunner(
 
                 sent++;
                 state.Total++;
-                state.Sent.Add(new SentExpedition(place.Id, returnsAt));
+                state.Sent.Add(new SentExpedition(place.Id, arrivesAt, returnsAt));
+                state.Arrivals.Add((System(mission.Target), arrivesAt));
                 Report(progress, settings.TestMode ? $"[Test] Would send {description}" : $"Sent {description}");
             }
         }
@@ -267,7 +376,9 @@ public sealed class ExpeditionRunner(
 
     private static void Report(IProgress<ExpeditionProgress>? progress, string message) => progress?.Report(new ExpeditionProgress(message));
 
-    private sealed record SentExpedition(PlanetId Origin, DateTimeOffset ReturnsAt);
+    private sealed record SentExpedition(PlanetId Origin, DateTimeOffset ArrivesAt, DateTimeOffset ReturnsAt);
+
+    private sealed record SentRecycling(Coordinates Target, DateTimeOffset ArrivesAt);
 
     private sealed class RunState
     {
@@ -285,8 +396,22 @@ public sealed class ExpeditionRunner(
         /// <summary>The expedition slots as last read.</summary>
         public FleetSlots? ExpeditionSlots { get; set; }
 
-        /// <summary>When an expedition arrives or comes back: the event list's times and this run's computed returns.</summary>
-        public IEnumerable<DateTimeOffset> Changes() =>
-            ExpeditionPlanner.OwnExpeditions(Movements).Select(m => m.ArrivesAt).Concat(Sent.Select(s => s.ReturnsAt));
+        /// <summary>When each system's debris field was last read.</summary>
+        public Dictionary<SolarSystemAddress, DateTimeOffset> DebrisChecked { get; } = new();
+
+        /// <summary>When expeditions (or Recyclers) arrive in a system, so its debris field is read again after.</summary>
+        public HashSet<(SolarSystemAddress System, DateTimeOffset At)> Arrivals { get; } = [];
+
+        /// <summary>The Recyclers this run sent that haven't arrived yet (the event list may not show them yet).</summary>
+        public List<SentRecycling> Recycling { get; } = [];
+
+        /// <summary>
+        /// When an expedition arrives or comes back: the event list's times and this run's computed returns; with
+        /// <paramref name="debris"/> also this run's computed arrivals at position 16 and the sent Recyclers' arrivals.
+        /// </summary>
+        public IEnumerable<DateTimeOffset> Changes(bool debris) =>
+            ExpeditionPlanner.OwnExpeditions(Movements).Select(m => m.ArrivesAt)
+                .Concat(Sent.Select(s => s.ReturnsAt))
+                .Concat(debris ? Sent.Select(s => s.ArrivesAt).Concat(Recycling.Select(r => r.ArrivesAt)) : []);
     }
 }

@@ -10,6 +10,14 @@ namespace OgameSkaner.Core.Services.Transports;
 /// <param name="TargetName">How the log names the target.</param>
 /// <param name="CargoShipTypes">The cargo ship types in priority order (<see cref="RaidPlanner.CargoFleet"/>).</param>
 /// <param name="MaxFlight">Not sent when the flight takes this long or longer (e.g. the target pays it itself before).</param>
+/// <param name="TargetProductionPerHour">
+/// The target's production: what it makes during the part of the flight after <paramref name="ProducedBefore"/> (the
+/// caller already left out what it makes until then) is left out of the cargo.
+/// </param>
+/// <param name="Whole">
+/// All of <paramref name="Cargo"/> or nothing: not sent when the origin's stock, cargo ships or fuel would cut it
+/// (<see cref="TransportStatus.Short"/>). What the target makes during the flight is still left out.
+/// </param>
 public sealed record TransportRequest(
     OwnPlanet From,
     Coordinates Target,
@@ -19,7 +27,10 @@ public sealed record TransportRequest(
     IReadOnlyList<string> CargoShipTypes,
     int SpeedPercent,
     bool TestMode,
-    TimeSpan? MaxFlight = null);
+    TimeSpan? MaxFlight = null,
+    ResourceSet TargetProductionPerHour = default,
+    TimeSpan ProducedBefore = default,
+    bool Whole = false);
 
 public enum TransportStatus
 {
@@ -27,7 +38,13 @@ public enum TransportStatus
     NotSent,
 
     /// <summary>Every fleet slot (the module may use) is in use.</summary>
-    NoFleetSlot
+    NoFleetSlot,
+
+    /// <summary>The flight takes <see cref="TransportRequest.MaxFlight"/> or longer.</summary>
+    TooLong,
+
+    /// <summary>The origin can't send the whole cargo (<see cref="TransportRequest.Whole"/>).</summary>
+    Short
 }
 
 /// <param name="Cargo">What was sent.</param>
@@ -45,6 +62,15 @@ public sealed record TransportOutcome(TransportStatus Status, ResourceSet Cargo 
 /// </summary>
 public static class TransportSender
 {
+    /// <summary>How often the briefing is asked again with more ships when their fuel leaves the cargo short.</summary>
+    private const int MaxFuelRetries = 4;
+
+    /// <summary>Extra cargo room the ships are picked for (in percent), so the fuel of the flight (which grows with the ships) fits.</summary>
+    public const int ShipMarginPercent = 5;
+
+    /// <summary><paramref name="cargo"/> plus <see cref="ShipMarginPercent"/>: what the cargo ships are picked for.</summary>
+    public static long WithMargin(long cargo) => cargo + cargo / 100 * ShipMarginPercent;
+
     /// <param name="slots">How the caller may use the slots the fleet page shows (claims of other modules counted as used); null = as read.</param>
     /// <param name="report">Gets what happened (without the target's name, which the caller puts first).</param>
     public static async Task<TransportOutcome> SendAsync(
@@ -61,6 +87,12 @@ public static class TransportSender
         }
 
         var stock = fleet.Resources ?? ResourceSet.Zero;
+        if (request.Whole && !stock.CanAfford(request.Cargo))
+        {
+            report($"not sent: {planet} has only {stock}, not all of {request.Cargo}.");
+            return new TransportOutcome(TransportStatus.Short);
+        }
+
         var send = CargoRounding.Within(Min(request.Cargo, stock), stock);
         if (Total(send) == 0)
         {
@@ -68,7 +100,7 @@ public static class TransportSender
             return TransportOutcome.NotSent;
         }
 
-        var ships = RaidPlanner.CargoFleet(Total(send), request.CargoShipTypes, fleet.QuantityOf, fleet.CargoCapacityOf);
+        var ships = RaidPlanner.CargoFleet(WithMargin(Total(send)), request.CargoShipTypes, fleet.QuantityOf, fleet.CargoCapacityOf);
         var capacity = ships.Sum(s => s.Quantity * fleet.CargoCapacityOf(s.ShipType));
         if (capacity == 0)
         {
@@ -86,30 +118,59 @@ public static class TransportSender
 
         if (request.MaxFlight is { } max && briefing.OneWayFlight >= max)
         {
-            report($"not sent: the flight from {planet} takes {briefing.OneWayFlight:g}, the target pays it itself in {max:g}.");
-            return TransportOutcome.NotSent;
+            report($"not sent: the flight from {planet} takes {briefing.OneWayFlight:g}; only one under {max:g} is worth it.");
+            return new TransportOutcome(TransportStatus.TooLong);
         }
 
         // The flight's fuel stays on the planet and takes cargo space: when that leaves the ships short, take more
-        // (as far as the planet has them) and ask again, since the fuel depends on the ships.
+        // (as far as the planet has them) and ask again, since the fuel depends on the ships. The added ships burn fuel
+        // too, so repeat until the room covers the cargo (it converges at once, the extra fuel is small).
         var fuel = Math.Max(0, briefing.DeuteriumConsumption);
-        if (capacity - fuel < Total(send))
+        for (var attempt = 0; attempt < MaxFuelRetries && capacity - fuel < Total(send); attempt++)
         {
-            var more = RaidPlanner.CargoFleet(Total(send) + fuel, request.CargoShipTypes, fleet.QuantityOf, fleet.CargoCapacityOf);
+            var more = RaidPlanner.CargoFleet(WithMargin(Total(send) + fuel), request.CargoShipTypes, fleet.QuantityOf, fleet.CargoCapacityOf);
             var moreCapacity = more.Sum(s => s.Quantity * fleet.CargoCapacityOf(s.ShipType));
-            if (moreCapacity > capacity)
+            if (moreCapacity <= capacity)
+                break; // no more ships on the planet
+            var retry = mission with { Ships = more };
+            var next = await client.GetFleetBriefingAsync(retry, planet.Id, cancellationToken).ConfigureAwait(false);
+            if (!next.AvailableMissions.Contains(MissionType.Transport) || (request.MaxFlight is { } limit && next.OneWayFlight >= limit))
+                break;
+            (ships, capacity, mission, briefing, fuel) = (more, moreCapacity, retry, next, Math.Max(0, next.DeuteriumConsumption));
+        }
+
+        // What the target makes itself while the fleet flies needn't be carried; fewer ships may do then.
+        var producing = briefing.OneWayFlight - request.ProducedBefore;
+        if (producing > TimeSpan.Zero && Total(request.TargetProductionPerHour) > 0)
+        {
+            var made = request.TargetProductionPerHour.Scale(producing.TotalHours);
+            var less = CargoRounding.Down(new ResourceSet(Math.Max(0, send.Metal - made.Metal), Math.Max(0, send.Crystal - made.Crystal), Math.Max(0, send.Deuterium - made.Deuterium)));
+            if (Total(less) == 0)
             {
-                var retry = mission with { Ships = more };
-                var second = await client.GetFleetBriefingAsync(retry, planet.Id, cancellationToken).ConfigureAwait(false);
-                if (second.AvailableMissions.Contains(MissionType.Transport) && (request.MaxFlight is not { } limit || second.OneWayFlight < limit))
-                    (ships, capacity, mission, briefing, fuel) = (more, moreCapacity, retry, second, Math.Max(0, second.DeuteriumConsumption));
+                report($"not sent: {request.TargetName} makes {send} itself during the {briefing.OneWayFlight:g} flight.");
+                return new TransportOutcome(TransportStatus.TooLong);
+            }
+
+            if (less != send)
+            {
+                send = less;
+                var fewer = RaidPlanner.CargoFleet(WithMargin(Total(send) + fuel), request.CargoShipTypes, fleet.QuantityOf, fleet.CargoCapacityOf);
+                var fewerCapacity = fewer.Sum(s => s.Quantity * fleet.CargoCapacityOf(s.ShipType));
+                if (fewerCapacity >= Total(send) + fuel && fewerCapacity < capacity)
+                    (ships, capacity, mission) = (fewer, fewerCapacity, mission with { Ships = fewer });
             }
         }
 
         var deuteriumLeft = Math.Max(0, stock.Deuterium - fuel);
+        var room = Math.Max(0, capacity - fuel);
+        if (request.Whole && (send.Deuterium > deuteriumLeft || Total(send) > room))
+        {
+            report($"not sent: the fuel ({fuel:N0} deuterium) or the cargo ships on {planet} ({room:N0} cargo room) don't leave room for all of {send}.");
+            return new TransportOutcome(TransportStatus.Short);
+        }
+
         if (send.Deuterium > deuteriumLeft)
             send = send with { Deuterium = CargoRounding.Down(deuteriumLeft) };
-        var room = Math.Max(0, capacity - fuel);
         if (Total(send) > room)
             send = CargoRounding.Down(Fit(send, room));
         if (Total(send) == 0)

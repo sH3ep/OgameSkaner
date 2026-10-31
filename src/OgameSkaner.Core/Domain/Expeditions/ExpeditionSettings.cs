@@ -29,6 +29,17 @@ public sealed record ExpeditionSettings
     /// </summary>
     public bool ReserveSlots { get; init; } = true;
 
+    /// <summary>
+    /// After an expedition reaches position 16 (where fights with pirates and aliens leave a debris field), read the
+    /// origin's system and send Recyclers from the origin to a debris field there.
+    /// </summary>
+    public bool CollectDebris { get; init; } = true;
+
+    /// <summary>Smaller debris fields (metal + crystal + deuterium) get no Recyclers.</summary>
+    public long MinDebris { get; init; } = DefaultMinDebris;
+
+    public const long DefaultMinDebris = 100_000;
+
     /// <summary>The longest sleep between two checks (a check is due earlier when an expedition returns).</summary>
     public int CheckIntervalMinutes { get; init; } = 5;
 

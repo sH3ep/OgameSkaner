@@ -88,10 +88,10 @@ public interface IOgamexClient : IDisposable
     Task<ShipyardState> GetShipyardStateAsync(PlanetId planet, CancellationToken cancellationToken = default);
 
     /// <summary>Orders ships in the planet's shipyard, e.g. <c>SOLAR_SATELLITE</c>.</summary>
-    Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default);
+    Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, long quantity, CancellationToken cancellationToken = default);
 
     /// <summary>Orders defenses on the planet, e.g. <c>MISSILE_LAUNCHER</c>.</summary>
-    Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, int quantity, CancellationToken cancellationToken = default);
+    Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, long quantity, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// The account's production and speed bonuses (research, officers, academy, premium, ranking, class) from the

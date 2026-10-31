@@ -51,6 +51,9 @@ public sealed class BuildSettings
     /// <summary>Fleet slots the sharing claims at most while it waits for free ones.</summary>
     public int ShareMaxSlots { get; set; } = ResourceShareSettings.DefaultMaxSlots;
 
+    /// <summary>A transport goes only when the receiver can build at least this many hours sooner than with its own production.</summary>
+    public double ShareMinHoursSaved { get; set; } = ResourceShareSettings.DefaultMinHoursSaved;
+
     /// <summary>Plan the transports but send none. Not saved.</summary>
     [JsonIgnore]
     public bool ShareTestMode { get; set; }
@@ -59,7 +62,8 @@ public sealed class BuildSettings
 
     public ResourceShareSettings? ToShareSettings() => ShareResources
         ? new ResourceShareSettings(ShareCargoShipTypes, Math.Clamp(ShareSpeedPercent, 10, 100), Math.Max(1, ShareNextItems),
-            Math.Max(0, ShareMinTransportAmount), Math.Max(1, ShareMaxSlots), ShareTestMode, Math.Max(0, ShareKeepDeuterium))
+            Math.Max(0, ShareMinTransportAmount), Math.Max(1, ShareMaxSlots), ShareTestMode, Math.Max(0, ShareKeepDeuterium),
+            Math.Max(0, ShareMinHoursSaved))
         : null;
 
     /// <summary>

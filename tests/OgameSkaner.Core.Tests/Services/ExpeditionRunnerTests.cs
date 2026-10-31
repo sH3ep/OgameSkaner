@@ -48,7 +48,8 @@ public class ExpeditionRunnerTests
         ShipTypes = ["LIGHT_CARGO", "HEAVY_CARGO"],
         Origins = origins.Select(o => new ExpeditionOrigin(o.Place.Id.Value, o.Count)).ToList(),
         HoldMinutes = 100,
-        KeepFleetSlotsFree = 0
+        KeepFleetSlotsFree = 0,
+        CollectDebris = false
     };
 
     private readonly FleetSlotClaimsProvider _claims;
@@ -259,6 +260,80 @@ public class ExpeditionRunnerTests
         Assert.Empty(_client.SentMissions);
         Assert.Contains("1 planet(s) or moon(s) set to send expeditions aren't in the planet list any more and are skipped.", _log);
         Assert.Contains("No ship type is ticked.", _log);
+    }
+
+    /// <summary>A debris field at Home's position 16, Recyclers at home and a briefing that offers both missions.</summary>
+    private ExpeditionSettings WithDebris(long metal, long crystal)
+    {
+        _client.Debris[new SolarSystemAddress(8, 260)] = new() { [16] = new ResourceSet(metal, crystal, 0) };
+        _home[Home.Id] = [.. _home[Home.Id], new ShipStack("RECYCLER", 80)];
+        _client.Briefing = mission => new FleetBriefing(
+            [mission.Mission], TimeSpan.FromMinutes(10), 50, 1065, null, null, null, 0, 0, PlayerStatus.None, null)
+        {
+            ExpeditionDurations = [60, 120, 180]
+        };
+        return Settings((Home, 1)) with { CollectDebris = true };
+    }
+
+    private List<FleetMission> RecycleMissions => _client.SentMissions.Where(m => m.Mission == MissionType.Recycle).ToList();
+
+    [Fact]
+    public async Task Recyclers_go_to_a_debris_field_at_position_16_of_the_origins_system()
+    {
+        await RunAsync(WithDebris(1_250_000, 830_400));
+
+        var recycle = Assert.Single(RecycleMissions);
+        Assert.Equal((new Coordinates(8, 260, 16), PlanetType.DebrisField), (recycle.Target, recycle.TargetType));
+        Assert.Equal([new ShipStack("RECYCLER", 80)], recycle.Ships); // 2,080,400 needs 105 of 20,000, 80 are home
+        Assert.Equal(Home.Id, _client.SentOrigins[_client.SentMissions.IndexOf(recycle)]);
+        Assert.Contains(_log, l => l.StartsWith("Sent 80 Recycler from Home", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Recyclers_take_only_what_the_debris_fills()
+    {
+        await RunAsync(WithDebris(100_000, 50_000));
+
+        Assert.Equal([new ShipStack("RECYCLER", 8)], Assert.Single(RecycleMissions).Ships);
+    }
+
+    [Fact]
+    public async Task No_recyclers_for_a_small_field_or_one_they_already_fly_to()
+    {
+        await RunAsync(WithDebris(50_000, 40_000));
+        Assert.Empty(RecycleMissions);
+
+        _client.FleetMovements.Add(new FleetMovement("r", MovementMission.Recycle, MovementRelation.Own, false, _time.GetUtcNow().AddMinutes(5),
+            Home.Coordinates, Home.Name, new Coordinates(8, 260, 16), "", 80));
+        await RunAsync(WithDebris(1_000_000, 0));
+        Assert.Empty(RecycleMissions);
+    }
+
+    [Fact]
+    public async Task The_system_is_not_read_again_before_an_expedition_arrived()
+    {
+        // The first check reads it; the second (5 min later, the expedition arrives after 10) doesn't.
+        await RunAsync(WithDebris(0, 0) with { CheckIntervalMinutes = 5 }, checks: 2);
+
+        Assert.Single(_client.RequestedSystems);
+    }
+
+    [Fact]
+    public async Task The_runner_wakes_when_an_expedition_arrives_and_reads_the_system_again()
+    {
+        await RunAsync(WithDebris(0, 0) with { CheckIntervalMinutes = 60 }, checks: 2);
+
+        Assert.Equal(2, _client.RequestedSystems.Count);
+        Assert.Equal(new DateTimeOffset(2026, 10, 18, 12, 10, 30, TimeSpan.Zero), _time.GetUtcNow());
+    }
+
+    [Fact]
+    public async Task Without_collecting_no_galaxy_page_is_read()
+    {
+        await RunAsync(WithDebris(1_000_000, 0) with { CollectDebris = false });
+
+        Assert.Empty(RecycleMissions);
+        Assert.Empty(_client.RequestedSystems);
     }
 
     private sealed class SyncProgress(Action<ExpeditionProgress> handler) : IProgress<ExpeditionProgress>

@@ -75,12 +75,12 @@ internal sealed record IncreaseBuildingRequest(
 /// <summary>Body of <c>/hangar/createship</c>; the game sends these exact (PascalCase) names.</summary>
 internal sealed record CreateShipRequest(
     [property: JsonPropertyName("ShipType")] string ShipType,
-    [property: JsonPropertyName("Quantity")] int Quantity,
+    [property: JsonPropertyName("Quantity")] long Quantity,
     [property: JsonPropertyName("__PlanetId")] string PlanetId);
 
 internal sealed record CreateDefenseRequest(
     [property: JsonPropertyName("DefenseType")] string DefenseType,
-    [property: JsonPropertyName("Quantity")] int Quantity,
+    [property: JsonPropertyName("Quantity")] long Quantity,
     [property: JsonPropertyName("__PlanetId")] string PlanetId);
 
 /// <summary>Answer of the building endpoints: <c>{"IsSuccess":false,"Message":"Construction queue is full.","ValidationErrors":null}</c>.</summary>

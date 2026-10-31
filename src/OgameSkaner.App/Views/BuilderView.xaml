@@ -150,7 +150,7 @@
                         <Expander Margin="0,0,0,8">
                             <Expander.Header>
                                 <CheckBox Content="Share resources between planets" IsChecked="{Binding ShareResources}"
-                                          ToolTip="After each check, planets waiting for stock get transports from planets with a surplus. Every planet first keeps what its own next items need; planets the Builder doesn't build on give all they have." />
+                                          ToolTip="After each check, planets waiting for stock get transports from planets with a surplus. Every planet first keeps what its own next items need; planets the Builder doesn't build on give all they have. Planets waiting for stock, or supplied in the last 2 hours, give nothing." />
                             </Expander.Header>
                             <StackPanel Margin="4,4,0,0" IsEnabled="{Binding ShareResources}">
                                 <Grid Margin="0,0,0,4">
@@ -159,6 +159,7 @@
                                         <ColumnDefinition Width="Auto" MinWidth="90" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -179,6 +180,9 @@
                                     <TextBlock Grid.Row="4" Text="Donors keep deuterium" VerticalAlignment="Center" Margin="0,0,6,4" />
                                     <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ShareKeepDeuterium, Converter={StaticResource GroupedNumber}}" Margin="0,0,0,4"
                                              ToolTip="Every planet keeps this much deuterium on top of its own needs, as fuel for raids, expeditions and fleet escapes" />
+                                    <TextBlock Grid.Row="5" Text="Min. hours saved" VerticalAlignment="Center" Margin="0,0,6,4" />
+                                    <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding ShareMinHoursSaved}" Margin="0,0,0,4"
+                                             ToolTip="A transport goes only when the receiver can build at least this many hours sooner than its own production would let it (counted from when its build queue is free), and more than the fleet's round trip" />
                                 </Grid>
                                 <DockPanel Margin="0,0,0,4" ToolTip="Ticked ships carry the resources, top to bottom: the first type as far as the planet has it, then the next">
                                     <StackPanel DockPanel.Dock="Right" Margin="4,0,0,0">

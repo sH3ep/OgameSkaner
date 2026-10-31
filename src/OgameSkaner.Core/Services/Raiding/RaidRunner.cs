@@ -160,7 +160,7 @@ public sealed class RaidRunner(
                 TimeSpan wait;
                 try
                 {
-                    var cycle = await RunCycleAsync(client, settings, progress, cancellationToken).ConfigureAwait(false);
+                    var cycle = await RunCycleAsync(client, WithStoredFarmingEvents(client.Universe.Name, settings), progress, cancellationToken).ConfigureAwait(false);
                     attacks += cycle.Attacks;
                     spies += cycle.Spies;
                     wait = cycle.Wait;
@@ -185,6 +185,16 @@ public sealed class RaidRunner(
         {
             return new RaidRunResult(RaidOutcome.Failed, attacks, spies, ex.Message);
         }
+    }
+
+    /// <summary>
+    /// <paramref name="settings"/> with the stored farming events: the player switches an event on and off while the
+    /// raider runs, and the next cycle follows.
+    /// </summary>
+    private RaidSettings WithStoredFarmingEvents(string universe, RaidSettings settings)
+    {
+        var stored = store.LoadSettings(universe);
+        return settings with { FarmingEvents = stored.FarmingEvents, FarmingEventRespyMinutes = stored.FarmingEventRespyMinutes };
     }
 
     /// <summary>The "Load reports" button: the new espionage reports, up to <see cref="ManualReportPages"/> pages.</summary>
@@ -332,10 +342,7 @@ public sealed class RaidRunner(
             Report(progress, $"No spying: {slots.Used + attacks}/{slots.Max} fleet slots in use, the limit is {settings.FleetSlotUsePercent}%.");
         if (spyBudget > 0)
         {
-            // The richest targets by their history first, then those that showed a big stock lately, each group by the
-            // loot it likely holds now per flight time (OrderBy is stable).
-            var needSpy = RaidPlanner.MostLootPerFlightFirst(targets.Where(t => t.State == RaidTargetState.NeedsSpy), t => t.EstimatedLoot, from, client.Universe)
-                .OrderBy(t => t.IsTop ? 0 : t.IsHighValue ? 1 : 2).ToList();
+            var needSpy = RaidPlanner.SpyOrder(targets.Where(t => t.State == RaidTargetState.NeedsSpy), from, client.Universe, settings.ActiveFarmingEvent);
             var chosen = needSpy.Take(spyBudget).ToList();
             if (chosen.Count > 0)
                 spies = await queue.RunAsync(Owner, $"Spy on {chosen.Count} planet(s)", ct => SpyAsync(client, chosen, settings, origins, progress, ct), cancellationToken: cancellationToken)
@@ -431,12 +438,16 @@ public sealed class RaidRunner(
         long CapacityOf(string type) => capacities.GetValueOrDefault(type);
         long CargoOn(Origin o) => priority.Distinct().Sum(t => o.Cargo(t) * CapacityOf(t));
 
+        // Each attack competes for the slots by its own loot, so a rich planet's later waves beat poor planets' first ones.
+        IReadOnlyCollection<Coordinates> from = settings.NearestTargetsFirst ? origins.Select(o => o.Planet.Coordinates).ToList() : [];
+        var plan = RaidPlanner.PlanAttacks(targets, settings, slots, from, client.Universe);
+
         var queue = queues.For(client);
         var sent = new List<RaidRecord>();
         var landing = new Dictionary<Coordinates, DateTimeOffset>(); // when the last wave sent to a target lands
         try
         {
-            var wave = targets.ToList();
+            var wave = targets.Where(t => plan.ContainsKey(t.Planet.Coordinates)).ToList();
             for (var number = 1; number <= Math.Max(1, settings.MaxAttacksPerTarget) && wave.Count > 0; number++)
             {
                 var (current, n) = (wave, number);
@@ -462,6 +473,8 @@ public sealed class RaidRunner(
             {
                 if (sent.Count >= slots)
                     return (next, false);
+                if (plan.GetValueOrDefault(target.Planet.Coordinates) < number)
+                    continue;
 
                 var loot = target.Report is { } report ? RaidPlanner.WaveLoot(report, settings, number) : target.ExpectedLoot;
                 if (number > 1 && loot < settings.MinLoot)
@@ -582,18 +595,19 @@ public sealed class RaidRunner(
     }
 
     /// <summary>
-    /// The player's planet's fleet (the queue's home planet, else the game's current one), or with
-    /// <see cref="RaidSettings.UseNearestPlanet"/> the fleets of the ticked planets (<see cref="RaidSettings.OriginPlanetIds"/>,
-    /// the player's planet first when ticked); empty when none is ticked.
+    /// The player's planet's or moon's fleet (the queue's home planet, else the game's current one), or with
+    /// <see cref="RaidSettings.UseNearestPlanet"/> the fleets of the ticked planets and moons
+    /// (<see cref="RaidSettings.OriginPlanetIds"/>, the player's place first when ticked); empty when none is ticked.
     /// </summary>
     private async Task<IReadOnlyList<Origin>> ReadOriginsAsync(IOgamexClient client, IActionQueue queue, RaidSettings settings, CancellationToken cancellationToken)
     {
         var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);
         var homeId = queue.HomePlanet ?? refresh.CurrentPlanet;
-        var current = refresh.List.Planets.FirstOrDefault(p => p.Id == homeId);
+        var places = refresh.List.Planets.Concat(refresh.List.Moons).ToList();
+        var current = places.FirstOrDefault(p => p.Id == homeId);
         if (current is null)
         {
-            // The player's planet isn't a planet (a moon?): send from what its fleet page shows.
+            // The player's place isn't in the list (not refreshed yet?): send from what its fleet page shows.
             var fleet = await client.GetFleetAsync(homeId, cancellationToken).ConfigureAwait(false);
             return [new Origin(new OwnPlanet(homeId, fleet.CurrentPlanet.ToString(), fleet.CurrentPlanet), fleet)];
         }
@@ -601,13 +615,14 @@ public sealed class RaidRunner(
         if (!settings.UseNearestPlanet)
             return [new Origin(current, await client.GetFleetAsync(current.Id, cancellationToken).ConfigureAwait(false))];
 
-        // Every ticked planet's ships from the empire page; fleet pages only for the slots and capacities.
-        var planets = refresh.List.Planets.Where(p => settings.OriginPlanetIds.Contains(p.Id.Value)).OrderBy(p => p.Id == current.Id ? 0 : 1).ToList();
-        var fleets = await EmpireFleets.ReadAsync(client, planets, [.. settings.CargoShipPriority, ProbeType], current.Id, cancellationToken).ConfigureAwait(false);
+        // Every ticked place's ships from the empire page; fleet pages only for the slots and capacities.
+        var ticked = places.Where(p => settings.OriginPlanetIds.Contains(p.Id.Value)).OrderBy(p => p.Id == current.Id ? 0 : 1).ToList();
+        var moons = refresh.List.Moons.Select(m => m.Id).ToHashSet();
+        var fleets = await EmpireFleets.ReadAsync(client, ticked, [.. settings.CargoShipPriority, ProbeType], current.Id, moons, cancellationToken).ConfigureAwait(false);
         return fleets.Select(f => new Origin(f.Planet, f.Fleet)).ToList();
     }
 
-    private const string NoOriginMessage = "No planet is ticked to send raids from (Send from the nearest planet).";
+    private const string NoOriginMessage = "No planet or moon is ticked to send raids from (Send from the nearest planet or moon).";
 
     private static FleetSlots Slots(IReadOnlyList<Origin> origins) =>
         origins.Select(o => o.Fleet.Slots).FirstOrDefault(s => s is not null)

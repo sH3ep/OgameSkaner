@@ -7,20 +7,23 @@ using OgameSkaner.Core.Ogamex.Parsing;
 namespace OgameSkaner.Core.Services;
 
 /// <summary>
-/// The fleets of several own planets with as few requests and planet switches as possible: every planet's ships and
-/// stock come from the empire page (one request, no switch), and only as many fleet pages are read as it takes for what
-/// the empire page lacks: the fleet slots (on every fleet page) and the cargo capacity of each wanted ship type (shown
-/// only on a page of a planet that has that type). The preferred planet (the queue's home planet, usually the current
-/// one) is read first when it helps. Planets missing from the empire page, or every planet when the empire page can't
-/// be read, get their own fleet page as before.
+/// The fleets of several own planets and moons with as few requests and planet switches as possible: every place's ships
+/// and stock come from the empire page (one request, no switch), and only as many fleet pages are read as it takes for
+/// what the empire page lacks: the fleet slots (on every fleet page) and the cargo capacity of each wanted ship type
+/// (shown only on a page of a place that has that type). The preferred place (the queue's home planet, usually the
+/// current one) is read first when it helps. Places missing from the empire page, or every place when the empire page
+/// can't be read, get their own fleet page as before. A moon shares its planet's coordinates, so the caller names the
+/// moons (<c>moons</c>) and they are matched with the page's moon columns.
 /// </summary>
 public static class EmpireFleets
 {
+    /// <param name="planets">The planets and moons to read.</param>
     /// <param name="shipTypes">The types whose cargo capacity the caller needs (e.g. the cargo ships and probes).</param>
-    /// <returns>One fleet per planet in <paramref name="planets"/>' order; the planets read get their own page.</returns>
+    /// <param name="moons">The ids in <paramref name="planets"/> that are moons.</param>
+    /// <returns>One fleet per place in <paramref name="planets"/>' order; the places read get their own page.</returns>
     public static async Task<IReadOnlyList<(OwnPlanet Planet, FleetSnapshot Fleet)>> ReadAsync(
         IOgamexClient client, IReadOnlyList<OwnPlanet> planets, IReadOnlyCollection<string> shipTypes, PlanetId? preferred,
-        CancellationToken cancellationToken = default)
+        IReadOnlyCollection<PlanetId>? moons = null, CancellationToken cancellationToken = default)
     {
         if (planets.Count == 0)
             return [];
@@ -35,12 +38,15 @@ public static class EmpireFleets
             empire = null; // markup changed? the fleet pages still work
         }
 
+        EmpirePlanet? Column(OwnPlanet place) =>
+            moons?.Contains(place.Id) == true ? empire?.MoonAt(place.Coordinates) : empire?.PlanetAt(place.Coordinates);
+
         var pages = new Dictionary<PlanetId, FleetSnapshot>();
-        foreach (var planet in planets.Where(p => empire?.PlanetAt(p.Coordinates) is null))
+        foreach (var planet in planets.Where(p => Column(p) is null))
             pages[planet.Id] = await client.GetFleetAsync(planet.Id, cancellationToken).ConfigureAwait(false);
 
         long Count(OwnPlanet planet, string type) =>
-            pages.TryGetValue(planet.Id, out var page) ? page.QuantityOf(type) : empire!.PlanetAt(planet.Coordinates)!.ShipCount(type);
+            pages.TryGetValue(planet.Id, out var page) ? page.QuantityOf(type) : Column(planet)!.ShipCount(type);
 
         // Each page read covers the capacities of the types its planet has: read the planet that covers the most
         // missing ones, the preferred one among equals.
@@ -75,7 +81,7 @@ public static class EmpireFleets
         return planets
             .Select(planet => (planet, pages.TryGetValue(planet.Id, out var page)
                 ? page with { CargoCapacities = capacities }
-                : FromEmpire(empire!.PlanetAt(planet.Coordinates)!, planet.Coordinates, template, capacities)))
+                : FromEmpire(Column(planet)!, planet.Coordinates, template, capacities)))
             .ToList();
     }
 

@@ -22,7 +22,7 @@ public sealed class ShipyardService(OwnPlanetService ownPlanets, IActionQueues q
         IOgamexClient client,
         IReadOnlyCollection<PlanetId> planets,
         string unitType,
-        int quantity,
+        long quantity,
         IProgress<ShipOrderResult>? progress = null,
         CancellationToken cancellationToken = default)
     {
@@ -33,7 +33,7 @@ public sealed class ShipyardService(OwnPlanetService ownPlanets, IActionQueues q
     }
 
     private async Task<IReadOnlyList<ShipOrderResult>> OrderOnPlanetsAsync(
-        IOgamexClient client, IReadOnlyCollection<PlanetId> planets, UnitInfo unit, int quantity, IProgress<ShipOrderResult>? progress, CancellationToken cancellationToken)
+        IOgamexClient client, IReadOnlyCollection<PlanetId> planets, UnitInfo unit, long quantity, IProgress<ShipOrderResult>? progress, CancellationToken cancellationToken)
     {
         var name = unit.Name;
         var refresh = await ownPlanets.RefreshAsync(client, cancellationToken).ConfigureAwait(false);

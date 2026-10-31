@@ -167,4 +167,20 @@ public class SimulatedPlannerTests
         Assert.True(push.WaitsForLevels);
         Assert.Null(push.Needs);
     }
+
+    [Fact]
+    public void The_queue_is_free_after_the_running_item_and_the_items_after_it()
+    {
+        var state = State(
+            levels: new() { [BuildingType.MetalMine] = 10 },
+            queue: [new QueuedBuilding(BuildingType.MetalMine, 11, Started: true)],
+            planet: Colony) with
+        {
+            RunningRemaining = TimeSpan.FromHours(1),
+            NextLevelDurations = new Dictionary<BuildingType, TimeSpan> { [BuildingType.CrystalMine] = TimeSpan.FromMinutes(30) }
+        };
+
+        Assert.Equal(TimeSpan.FromHours(1), SimulatedPlanner.QueueFreeIn(state, []));
+        Assert.Equal(TimeSpan.FromHours(1.5), SimulatedPlanner.QueueFreeIn(state, [new PlannedUpgrade(BuildingType.CrystalMine, 1, ResourceSet.Zero)]));
+    }
 }

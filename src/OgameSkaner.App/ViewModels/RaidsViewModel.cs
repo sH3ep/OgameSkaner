@@ -28,6 +28,9 @@ public sealed partial class RaidsViewModel : PageViewModel
     private bool _loading;
     private IReadOnlyList<RaidTarget> _targets = [];
 
+    /// <summary>The farming events switched on and off so far; the statistics leave their reports out.</summary>
+    private IReadOnlyList<FarmingEventPeriod> _farmingEvents = [];
+
     /// <summary>The ticked origin planets, including ticked planets missing from the list (e.g. before a refresh).</summary>
     private HashSet<string> _originPlanetIds = [];
 
@@ -64,7 +67,7 @@ public sealed partial class RaidsViewModel : PageViewModel
 
     public ObservableCollection<RaidTargetItemViewModel> Targets { get; } = [];
 
-    /// <summary>The own planets with a checkbox: fleets may leave from the ticked ones when sending from the nearest planet.</summary>
+    /// <summary>The own planets and moons with a checkbox: fleets may leave from the ticked ones when sending from the nearest one.</summary>
     public ObservableCollection<PlanetSelectionItemViewModel> OriginPlanets { get; } = [];
 
     public ObservableCollection<string> Log { get; } = [];
@@ -135,6 +138,16 @@ public sealed partial class RaidsViewModel : PageViewModel
     [ObservableProperty]
     private int _highValueDropReports;
 
+    /// <summary>An inactive farming event is on: the raider spies widely (switched on and off by hand).</summary>
+    [ObservableProperty]
+    private bool _farmingEventActive;
+
+    [ObservableProperty]
+    private int _farmingEventRespyMinutes;
+
+    [ObservableProperty]
+    private string? _farmingEventInfo;
+
     /// <summary>Show only targets that need a spy, are waiting for one or are ready.</summary>
     [ObservableProperty]
     private bool _hideRejected;
@@ -187,7 +200,7 @@ public sealed partial class RaidsViewModel : PageViewModel
             case nameof(HideRejected) or nameof(GalaxyFrom) or nameof(GalaxyTo) or nameof(SystemFrom) or nameof(SystemTo) or nameof(MaxRankingDefensePoints):
                 ShowTargets();
                 break;
-            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip):
+            case nameof(TargetsInfo) or nameof(StatusText) or nameof(IsBusy) or nameof(DefenseRankingInfo) or nameof(SelectedCargoShip) or nameof(FarmingEventInfo):
                 break;
             default:
                 if (!_loading && _loadedUniverse is not null)
@@ -297,6 +310,31 @@ public sealed partial class RaidsViewModel : PageViewModel
         CargoShipsChanged();
     }
 
+    partial void OnFarmingEventActiveChanged(bool value)
+    {
+        if (_loading || _loadedUniverse is null)
+            return;
+
+        // Saved by OnPropertyChanged right after; the running raider reads it on its next cycle, which starts now.
+        var now = DateTimeOffset.Now;
+        _farmingEvents = value
+            ? [.. _farmingEvents.Where(e => e.End is not null), new FarmingEventPeriod(now)]
+            : _farmingEvents.Select(e => e.End is null ? e with { End = now } : e).ToList();
+        // Ended events older than the longest statistics window don't matter any more.
+        _farmingEvents = _farmingEvents.Where(e => e.End is not { } end || end > now.AddDays(-90)).ToList();
+        ShowFarmingEventInfo();
+        AddLog(value ? "Inactive farming event switched on: spying widely, bans ignored" : "Inactive farming event switched off");
+        if (RunCommand.IsRunning)
+            _runner.CheckNow();
+    }
+
+    private void ShowFarmingEventInfo() =>
+        FarmingEventInfo = _farmingEvents.LastOrDefault(e => e.End is null) is { } active
+            ? $"On since {active.Start.ToLocalTime():g}"
+            : _farmingEvents.LastOrDefault() is { End: { } end } last
+                ? $"Last one {last.Start.ToLocalTime():g} – {end.ToLocalTime():g}"
+                : null;
+
     private void CargoShipsChanged()
     {
         if (!_loading && _loadedUniverse is not null)
@@ -361,12 +399,14 @@ public sealed partial class RaidsViewModel : PageViewModel
         CargoShipsChanged();
     }
 
-    /// <summary>New planets come unticked.</summary>
+    /// <summary>The planets, then the moons; new ones come unticked.</summary>
     private void ShowOriginPlanets(OwnPlanetList list)
     {
         OriginPlanets.Clear();
         foreach (var planet in list.Planets)
             OriginPlanets.Add(new PlanetSelectionItemViewModel(planet, _originPlanetIds.Contains(planet.Id.Value), OnOriginSelectionChanged));
+        foreach (var moon in list.Moons)
+            OriginPlanets.Add(new PlanetSelectionItemViewModel(moon, _originPlanetIds.Contains(moon.Id.Value), OnOriginSelectionChanged, isMoon: true));
     }
 
     /// <summary>Starts the running loop's next cycle now instead of at its "Next check" time.</summary>
@@ -497,6 +537,10 @@ public sealed partial class RaidsViewModel : PageViewModel
             LowResourceRepeatBanDays = settings.LowResourceRepeatBanDays;
             HighValueLootFactor = settings.HighValueLootFactor;
             HighValueDropReports = settings.HighValueDropReports;
+            _farmingEvents = settings.FarmingEvents;
+            FarmingEventActive = settings.ActiveFarmingEvent is not null;
+            FarmingEventRespyMinutes = settings.FarmingEventRespyMinutes;
+            ShowFarmingEventInfo();
         }
         finally
         {
@@ -543,6 +587,8 @@ public sealed partial class RaidsViewModel : PageViewModel
         LowResourceRepeatBanDays = Math.Max(0, LowResourceRepeatBanDays),
         HighValueLootFactor = Math.Max(0, HighValueLootFactor),
         HighValueDropReports = Math.Max(1, HighValueDropReports),
+        FarmingEvents = _farmingEvents,
+        FarmingEventRespyMinutes = Math.Max(0, FarmingEventRespyMinutes),
         TestMode = TestMode
     };
 

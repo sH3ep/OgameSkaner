@@ -132,7 +132,7 @@ public sealed class SimulatedBuildRunner(
 
             var toRead = new List<OwnPlanet>();
             var now = timeProvider.GetUtcNow();
-            var empire = await ReadEmpireAsync(queue, client, run, cancellationToken).ConfigureAwait(false);
+            var (empire, empireReadAt) = await ReadEmpireAsync(queue, client, run, cancellationToken).ConfigureAwait(false);
             foreach (var planet in planets)
             {
                 var memory = run.Planet(planet.Id);
@@ -171,7 +171,7 @@ public sealed class SimulatedBuildRunner(
                 try
                 {
                     var demands = planets.ToDictionary(p => p.Id, p => run.Planet(p.Id).Demand);
-                    var shared = await sharing.RunAsync(client, own.Planets, empire, demands, share, run.Report, cancellationToken: cancellationToken).ConfigureAwait(false);
+                    var shared = await sharing.RunAsync(client, own.Planets, empire, demands, share, run.Report, empireReadAt, cancellationToken: cancellationToken).ConfigureAwait(false);
                     if (shared.WakeIn is { } w && (nextIn is null || w < nextIn))
                         nextIn = w;
                 }
@@ -193,18 +193,23 @@ public sealed class SimulatedBuildRunner(
 
     /// <summary>
     /// The empire page (one request, no planet switch), which tells which planets changed since they were read; null
-    /// when it can't be read, then every planet is read.
+    /// when it can't be read, then every planet is read. Also when it was requested: the resource sharing counts the
+    /// transports that landed after that as still on their way.
     /// </summary>
-    private static async Task<EmpirePage?> ReadEmpireAsync(IActionQueue queue, IOgamexClient client, Run run, CancellationToken cancellationToken)
+    private async Task<(EmpirePage? Page, DateTimeOffset ReadAt)> ReadEmpireAsync(IActionQueue queue, IOgamexClient client, Run run, CancellationToken cancellationToken)
     {
         try
         {
-            return await queue.RunAsync(Owner, "Read the empire page", ct => client.GetEmpireAsync(ct), cancellationToken: cancellationToken).ConfigureAwait(false);
+            return await queue.RunAsync(Owner, "Read the empire page", async ct =>
+            {
+                var readAt = timeProvider.GetUtcNow();
+                return ((EmpirePage?)await client.GetEmpireAsync(ct).ConfigureAwait(false), readAt);
+            }, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         catch (OgamexException ex) when (ex is not SessionExpiredException)
         {
             run.Report($"Reading the empire page failed, reading every planet: {ex.Message}");
-            return null;
+            return (null, timeProvider.GetUtcNow());
         }
     }
 
@@ -348,7 +353,8 @@ public sealed class SimulatedBuildRunner(
         var push = SimulatedPlanner.Push(state, steps, shipyard, QueueCapacity);
         var keep = push.Actions.Aggregate(SimulatedPlanner.Reserved(state), (sum, a) => sum + CostOf(a))
                    + Sum(SimulatedPlanner.StepCosts(state, steps, push.StepsPushed, run.ShareNextItems, shipyard));
-        memory.Demand = new ShareDemand(keep, push.Needs is not null ? keep : null);
+        var pushed = push.Actions.OfType<SimulatedAction.Upgrade>().Select(u => new PlannedUpgrade(u.Building, u.Level, u.Cost));
+        memory.Demand = new ShareDemand(keep, push.Needs is not null ? keep : null, timeProvider.GetUtcNow() + SimulatedPlanner.QueueFreeIn(state, pushed));
         foreach (var action in push.Actions)
         {
             if (!await SendAsync(client, planet, action, shipyard, pendingSatellites, memory, run, cancellationToken).ConfigureAwait(false))
@@ -453,7 +459,7 @@ public sealed class SimulatedBuildRunner(
         var push = state.Queue.Count >= QueueCapacity ? [] : SimulatedPlanner.AffordablePrefix(state, plan.Upgrades);
         var keep = SimulatedPlanner.Reserved(state) + Sum(plan.Upgrades.Take(push.Count + run.ShareNextItems).Select(u => u.Cost));
         var waitsForStock = push.Count < plan.Upgrades.Count && state.Queue.Count + push.Count < QueueCapacity;
-        memory.Demand = new ShareDemand(keep, waitsForStock ? keep : null);
+        memory.Demand = new ShareDemand(keep, waitsForStock ? keep : null, timeProvider.GetUtcNow() + SimulatedPlanner.QueueFreeIn(state, push));
         foreach (var upgrade in push)
         {
             var name = $"{BuildingCatalog.Get(upgrade.Building).DisplayName} {upgrade.Level}";

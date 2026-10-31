@@ -26,19 +26,21 @@ public class RaidStoreTests : IDisposable
     public void Settings_default_until_saved_then_round_trip()
     {
         // The lists compare by reference.
-        static RaidSettings WithoutLists(RaidSettings s) => s with { CargoShipTypes = [], OriginPlanetIds = [] };
+        static RaidSettings WithoutLists(RaidSettings s) => s with { CargoShipTypes = [], OriginPlanetIds = [], FarmingEvents = [] };
         Assert.Equal(WithoutLists(RaidSettings.Default), WithoutLists(Store().LoadSettings("tron")));
 
         var settings = RaidSettings.Default with
         {
             MaxDefensePoints = 50, CargoShipType = "LIGHT_CARGO", CargoShipTypes = ["LIGHT_CARGO", "HEAVY_CARGO"], UseNearestPlanet = true,
-            OriginPlanetIds = ["p1", "p2"]
+            OriginPlanetIds = ["p1", "p2"],
+            FarmingEvents = [new FarmingEventPeriod(new DateTimeOffset(2026, 10, 1, 12, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 10, 2, 12, 0, 0, TimeSpan.Zero)), new FarmingEventPeriod(new DateTimeOffset(2026, 10, 28, 8, 0, 0, TimeSpan.Zero))]
         };
         Store().SaveSettings("tron", settings);
 
         var loaded = Store().LoadSettings("tron");
         Assert.Equal(settings.CargoShipTypes, loaded.CargoShipTypes);
         Assert.Equal(settings.OriginPlanetIds, loaded.OriginPlanetIds);
+        Assert.Equal(settings.FarmingEvents, loaded.FarmingEvents);
         Assert.Equal(WithoutLists(settings), WithoutLists(loaded));
         Assert.Empty(Store().LoadSettings("other").OriginPlanetIds);
     }

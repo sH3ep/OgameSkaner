@@ -89,7 +89,7 @@ internal sealed class OgamexClient : IOgamexClient
             .Select(row => new PlayerPlanet(
                 row.PlayerName, new Coordinates(address.Galaxy, address.System, row.Position), row.HasMoon, scannedAt, row.Status, row.PlayerId, row.Rank))
             .ToList();
-        return new GalaxySystemView(planets, AsteroidParser.ParseGalaxy(html, address, scannedAt));
+        return new GalaxySystemView(planets, AsteroidParser.ParseGalaxy(html, address, scannedAt), DebrisParser.Parse(html));
     }
 
     public async Task<IReadOnlyList<AsteroidHint>> GetAsteroidHintsAsync(CancellationToken cancellationToken = default)
@@ -357,10 +357,10 @@ internal sealed class OgamexClient : IOgamexClient
         return state;
     }
 
-    public Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, int quantity, CancellationToken cancellationToken = default) =>
+    public Task<EnqueueOutcome> BuildShipsAsync(PlanetId planet, string shipType, long quantity, CancellationToken cancellationToken = default) =>
         OrderUnitsAsync(planet, "hangar", "hangar/createship", new CreateShipRequest(shipType, quantity, planet.Value), cancellationToken);
 
-    public Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, int quantity, CancellationToken cancellationToken = default) =>
+    public Task<EnqueueOutcome> BuildDefensesAsync(PlanetId planet, string defenseType, long quantity, CancellationToken cancellationToken = default) =>
         OrderUnitsAsync(planet, "defense", "defense/createdefense", new CreateDefenseRequest(defenseType, quantity, planet.Value), cancellationToken);
 
     private async Task<EnqueueOutcome> OrderUnitsAsync<TBody>(PlanetId planet, string page, string action, TBody body, CancellationToken cancellationToken)

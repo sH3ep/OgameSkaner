@@ -71,7 +71,7 @@ public static class TargetStatistics
     {
         var since = WindowStart(now, settings);
         var attacks = Attacks(raids, since, now);
-        return InWindow(reports, since, now)
+        return InWindow(reports, since, now, settings)
             .GroupBy(r => r.Target)
             .ToDictionary(g => g.Key, g =>
             {
@@ -84,7 +84,7 @@ public static class TargetStatistics
                     list[^1].Time,
                     list[^1].TotalResources,
                     Median(list.Select(r => r.TotalResources).ToList()),
-                    RefillPerHour(list, landed),
+                    RefillPerHour(list, landed, settings.FarmingEventBetween),
                     landed.Count,
                     landed.Sum(a => a.ExpectedLoot),
                     HighValue(list, settings));
@@ -152,7 +152,7 @@ public static class TargetStatistics
         var windowStart = WindowStart(now, settings);
         var attacks = Attacks(raids, windowStart, now);
         var result = new List<TargetBan>();
-        foreach (var group in InWindow(reports, windowStart, now).GroupBy(r => r.Target))
+        foreach (var group in InWindow(reports, windowStart, now, settings).GroupBy(r => r.Target))
         {
             if (ActiveBan(bans, group.Key, now) is not null)
                 continue;
@@ -168,7 +168,7 @@ public static class TargetStatistics
             if (best >= settings.MinLoot)
                 continue;
 
-            var refill = RefillPerHour(list, attacks.GetValueOrDefault(group.Key) ?? []);
+            var refill = RefillPerHour(list, attacks.GetValueOrDefault(group.Key) ?? [], settings.FarmingEventBetween);
             var hours = Math.Max(1, settings.LowLootRespyHours);
             if (refill is { } perHour && (long)(perHour * hours * (settings.LootPercent / 100.0)) >= settings.MinLoot)
                 continue;
@@ -188,8 +188,12 @@ public static class TargetStatistics
     public static TargetBan? ActiveBan(IReadOnlyList<TargetBan> bans, Coordinates target, DateTimeOffset now) =>
         bans.Where(b => b.Target == target && b.IsActive(now)).MaxBy(b => b.Until);
 
-    /// <summary>The median gain per hour between consecutive reports, our attacks' loot added back; null without a pair.</summary>
-    public static long? RefillPerHour(IReadOnlyList<EspionageReport> ordered, IReadOnlyList<RaidRecord> attacks)
+    /// <summary>
+    /// The median gain per hour between consecutive reports, our attacks' loot added back; null without a pair. A pair
+    /// with a farming event between them (<paramref name="eventBetween"/>) isn't measured: the gain may be the boost.
+    /// </summary>
+    public static long? RefillPerHour(
+        IReadOnlyList<EspionageReport> ordered, IReadOnlyList<RaidRecord> attacks, Func<DateTimeOffset, DateTimeOffset, bool>? eventBetween = null)
     {
         var gains = new List<long>();
         EspionageReport? previous = null;
@@ -197,7 +201,7 @@ public static class TargetStatistics
         {
             if (previous is not null && report.Time - previous.Time < MinRefillGap)
                 continue; // too close: keep measuring from the earlier one
-            if (previous is not null)
+            if (previous is not null && eventBetween?.Invoke(previous.Time, report.Time) != true)
             {
                 var taken = attacks.Where(a => a.ArrivesAt > previous.Time && a.ArrivesAt <= report.Time).Sum(a => a.ExpectedLoot);
                 var left = Math.Max(0, previous.TotalResources - taken);
@@ -213,8 +217,9 @@ public static class TargetStatistics
 
     private static DateTimeOffset WindowStart(DateTimeOffset now, RaidSettings settings) => now.AddDays(-Math.Max(1, settings.StatsDays));
 
-    private static IEnumerable<EspionageReport> InWindow(IEnumerable<EspionageReport> reports, DateTimeOffset since, DateTimeOffset now) =>
-        reports.Where(r => r.TargetType == PlanetType.Planet && r.Time >= since && r.Time <= now);
+    /// <summary>The planet reports of the window, without those of a farming event (the boosts aren't the planets' own).</summary>
+    private static IEnumerable<EspionageReport> InWindow(IEnumerable<EspionageReport> reports, DateTimeOffset since, DateTimeOffset now, RaidSettings settings) =>
+        reports.Where(r => r.TargetType == PlanetType.Planet && r.Time >= since && r.Time <= now && !settings.InFarmingEvent(r.Time));
 
     private static Dictionary<Coordinates, List<RaidRecord>> Attacks(IEnumerable<RaidRecord> raids, DateTimeOffset since, DateTimeOffset now) =>
         raids.Where(r => r.Mission == MissionType.Attack && r.TargetType == PlanetType.Planet && r.ArrivesAt >= since && r.ArrivesAt <= now)

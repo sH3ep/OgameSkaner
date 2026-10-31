@@ -115,6 +115,13 @@
 
                     <CheckBox Content="Reserve the expeditions' fleet slots" Margin="0,0,0,4" IsChecked="{Binding ReserveSlots}"
                               ToolTip="While running, the slots of all configured expeditions stay theirs: the ones not in the air count as used for Raids, Asteroids, the Builder and Moons, so no other module takes a returning expedition's slot. Applies at the next start." />
+                    <CheckBox Content="Send Recyclers to debris at position 16" Margin="0,0,0,4" IsChecked="{Binding CollectDebris}"
+                              ToolTip="After an expedition reaches position 16 (fights with pirates or aliens leave a debris field there), read the origin's system and send Recyclers from the origin: as many as the debris fills, at most the ones at home. They take a fleet slot; the slots kept free stay free." />
+                    <StackPanel Orientation="Horizontal" Margin="20,0,0,4" IsEnabled="{Binding CollectDebris}">
+                        <TextBlock Text="Smallest debris field" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox Width="100" Text="{Binding MinDebris, Converter={StaticResource GroupedNumber}}"
+                                 ToolTip="Metal + crystal + deuterium; smaller fields get no Recyclers" />
+                    </StackPanel>
                     <CheckBox Content="Start with the app" Margin="0,0,0,4" IsChecked="{Binding AutoStart}"
                               ToolTip="Start sending when the app starts or this universe gets selected" />
                     <CheckBox Content="Test mode (don't send fleets)" Margin="0,0,0,6" FontWeight="SemiBold" IsChecked="{Binding TestMode}"

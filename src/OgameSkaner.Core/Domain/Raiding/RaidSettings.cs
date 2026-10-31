@@ -59,12 +59,12 @@ public sealed record RaidSettings
     public long? MaxRankingDefensePoints { get; init; }
 
     /// <summary>
-    /// Send each attack and spy from the nearest planet of <see cref="OriginPlanetIds"/> that has the ships, instead of
-    /// the current planet; <see cref="NearestTargetsFirst"/> then measures from the nearest of them.
+    /// Send each attack and spy from the nearest planet or moon of <see cref="OriginPlanetIds"/> that has the ships,
+    /// instead of the current planet; <see cref="NearestTargetsFirst"/> then measures from the nearest of them.
     /// </summary>
     public bool UseNearestPlanet { get; init; }
 
-    /// <summary>The planets (ids) fleets may leave from with <see cref="UseNearestPlanet"/>; empty = none.</summary>
+    /// <summary>The planets and moons (ids) fleets may leave from with <see cref="UseNearestPlanet"/>; empty = none.</summary>
     public IReadOnlyList<string> OriginPlanetIds { get; init; } = [];
 
     /// <summary>
@@ -106,6 +106,29 @@ public sealed record RaidSettings
     /// <summary>Later reports in a row with loot below <see cref="MinLoot"/> that end the mark (it was a one-time stock).</summary>
     public int HighValueDropReports { get; init; } = 2;
 
+    /// <summary>
+    /// The game's inactive farming events, as the player switched them on and off (random inactives get resources).
+    /// While one is on (<see cref="ActiveFarmingEvent"/>) the raider ignores the low-resource bans, re-spies low-loot
+    /// planets after <see cref="FarmingEventRespyMinutes"/> (at once when their report is from before the event), spies
+    /// on the planets without a report of the event first and in every fleet slot but one. The statistics and bans
+    /// leave the reports of every event out, so the boosts don't count as the planets' stock or refill.
+    /// </summary>
+    public IReadOnlyList<FarmingEventPeriod> FarmingEvents { get; init; } = [];
+
+    /// <summary>The low-loot re-spy delay during an inactive farming event.</summary>
+    public int FarmingEventRespyMinutes { get; init; } = 60;
+
+    /// <summary>The farming event switched on and not off yet; null when none.</summary>
+    [JsonIgnore]
+    public FarmingEventPeriod? ActiveFarmingEvent => FarmingEvents.LastOrDefault(e => e.End is null);
+
+    /// <summary>Whether <paramref name="time"/> falls into a farming event.</summary>
+    public bool InFarmingEvent(DateTimeOffset time) => FarmingEvents.Any(e => e.Contains(time));
+
+    /// <summary>Whether a farming event lies (at least partly) between <paramref name="from"/> and <paramref name="to"/>.</summary>
+    public bool FarmingEventBetween(DateTimeOffset from, DateTimeOffset to) =>
+        FarmingEvents.Any(e => e.Start < to && (e.End is not { } end || end > from));
+
     /// <summary>Do everything except sending fleets: log what would be sent. Not saved.</summary>
     [JsonIgnore]
     public bool TestMode { get; init; }
@@ -114,4 +137,10 @@ public sealed record RaidSettings
     public TimeSpan ReportMaxAge => TimeSpan.FromMinutes(Math.Max(1, ReportMaxAgeMinutes));
 
     public static RaidSettings Default { get; } = new();
+}
+
+/// <summary>An inactive farming event, from when the player switched it on until they switched it off (null = still on).</summary>
+public sealed record FarmingEventPeriod(DateTimeOffset Start, DateTimeOffset? End = null)
+{
+    public bool Contains(DateTimeOffset time) => time >= Start && (End is not { } end || time < end);
 }

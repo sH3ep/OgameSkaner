@@ -163,7 +163,7 @@ public class RaidRunnerTests
         await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, UseNearestPlanet = true });
 
         Assert.Empty(_client.SentMissions);
-        Assert.Contains(_log, l => l.StartsWith("No planet is ticked", StringComparison.Ordinal));
+        Assert.Contains(_log, l => l.StartsWith("No planet or moon is ticked",StringComparison.Ordinal));
     }
 
     [Fact]
@@ -180,14 +180,14 @@ public class RaidRunnerTests
     }
 
     [Fact]
-    public async Task Nearest_targets_first_spies_on_the_closest_inactives()
+    public async Task Nearest_targets_first_still_spies_on_the_best_ranked_inactives_first()
     {
         _client.Fleets[Home.Id] = Fleet(Home, heavyCargo: 100, slotsUsed: 8); // spies get all but one: 2 of 11 left
 
         await RunCycleAsync(RaidSettings.Default);
 
-        // From Home 8:260:3: Second (same galaxy), then Third (galaxy 1, two steps with the wrap), not Rich (galaxy 5, three steps)
-        Assert.Equal([Second.Coordinates, Third.Coordinates], _client.SentMissions.Select(m => m.Target));
+        // Rank 31 and 909, although from Home 8:260:3 Third (galaxy 1) is nearer than Rich (galaxy 5).
+        Assert.Equal([Rich.Coordinates, Second.Coordinates], _client.SentMissions.Select(m => m.Target));
     }
 
     [Fact]
@@ -306,6 +306,36 @@ public class RaidRunnerTests
         var index = _client.SentMissions.FindIndex(m => m.Mission == MissionType.Attack);
         Assert.Equal(Colony.Id, _client.SentOrigins[index]);
         Assert.Equal([new ShipStack("HEAVY_CARGO", 121)], _client.SentMissions[index].Ships);
+    }
+
+    [Fact]
+    public async Task With_nearest_planet_a_ticked_moon_sends_with_its_own_ships()
+    {
+        // The moon shares the colony's coordinates; the colony itself has no cargo ships and isn't ticked.
+        var moon = new OwnPlanet(new PlanetId("m2"), "Moon", Colony.Coordinates);
+        _client.OwnMoons.Add(moon);
+        _client.Fleets[moon.Id] = Fleet(moon, heavyCargo: 500, slotsUsed: 0);
+        AddReport(Rich, resources: new ResourceSet(4_000_000, 1_000_000, 500_000), defense: 0, fleet: 0);
+
+        await RunCycleAsync(RaidSettings.Default with { MinLoot = 1, MaxAttacksPerTarget = 1, UseNearestPlanet = true, OriginPlanetIds = [Home.Id.Value, moon.Id.Value] });
+
+        var index = _client.SentMissions.FindIndex(m => m.Mission == MissionType.Attack);
+        Assert.Equal(moon.Id, _client.SentOrigins[index]);
+        Assert.Equal([new ShipStack("HEAVY_CARGO", 121)], _client.SentMissions[index].Ships);
+    }
+
+    [Fact]
+    public async Task Without_nearest_planet_a_selected_moon_is_the_origin()
+    {
+        var moon = new OwnPlanet(new PlanetId("m1"), "Moon", Home.Coordinates);
+        _client.OwnMoons.Add(moon);
+        _client.Fleets[moon.Id] = Fleet(moon, heavyCargo: 100, slotsUsed: 8);
+        _client.CurrentPlanet = moon.Id;
+
+        await RunCycleAsync(RaidSettings.Default with { NearestTargetsFirst = false });
+
+        Assert.NotEmpty(_client.SentMissions);
+        Assert.All(_client.SentOrigins, o => Assert.Equal(moon.Id, o));
     }
 
     [Fact]

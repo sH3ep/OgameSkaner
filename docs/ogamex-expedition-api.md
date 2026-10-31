@@ -42,3 +42,20 @@ The account this was written on has no moon, so the sidebar markup of moons is *
 `BuildingPageParser.ParseMoons` takes the `?planet=` links of `#planet-selection` that `ParsePlanets` skips as moons
 (a `moon` class on the link or its parents), with the coordinates of the planet entry they're in. Check it with
 `Ogamex:DumpResponsesDirectory` once a moon exists. A moon is selected with `?planet=<moon id>` like a planet.
+
+## Debris fields (Recyclers)
+Seen on genesis on 2026-10-22 (galaxy pages of galaxy 4, the fleet page's script).
+
+- **Galaxy page:** a row's `div.galaxy-col.col-debris` holds a `div.tooltip_sticky` icon (`galaxy-icon-kit.gif`
+  sprite) whose `data-tooltip-content` reads "Debris field" and one `clearFix` line per resource: a div with the image
+  `/assets/images/resource/metal.png` (or `crystal.png`) and a `span` with the amount (`4.956.800`). A metal line with
+  `0` is still shown. `DebrisParser` goes by the images (labels follow the language). The header row's `col-debris`
+  (`header-col`, text "DF") has no resources. Position 16's column also shows `div.fleetActionIcon.fleetActionFriendly`
+  while own fleets are there. A debris field at position 16 itself wasn't seen yet; the fixture assumes the same icon
+  next to the fleet icon.
+- **Target type:** `window.planetType_DEBRIS_FIELD_Value = 3` on the fleet page (`PlanetType.DebrisField`), mission 3
+  (Recycle). The briefing for Recycle to a debris field wasn't seen with Recyclers yet (the planet read had none:
+  "Ships not found."), so the runner checks that `AvailableMissions` contains 3 before it sends.
+- The galaxy page's own shortcut `POST /galaxy/sendrecyclers {X, Y, Z}` (`galaxy.js`) sends Recyclers from the current
+  planet with a count the server picks; the runner doesn't use it, since it sends from a chosen origin with a counted
+  number.

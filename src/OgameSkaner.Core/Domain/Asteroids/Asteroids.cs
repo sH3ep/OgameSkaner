@@ -49,4 +49,8 @@ public sealed record AsteroidMission(
     DateTimeOffset? RecalledAt = null);
 
 /// <summary>One solar system of the galaxy view: the players' planets and the asteroid at position 17, if any.</summary>
-public sealed record GalaxySystemView(IReadOnlyList<PlayerPlanet> Planets, Asteroid? Asteroid);
+/// <param name="Debris">The debris fields per position (position 16 too); empty when there are none.</param>
+public sealed record GalaxySystemView(IReadOnlyList<PlayerPlanet> Planets, Asteroid? Asteroid, IReadOnlyDictionary<int, ResourceSet>? Debris = null)
+{
+    public ResourceSet DebrisAt(int position) => Debris?.GetValueOrDefault(position) ?? ResourceSet.Zero;
+}

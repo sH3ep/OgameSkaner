@@ -35,7 +35,7 @@
                         <Button Content="Load reports" Command="{Binding ReadReportsCommand}" MinWidth="0"
                                 ToolTip="Read the new asteroid mining reports from the game's messages" />
                         <Button Content="Send miners" Command="{Binding SendSelectedCommand}" MinWidth="0"
-                                ToolTip="Send miners to the selected open asteroid from the nearest planet that has enough" />
+                                ToolTip="Send miners to the selected open asteroid from the nearest planet or moon that has enough" />
                         <Button Content="Fleet recalled" Command="{Binding MarkRecalledCommand}" MinWidth="0"
                                 ToolTip="You turned back the miners sent to the selected asteroid: it counts as open again, so the miner (or Send miners) sends to it once more" />
                     </StackPanel>

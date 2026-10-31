@@ -86,6 +86,25 @@ public class TargetStatisticsTests
     }
 
     [Fact]
+    public void Farming_event_reports_and_refills_across_an_event_are_left_out()
+    {
+        // Event from -15 h to -12 h: the boosted report and the gain across it would read as stock and refill.
+        var settings = Settings with { FarmingEvents = [new FarmingEventPeriod(Now.AddHours(-15), Now.AddHours(-12))] };
+        IReadOnlyList<EspionageReport> reports =
+            [Report(A, -30, 1_000_000), Report(A, -20, 2_000_000), Report(A, -14, 90_000_000), Report(A, -10, 30_000_000)];
+
+        var stats = TargetStatistics.Compute(reports, [], Now, settings)[A];
+
+        Assert.Equal(3, stats.Reports);
+        Assert.Equal(100_000, stats.RefillPerHour); // -30 → -20 only
+        Assert.Equal(Now.AddHours(-10), stats.HighValue?.Since); // not the event's 90M
+
+        // Poor reports during the event don't ban.
+        var eventNow = Settings with { FarmingEvents = [new FarmingEventPeriod(Now.AddHours(-40))] };
+        Assert.Empty(TargetStatistics.NewBans([Report(B, -30, 1_000_000), Report(B, -20, 1_200_000), Report(B, -10, 1_100_000)], [], [], Now, eventNow));
+    }
+
+    [Fact]
     public void A_big_report_marks_a_planet_high_value_until_poor_reports_in_a_row_follow()
     {
         // Loot is half the stock: 12M stock = 6M loot, at least 5 × 1M.

@@ -72,6 +72,13 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
     [ObservableProperty]
     private bool _reserveSlots;
 
+    /// <summary>Send Recyclers to the debris fields expedition fights leave at position 16.</summary>
+    [ObservableProperty]
+    private bool _collectDebris;
+
+    [ObservableProperty]
+    private long _minDebris;
+
     [ObservableProperty]
     private int _checkIntervalMinutes;
 
@@ -233,6 +240,8 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
             SpeedPercent = settings.SpeedPercent;
             KeepFleetSlotsFree = settings.KeepFleetSlotsFree;
             ReserveSlots = settings.ReserveSlots;
+            CollectDebris = settings.CollectDebris;
+            MinDebris = settings.MinDebris;
             CheckIntervalMinutes = settings.CheckIntervalMinutes;
             AutoStart = settings.AutoStart;
 
@@ -298,6 +307,8 @@ public sealed partial class ExpeditionsViewModel : PageViewModel
         SpeedPercent = Math.Clamp(SpeedPercent, 10, 100),
         KeepFleetSlotsFree = Math.Max(0, KeepFleetSlotsFree),
         ReserveSlots = ReserveSlots,
+        CollectDebris = CollectDebris,
+        MinDebris = Math.Max(0, MinDebris),
         CheckIntervalMinutes = Math.Max(1, CheckIntervalMinutes),
         AutoStart = AutoStart,
         TestMode = TestMode

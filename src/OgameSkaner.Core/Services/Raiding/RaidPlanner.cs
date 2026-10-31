@@ -143,7 +143,9 @@ public static class RaidPlanner
         if (spy is not null && !reportAfterSpy && spy.ArrivesAt + ReportDelay > now)
             return Target(RaidTargetState.SpyPending);
 
-        if (ban is not null)
+        // During a farming event a banned planet may have been boosted too.
+        var farmingEvent = settings.ActiveFarmingEvent;
+        if (ban is not null && farmingEvent is null)
             return Target(RaidTargetState.LowResource, $"low resource ({ban.Reason}), spied again after {ban.Until.ToLocalTime():g}");
 
         if (report is null)
@@ -165,9 +167,13 @@ public static class RaidPlanner
 
         // Too little loot in the newest report: production won't make it worth an attack soon, so don't spy again yet
         // (a top or high-value target may hold a lot again soon, so sooner).
+        // During a farming event any planet may get resources at any time: soon, and at once after a report from before it.
         var respyHours = isTop || stats?.HighValue is not null ? Math.Min(settings.TopRespyHours, settings.LowLootRespyHours) : settings.LowLootRespyHours;
-        if (loot < settings.MinLoot && !attackedSince && respyHours > 0
-            && report.Time + TimeSpan.FromHours(respyHours) is var respyAt && respyAt > now)
+        var respyAfter = farmingEvent is null ? TimeSpan.FromHours(respyHours)
+            : report.Time < farmingEvent.Start ? TimeSpan.Zero
+            : TimeSpan.FromMinutes(Math.Max(0, settings.FarmingEventRespyMinutes));
+        if (loot < settings.MinLoot && !attackedSince && respyAfter > TimeSpan.Zero
+            && report.Time + respyAfter is var respyAt && respyAt > now)
             return Target(RaidTargetState.TooLittleLoot, $"spied again after {respyAt.ToLocalTime():g}");
 
         if (report.Time < now - settings.ReportMaxAge)
@@ -233,6 +239,44 @@ public static class RaidPlanner
     }
 
     /// <summary>
+    /// How many attacks each of <paramref name="targets"/> gets within <paramref name="slots"/>: every attack (first,
+    /// second, … up to <see cref="RaidSettings.MaxAttacksPerTarget"/>, a later one only while its
+    /// <see cref="WaveLoot"/> is at least <see cref="RaidSettings.MinLoot"/>) competes for a slot by its own loot per
+    /// flight time (÷ √distance from the nearest of <paramref name="from"/>; loot alone without it), so a rich planet's
+    /// second attack beats a poor planet's first. Targets without a report get one attack. Ties keep the targets' order.
+    /// </summary>
+    public static IReadOnlyDictionary<Coordinates, int> PlanAttacks(
+        IReadOnlyList<RaidTarget> targets, RaidSettings settings, int slots, IReadOnlyCollection<Coordinates> from, UniverseProfile universe)
+    {
+        var maxAttacks = Math.Max(1, settings.MaxAttacksPerTarget);
+        var attacks = new List<(Coordinates Target, int Index, int Wave, double Value)>();
+        for (var i = 0; i < targets.Count; i++)
+        {
+            var target = targets[i];
+            var weight = from.Count == 0 ? 1 : 1 / Math.Sqrt(Math.Max(1, from.Min(o => Distance(o, target.Planet.Coordinates, universe))));
+            if (target.Report is not { } report)
+            {
+                attacks.Add((target.Planet.Coordinates, i, 1, target.ExpectedLoot * weight));
+                continue;
+            }
+
+            for (var wave = 1; wave <= maxAttacks; wave++)
+            {
+                var loot = WaveLoot(report, settings, wave);
+                if (wave > 1 && (loot <= 0 || loot < settings.MinLoot))
+                    break;
+                attacks.Add((target.Planet.Coordinates, i, wave, loot * weight));
+            }
+        }
+
+        return attacks
+            .OrderByDescending(a => a.Value).ThenBy(a => a.Index).ThenBy(a => a.Wave)
+            .Take(Math.Max(0, slots))
+            .GroupBy(a => a.Target)
+            .ToDictionary(g => g.Key, g => g.Count());
+    }
+
+    /// <summary>
     /// How much later an attack landing at <paramref name="arrival"/> must land to come <see cref="MinWaveGap"/> after one
     /// landing at <paramref name="previous"/>; zero or less when it already does.
     /// </summary>
@@ -276,10 +320,11 @@ public static class RaidPlanner
     /// Fleet slots the raid cycle's spy missions may fill: none once the fleets in use (with the <paramref name="sentSince"/>
     /// sent since the slots were read) reach <see cref="RaidSettings.FleetSlotUsePercent"/>, so probes don't keep flying
     /// while the slots are full; below it every slot but one (<see cref="SpySlotBudget(FleetSlots, int)"/>), so a batch
-    /// of probes may go past the share.
+    /// of probes may go past the share. During a farming event every slot but one regardless of the share: finding the
+    /// boosted planets is what pays then.
     /// </summary>
     public static int SpySlotBudget(FleetSlots slots, RaidSettings settings, int sentSince = 0) =>
-        SlotsFull(slots, settings, sentSince) ? 0 : SpySlotBudget(slots, sentSince);
+        SlotsFull(slots, settings, sentSince) && settings.ActiveFarmingEvent is null ? 0 : SpySlotBudget(slots, sentSince);
 
     /// <summary>
     /// Whether the fleets in use (with the <paramref name="sentSince"/> sent since the slots were read) reach
@@ -320,6 +365,36 @@ public static class RaidPlanner
     public static IReadOnlyList<RaidTarget> MostLootPerFlightFirst(
         IEnumerable<RaidTarget> targets, Func<RaidTarget, long> loot, IReadOnlyCollection<Coordinates> from, UniverseProfile universe) =>
         targets.OrderByDescending(t => from.Count == 0 ? loot(t) : loot(t) / Math.Sqrt(from.Min(o => Distance(o, t.Planet.Coordinates, universe)))).ToList();
+
+    /// <summary>
+    /// The order spies go in: the top targets and then the high-value ones, both by the loot they likely hold per flight
+    /// time (<see cref="MostLootPerFlightFirst"/> on <see cref="RaidTarget.EstimatedLoot"/>), then the rest best rank
+    /// first (a player's points are what their mines produce; most targets have no report, and distance alone would
+    /// pick tiny nearby players), a player's planets by loot per flight time. The attacks then leave from the origin
+    /// nearest each target.
+    /// During a <paramref name="farmingEvent"/> the statistics don't tell who got resources: the planets without a report
+    /// of the event go first, nearest first (most planets per fleet slot hour; best rank first without
+    /// <paramref name="from"/>), then the others, oldest report first.
+    /// </summary>
+    public static IReadOnlyList<RaidTarget> SpyOrder(
+        IEnumerable<RaidTarget> targets, IReadOnlyCollection<Coordinates> from, UniverseProfile universe, FarmingEventPeriod? farmingEvent = null)
+    {
+        if (farmingEvent is not null)
+        {
+            bool SpiedInEvent(RaidTarget t) => t.Report is { } r && r.Time >= farmingEvent.Start;
+            return targets
+                .OrderBy(SpiedInEvent)
+                .ThenBy(t => SpiedInEvent(t) ? 0 : from.Count > 0 ? from.Min(o => Distance(o, t.Planet.Coordinates, universe)) : t.Planet.Rank ?? int.MaxValue)
+                .ThenBy(t => t.Report?.Time ?? DateTimeOffset.MinValue)
+                .ToList();
+        }
+
+        static int Group(RaidTarget t) => t.IsTop ? 0 : t.IsHighValue ? 1 : 2;
+        return MostLootPerFlightFirst(targets, t => t.EstimatedLoot, from, universe)
+            .OrderBy(Group)
+            .ThenBy(t => Group(t) == 2 ? t.Planet.Rank ?? int.MaxValue : 0) // stable: equal keys keep the loot order
+            .ToList();
+    }
 
     /// <summary>The nearest origin that has <paramref name="shipsNeeded"/>; otherwise the one with the most ships, or null without any.</summary>
     public static T? ChooseOrigin<T>(

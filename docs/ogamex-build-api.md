@@ -66,7 +66,7 @@ One server-rendered page with every planet and moon side by side; no further req
   and durations, free fields with the queue counted, vacation mode, energy production vs. consumption.
 - So it can't replace the building pages for the Builder/Schemas/Moons planners, but it gives every planet's levels,
   stock, storage, production, temperature and ship/defense counts in one request without switching planet.
-- Used by `EmpireFleets` (Asteroids, Raids from the nearest planet: ships per planet, fleet pages only for the slots and
+- Used by `EmpireFleets` (Asteroids, Raids from the nearest planet or moon: ships per planet and moon (moon columns by `MoonAt`), fleet pages only for the slots and
   cargo capacities), Colonization (nearest Colony Ship) and the Builder (skips planets unchanged on it, temperature).
 
 ## Live tests (2026-10-16, test account, via the browser)

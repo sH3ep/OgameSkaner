@@ -80,6 +80,24 @@ public static class ExpeditionPlanner
             .ToList();
     }
 
+    /// <summary>The ship that collects debris fields.</summary>
+    public const string RecyclerType = "RECYCLER";
+
+    /// <summary>A Recycler's base cargo, used when the fleet page's tooltip shows none.</summary>
+    public const long DefaultRecyclerCapacity = 20_000;
+
+    /// <summary>Recyclers for <paramref name="debris"/>: as many as its resources fill, at most the ones at home.</summary>
+    public static long Recyclers(ResourceSet debris, long capacityPerRecycler, long home)
+    {
+        var total = debris.Metal + debris.Crystal + debris.Deuterium;
+        var capacity = capacityPerRecycler > 0 ? capacityPerRecycler : DefaultRecyclerCapacity;
+        return Math.Clamp((total + capacity - 1) / capacity, 0, Math.Max(0, home));
+    }
+
+    /// <summary>Whether own Recyclers are on their way to <paramref name="target"/> (the event list's outbound Recycle rows).</summary>
+    public static bool Recycling(IEnumerable<FleetMovement> movements, Coordinates target) =>
+        movements.Any(m => m is { Relation: MovementRelation.Own, Mission: MovementMission.Recycle, Returning: false } && m.Target == target);
+
     /// <summary>The offered duration nearest to <paramref name="wanted"/> (the shorter one on a tie); the wish without offers.</summary>
     public static int Hold(IReadOnlyList<int> offered, int wanted) =>
         offered.Count == 0 ? wanted : offered.OrderBy(v => Math.Abs(v - wanted)).ThenBy(v => v).First();
